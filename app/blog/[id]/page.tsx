@@ -113,7 +113,16 @@ export default function BlogPost({ params }: { params: { id: string } }) {
   const [error, setError] = useState<string | null>(null)
 
   const blog = blogs.find((blog) => blog.id === params.id)
-
+  
+  interface blog {
+    contentType: "product-description" | "blog-post" | "social-media" | "email" | "ad-copy" | "blog_post"
+    title: string
+    prompt: string
+    temperature?: number
+    maxLength?: number
+    category?: string
+    description?: string
+  }
   if (!blog) {
     notFound()
   }

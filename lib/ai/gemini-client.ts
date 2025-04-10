@@ -2,7 +2,7 @@ import { GoogleGenerativeAI, HarmCategory, HarmBlockThreshold } from "@google/ge
 import { logger } from "@/lib/utils/logger"
 
 // Initialize the Gemini API client
-const apiKey = process.env.GEMINI_API_KEY || process.env.NEXT_GEMINI_API_KEY || ""
+const apiKey = process.env.GEMINI_API_KEY || process.env.NEXT_PUBLIC_GEMINI_API_KEY || ""
 const genAI = new GoogleGenerativeAI(apiKey)
 
 // Safety settings to avoid harmful content
@@ -108,7 +108,7 @@ Implementing ${category} can transform your business and help you stay ahead in 
 }
 
 // Retry logic for API calls
-async function withRetry<T>(fn: () => Promise<T>, maxRetries = 3): Promise<T> {
+async function withRetry<T>(fn: () => Promise<T>, maxRetries = 7): Promise<T> {
   let lastError: any
 
   for (let attempt = 1; attempt <= maxRetries; attempt++) {

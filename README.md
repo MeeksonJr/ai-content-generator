@@ -1,8 +1,13 @@
 # AI Content Generator SaaS Platform
 
 A powerful SaaS platform that leverages AI to automate content creation, improve SEO, and provide valuable insights into customer sentiment.
+#### Landing Page View
+![AI Content Generator Landing Page](public/ai-content-gen-landing-page-image.png)
+#### Dashboard View
+![AI Content Generator Dashboard](public/ai-content-gen-Dashboard-image.png)
 
-![AI Content Generator](https://placeholder.com/ai-content-generator.png)
+#### login to see more of our content!!!
+
 
 ## 🚀 Features
 
@@ -22,7 +27,7 @@ A powerful SaaS platform that leverages AI to automate content creation, improve
 - **Database**: PostgreSQL with Supabase
 - **Authentication**: Supabase Auth
 - **AI Services**:
-  - Gemini-2.0-Flash for content generation
+  - Gemini-2.0-Flash or higher models for content generation
   - Hugging Face API for NLP tasks (sentiment analysis, keyword extraction, summarization)
 - **Payments**: PayPal Subscriptions API
 - **Visualization**: Recharts for analytics
@@ -35,28 +40,27 @@ A powerful SaaS platform that leverages AI to automate content creation, improve
 - Supabase account
 - Gemini API key
 - Hugging Face API key
-- PayPal Developer account
+- PayPal Sandbox or live Developer account
 
 ## 🚀 Getting Started
 
 ### Installation
 
 1. Clone the repository:
-   \`\`\`bash
-   git clone https://github.com/yourusername/ai-content-generator.git
-   cd ai-content-generator
-   \`\`\`
+  ```
+  git clone https://github.com/MeeksonJr/ai-content-generator.git
+  cd ai-content-generator
+  ```
 
 2. Install dependencies:
-   \`\`\`bash
+  ```
    npm install
    # or
    yarn install
-   \`\`\`
-
+  ```
 3. Set up environment variables:
    Create a `.env.local` file in the root directory with the following variables:
-   \`\`\`
+   
    # Supabase
    NEXT_PUBLIC_SUPABASE_URL=your_supabase_url
    NEXT_PUBLIC_SUPABASE_ANON_KEY=your_supabase_anon_key
@@ -64,6 +68,7 @@ A powerful SaaS platform that leverages AI to automate content creation, improve
    
    # AI Services
    GEMINI_API_KEY=your_gemini_api_key
+   NEXT_PUBLIC_GEMINI_API_KEY=your_gemini_api_key
    HUGGING_FACE_API_KEY=your_huggingface_api_key
    
    # PayPal
@@ -261,13 +266,12 @@ The platform offers three subscription tiers:
 ## 🧪 Testing
 
 Run the test suite with:
-
-\`\`\`bash
+```
+bash
 npm test
-# or
+or
 yarn test
-\`\`\`
-
+```
 ## 🚀 Deployment
 
 The application can be deployed to Vercel with the following steps:

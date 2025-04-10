@@ -9,8 +9,7 @@ const inter = Inter({ subsets: ["latin"] })
 
 export const metadata: Metadata = {
   title: "AI Content Generator",
-  description: "AI-powered content generation platform for businesses",
-    generator: 'v0.dev'
+  description: "AI-powered content generation platform for businesses"
 }
 
 export default function RootLayout({
