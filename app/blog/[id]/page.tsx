@@ -19,7 +19,7 @@ const blogs = [
     date: "2025-04-05",
     readTime: "5 min read",
     category: "Technology",
-    image: "/placeholder.svg?height=600&width=1200",
+    image: "/blog-content-creation_ai-seo-content-generator.jpg?height=400&width=600",
   },
   {
     id: "2",
@@ -30,7 +30,7 @@ const blogs = [
     date: "2025-03-28",
     readTime: "7 min read",
     category: "Marketing",
-    image: "/placeholder.svg?height=600&width=1200",
+    image: "/blog-SEO_ai-seo-content-generator.jpg?height=400&width=600",
   },
   {
     id: "3",
@@ -41,7 +41,7 @@ const blogs = [
     date: "2025-03-15",
     readTime: "6 min read",
     category: "E-commerce",
-    image: "/placeholder.svg?height=600&width=1200",
+    image: "/blog-Gen-AI-in-ecomerce-seo-content-generator.jpg?height=400&width=600",
   },
   {
     id: "4",
@@ -52,7 +52,7 @@ const blogs = [
     date: "2025-02-20",
     readTime: "8 min read",
     category: "Ethics",
-    image: "/placeholder.svg?height=600&width=1200",
+    image: "/blog-Ethical-Considerations-ai-seo-content-generator.jpg?height=400&width=600",
   },
   {
     id: "5",
@@ -63,7 +63,7 @@ const blogs = [
     date: "2025-02-10",
     readTime: "4 min read",
     category: "Small Business",
-    image: "/placeholder.svg?height=600&width=1200",
+    image: "/blog-Marketing-ai-seo-content-generator.jpg?height=400&width=600",
   },
 ]
 
