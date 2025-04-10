@@ -10,7 +10,7 @@ import { useToast } from "@/components/ui/use-toast"
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 
 // Set to true to enable direct subscription without PayPal for testing
-const ENABLE_DIRECT_SUBSCRIPTION = process.env.NODE_ENV !== "production"
+const ENABLE_DIRECT_SUBSCRIPTION = process.env.NODE_ENV
 
 export default function SubscriptionPage() {
   const [loading, setLoading] = useState(true)
