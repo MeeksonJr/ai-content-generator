@@ -51,7 +51,7 @@ export default function AboutPage() {
               <div className="space-y-4">
                 <h2 className="text-3xl font-bold">Our Story</h2>
                 <p className="text-muted-foreground">
-                  Founded in 2022, AI Content Generator was born from a simple observation: businesses spend countless
+                  Founded in 2025, AI Content Generator was born from a simple observation: businesses spend countless
                   hours creating content, often struggling with consistency, quality, and scale.
                 </p>
                 <p className="text-muted-foreground">
@@ -140,21 +140,21 @@ export default function AboutPage() {
                   <div className="h-20 w-20 rounded-full bg-gray-800 mx-auto mb-4 flex items-center justify-center">
                     <Building className="h-8 w-8 text-primary" />
                   </div>
-                  <h3 className="font-bold">Alex Chen</h3>
+                  <h3 className="font-bold">Mohamed Datt</h3>
                   <p className="text-sm text-muted-foreground">CEO & Co-Founder</p>
                 </div>
                 <div className="rounded-lg border border-gray-800 bg-black/50 p-6">
                   <div className="h-20 w-20 rounded-full bg-gray-800 mx-auto mb-4 flex items-center justify-center">
                     <Building className="h-8 w-8 text-primary" />
                   </div>
-                  <h3 className="font-bold">Sarah Johnson</h3>
+                  <h3 className="font-bold">Mohamed Datt</h3>
                   <p className="text-sm text-muted-foreground">CTO & Co-Founder</p>
                 </div>
                 <div className="rounded-lg border border-gray-800 bg-black/50 p-6">
                   <div className="h-20 w-20 rounded-full bg-gray-800 mx-auto mb-4 flex items-center justify-center">
                     <Building className="h-8 w-8 text-primary" />
                   </div>
-                  <h3 className="font-bold">Michael Rodriguez</h3>
+                  <h3 className="font-bold">Mohamed Datt</h3>
                   <p className="text-sm text-muted-foreground">Chief AI Officer</p>
                 </div>
               </div>
@@ -165,7 +165,7 @@ export default function AboutPage() {
         <section className="w-full py-12 md:py-24 bg-black">
           <div className="container px-4 md:px-6">
             <div className="mx-auto max-w-3xl text-center">
-              <h2 className="text-3xl font-bold mb-6">Join Our Team</h2>
+              <h2 className="text-3xl font-bold mb-6">Join The Team</h2>
               <p className="text-muted-foreground mb-6">
                 We're always looking for talented individuals who are passionate about AI, content, and building
                 innovative products.
