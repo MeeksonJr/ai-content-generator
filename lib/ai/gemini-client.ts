@@ -2,7 +2,7 @@ import { GoogleGenerativeAI, HarmCategory, HarmBlockThreshold } from "@google/ge
 import { logger } from "@/lib/utils/logger"
 
 // Initialize the Gemini API client
-const apiKey = process.env.GEMINI_API_KEY || process.env.NEXT_PUBLIC_GEMINI_API_KEY || ""
+const apiKey = process.env.GEMINI_API_KEY || process.env.NEXT_PUBLIC_GEMINI_API_KEY || "AIzaSyAcJjktHinGVWr-S0ywQ9HpYwqG2K5_QtM"
 const genAI = new GoogleGenerativeAI(apiKey)
 
 // Safety settings to avoid harmful content
