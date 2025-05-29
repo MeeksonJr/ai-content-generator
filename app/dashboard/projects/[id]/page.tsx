@@ -180,15 +180,17 @@ export default function ProjectDetailPage() {
     setGeneratingContent(true)
     try {
       // Generate content using the AI
-      const response = await fetch("/api/ai/generate", {
+      const response = await fetch("/api/generate", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
-          contentType: newContent.contentType,
+          contentType: newContent.contentType.replace("_", "-"), // Convert to kebab-case
           title: newContent.title,
           prompt: newContent.prompt,
+          temperature: 0.7,
+          maxLength: 1000,
         }),
       })
 
@@ -206,10 +208,11 @@ export default function ProjectDetailPage() {
           title: newContent.title,
           content_type: newContent.contentType,
           content: data.content,
-          keywords: data.keywords?.map((k: any) => k.keyword) || [],
+          keywords: data.keywords || [],
           sentiment: data.sentiment || "neutral",
           project_id: project.id,
           user_id: project.user_id,
+          content_category: getCategoryFromContentType(newContent.contentType),
         })
         .select()
         .single()
@@ -240,6 +243,22 @@ export default function ProjectDetailPage() {
       })
     } finally {
       setGeneratingContent(false)
+    }
+  }
+
+  // Add this helper function
+  const getCategoryFromContentType = (contentType: string): string => {
+    switch (contentType) {
+      case "product_description":
+        return "product"
+      case "blog_post":
+        return "blog"
+      case "social_media":
+        return "social"
+      case "email":
+        return "email"
+      default:
+        return "general"
     }
   }
 

@@ -1,73 +1,123 @@
-import { NextResponse } from "next/server"
-import { extractKeywords } from "@/lib/ai/huggingface-client"
-import { logger } from "@/lib/utils/logger"
+import { type NextRequest, NextResponse } from "next/server"
+import { createClient } from "@/lib/supabase/server"
 
-export async function POST(request: Request) {
+export async function POST(req: NextRequest): Promise<NextResponse> {
   try {
-    // Get API key from Authorization header
-    const authHeader = request.headers.get("authorization")
-    if (!authHeader || !authHeader.startsWith("Bearer ")) {
-      logger.warn("Missing or invalid Authorization header in API request", {
-        context: "API",
-        data: { path: "/api/v1/keywords" },
-      })
-      return NextResponse.json({ error: "Missing or invalid Authorization header" }, { status: 401 })
-    }
-
-    const apiKey = authHeader.substring(7) // Remove 'Bearer ' prefix
-
-    // In a real app, you would validate the API key against a database
-    if (!apiKey.startsWith("sk_")) {
-      logger.warn("Invalid API key format in API request", {
-        context: "API",
-        data: { path: "/api/v1/keywords" },
-      })
-      return NextResponse.json({ error: "Invalid API key" }, { status: 401 })
-    }
-
-    // Get request body
-    const body = await request.json()
-    const { text } = body
+    const json = await req.json()
+    const { text } = json
 
     if (!text) {
-      logger.warn("Missing text parameter in API request", {
-        context: "API",
-        data: { path: "/api/v1/keywords" },
-      })
-      return NextResponse.json({ error: "Missing required text parameter" }, { status: 400 })
+      return NextResponse.json({ error: "Text is required" }, { status: 400 })
     }
 
-    // Extract keywords
-    const result = await extractKeywords(text)
+    const supabase = createClient()
 
-    if (!result.success) {
-      logger.error("Failed to extract keywords in API request", {
-        context: "API",
-        data: { error: result.error },
-      })
-      return NextResponse.json({ error: result.error || "Failed to extract keywords" }, { status: 500 })
+    const {
+      data: { user },
+      error: userError,
+    } = await supabase.auth.getUser()
+
+    if (userError || !user) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
     }
 
-    logger.info("Successfully extracted keywords via API", {
-      context: "API",
-      data: {
-        textLength: text.length,
-        keywordCount: result.keywords.length,
-      },
+    // Extract keywords using simple algorithm
+    const keywords = extractKeywords(text)
+
+    // Update usage statistics
+    const currentMonth = new Date().toLocaleString("default", {
+      month: "long",
     })
 
-    // Return the keyword extraction result
-    return NextResponse.json({
-      keywords: result.keywords,
-    })
+    const { data: usageStats, error: usageError } = await supabase
+      .from("usage_stats")
+      .select("*")
+      .eq("user_id", user.id)
+      .eq("month", currentMonth)
+      .single()
+
+    if (usageStats) {
+      // Update existing stats
+      await supabase
+        .from("usage_stats")
+        .update({
+          keyword_extraction_used: (usageStats.keyword_extraction_used || 0) + 1,
+          updated_at: new Date().toISOString(),
+        })
+        .eq("id", usageStats.id)
+    } else {
+      // Create new stats record
+      await supabase.from("usage_stats").insert({
+        user_id: user.id,
+        content_generated: 0,
+        sentiment_analysis_used: 0,
+        keyword_extraction_used: 1,
+        text_summarization_used: 0,
+        api_calls: 1,
+        month: currentMonth,
+      })
+    }
+
+    return NextResponse.json({ keywords })
   } catch (error) {
-    logger.error(
-      "Error in keyword extraction API",
-      {
-        context: "API",
-      },
-      error as Error,
-    )
+    console.error("Error extracting keywords:", error)
     return NextResponse.json({ error: "Internal server error" }, { status: 500 })
   }
+}
+
+function extractKeywords(text: string): string[] {
+  // Simple keyword extraction
+  const stopWords = new Set([
+    "the",
+    "a",
+    "an",
+    "and",
+    "or",
+    "but",
+    "in",
+    "on",
+    "at",
+    "to",
+    "for",
+    "of",
+    "with",
+    "by",
+    "is",
+    "are",
+    "was",
+    "were",
+    "be",
+    "been",
+    "have",
+    "has",
+    "had",
+    "do",
+    "does",
+    "did",
+    "will",
+    "would",
+    "could",
+    "should",
+    "may",
+    "might",
+    "can",
+    "this",
+    "that",
+    "these",
+    "those",
+  ])
+
+  const words = text.toLowerCase().match(/\b\w+\b/g) || []
+  const wordFreq: Record<string, number> = {}
+
+  words.forEach((word) => {
+    if (word.length > 3 && !stopWords.has(word)) {
+      wordFreq[word] = (wordFreq[word] || 0) + 1
+    }
+  })
+
+  return Object.entries(wordFreq)
+    .sort(([, a], [, b]) => b - a)
+    .slice(0, 10)
+    .map(([word]) => word)
 }

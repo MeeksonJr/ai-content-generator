@@ -5,50 +5,72 @@ import { DashboardLayout } from "@/components/dashboard/dashboard-layout"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import { Input } from "@/components/ui/input"
+import { Label } from "@/components/ui/label"
 import { createClient } from "@/lib/supabase/client"
-import { Loader2, Copy, Check, Key, AlertCircle } from "lucide-react"
+import { Loader2, Copy, Check, Key, AlertCircle, Plus, Trash2 } from "lucide-react"
 import { useToast } from "@/components/ui/use-toast"
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog"
 import Link from "next/link"
+
+interface ApiKey {
+  id: string
+  key_name: string
+  key_prefix: string
+  is_active: boolean
+  last_used_at: string | null
+  created_at: string
+  full_api_key?: string
+}
 
 export default function ApiDocsPage() {
   const [loading, setLoading] = useState(true)
   const [subscription, setSubscription] = useState<any>(null)
-  const [apiKey, setApiKey] = useState<string | null>(null)
-  const [copied, setCopied] = useState(false)
+  const [apiKeys, setApiKeys] = useState<ApiKey[]>([])
+  const [copied, setCopied] = useState<string | null>(null)
+  const [showNewKeyDialog, setShowNewKeyDialog] = useState(false)
+  const [newKeyName, setNewKeyName] = useState("")
+  const [creatingKey, setCreatingKey] = useState(false)
+  const [newlyCreatedKey, setNewlyCreatedKey] = useState<string | null>(null)
+  const [showFullKey, setShowFullKey] = useState<string | null>(null)
   const { toast } = useToast()
   const supabase = createClient()
 
   useEffect(() => {
-    fetchSubscriptionData()
+    fetchData()
   }, [])
 
-  const fetchSubscriptionData = async () => {
+  const fetchData = async () => {
     try {
       setLoading(true)
-      const response = await fetch("/api/subscription")
 
-      if (!response.ok) {
-        throw new Error("Failed to fetch subscription data")
+      // Fetch subscription data
+      const subscriptionResponse = await fetch("/api/subscription")
+      if (subscriptionResponse.ok) {
+        const subscriptionData = await subscriptionResponse.json()
+        setSubscription(subscriptionData.subscription)
       }
 
-      const data = await response.json()
-      setSubscription(data.subscription)
-
-      // Fetch API key if subscription has API access
-      if (data.subscription && data.usageLimits?.api_access_enabled) {
-        const { data: userData } = await supabase.auth.getUser()
-        if (userData.user) {
-          // In a real app, you would fetch the API key from a secure endpoint
-          // This is just a placeholder
-          setApiKey(`sk_${userData.user.id.substring(0, 8)}_${Math.random().toString(36).substring(2, 10)}`)
-        }
+      // Fetch API keys
+      const apiKeysResponse = await fetch("/api/api-keys")
+      if (apiKeysResponse.ok) {
+        const apiKeysData = await apiKeysResponse.json()
+        setApiKeys(apiKeysData.apiKeys || [])
       }
     } catch (error) {
-      console.error("Error fetching subscription data:", error)
+      console.error("Error fetching data:", error)
       toast({
         title: "Error",
-        description: "Failed to load subscription information",
+        description: "Failed to load API documentation data",
         variant: "destructive",
       })
     } finally {
@@ -56,12 +78,10 @@ export default function ApiDocsPage() {
     }
   }
 
-  const handleCopyApiKey = () => {
-    if (!apiKey) return
-
+  const handleCopyApiKey = (apiKey: string) => {
     navigator.clipboard.writeText(apiKey)
-    setCopied(true)
-    setTimeout(() => setCopied(false), 2000)
+    setCopied(apiKey)
+    setTimeout(() => setCopied(null), 2000)
 
     toast({
       title: "API key copied",
@@ -69,14 +89,94 @@ export default function ApiDocsPage() {
     })
   }
 
-  const handleRegenerateApiKey = () => {
-    // In a real app, you would call an API to regenerate the key
-    const newApiKey = `sk_${Math.random().toString(36).substring(2, 10)}_${Math.random().toString(36).substring(2, 10)}`
-    setApiKey(newApiKey)
+  const handleCreateApiKey = async () => {
+    if (!newKeyName.trim()) {
+      toast({
+        title: "Error",
+        description: "Please enter a name for your API key.",
+        variant: "destructive",
+      })
+      return
+    }
 
-    toast({
-      title: "API key regenerated",
-      description: "Your API key has been regenerated. The old key is no longer valid.",
+    setCreatingKey(true)
+    try {
+      const response = await fetch("/api/api-keys", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          keyName: newKeyName.trim(),
+        }),
+      })
+
+      if (!response.ok) {
+        const errorData = await response.json()
+        throw new Error(errorData.error || "Failed to create API key")
+      }
+
+      const data = await response.json()
+
+      // Add the new key to the list
+      setApiKeys([data.apiKey, ...apiKeys])
+      setNewlyCreatedKey(data.apiKey.full_api_key)
+      setNewKeyName("")
+      setShowNewKeyDialog(false)
+
+      toast({
+        title: "API key created",
+        description: "Your new API key has been created successfully. Make sure to copy it now!",
+      })
+    } catch (error) {
+      console.error("Error creating API key:", error)
+      toast({
+        title: "Error",
+        description: error instanceof Error ? error.message : "Failed to create API key",
+        variant: "destructive",
+      })
+    } finally {
+      setCreatingKey(false)
+    }
+  }
+
+  const handleDeleteApiKey = async (keyId: string) => {
+    if (!confirm("Are you sure you want to delete this API key? This action cannot be undone.")) {
+      return
+    }
+
+    try {
+      const response = await fetch(`/api/api-keys?id=${keyId}`, {
+        method: "DELETE",
+      })
+
+      if (!response.ok) {
+        const errorData = await response.json()
+        throw new Error(errorData.error || "Failed to delete API key")
+      }
+
+      // Remove the key from the list
+      setApiKeys(apiKeys.filter((key) => key.id !== keyId))
+
+      toast({
+        title: "API key deleted",
+        description: "The API key has been deleted successfully.",
+      })
+    } catch (error) {
+      console.error("Error deleting API key:", error)
+      toast({
+        title: "Error",
+        description: error instanceof Error ? error.message : "Failed to delete API key",
+        variant: "destructive",
+      })
+    }
+  }
+
+  const formatDate = (dateString: string) => {
+    return new Date(dateString).toLocaleDateString("en-US", {
+      year: "numeric",
+      month: "short",
+      day: "numeric",
     })
   }
 
@@ -115,29 +215,142 @@ export default function ApiDocsPage() {
         )}
 
         {hasApiAccess && (
-          <Card>
-            <CardHeader>
-              <CardTitle>Your API Key</CardTitle>
-              <CardDescription>Use this key to authenticate your API requests</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className="flex items-center space-x-2">
-                <div className="bg-muted p-2 rounded-md flex-1 font-mono text-sm overflow-hidden">
-                  {apiKey ? `${apiKey.substring(0, 8)}...${apiKey.substring(apiKey.length - 4)}` : "Loading..."}
+          <>
+            {/* Newly created API key display */}
+            {newlyCreatedKey && (
+              <Alert className="border-green-200 bg-green-50">
+                <Key className="h-4 w-4 text-green-600" />
+                <AlertTitle className="text-green-800">New API Key Created</AlertTitle>
+                <AlertDescription className="text-green-700">
+                  <p className="mb-2">Your new API key has been created. Copy it now as it won't be shown again:</p>
+                  <div className="flex items-center space-x-2 bg-white p-2 rounded border">
+                    <code className="flex-1 text-sm font-mono text-gray-900">{newlyCreatedKey}</code>
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={() => handleCopyApiKey(newlyCreatedKey)}
+                      className="border-green-300"
+                    >
+                      {copied === newlyCreatedKey ? <Check className="h-4 w-4" /> : <Copy className="h-4 w-4" />}
+                    </Button>
+                  </div>
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    onClick={() => setNewlyCreatedKey(null)}
+                    className="mt-2 text-green-700 hover:text-green-800"
+                  >
+                    Dismiss
+                  </Button>
+                </AlertDescription>
+              </Alert>
+            )}
+
+            {/* API Keys Management */}
+            <Card>
+              <CardHeader>
+                <div className="flex items-center justify-between">
+                  <div>
+                    <CardTitle>API Keys</CardTitle>
+                    <CardDescription>Manage your API keys for external integrations</CardDescription>
+                  </div>
+                  <Dialog open={showNewKeyDialog} onOpenChange={setShowNewKeyDialog}>
+                    <DialogTrigger asChild>
+                      <Button>
+                        <Plus className="h-4 w-4 mr-2" />
+                        Create API Key
+                      </Button>
+                    </DialogTrigger>
+                    <DialogContent>
+                      <DialogHeader>
+                        <DialogTitle>Create New API Key</DialogTitle>
+                        <DialogDescription>
+                          Give your API key a descriptive name to help you identify it later.
+                        </DialogDescription>
+                      </DialogHeader>
+                      <div className="space-y-4 py-4">
+                        <div className="space-y-2">
+                          <Label htmlFor="key-name">API Key Name</Label>
+                          <Input
+                            id="key-name"
+                            value={newKeyName}
+                            onChange={(e) => setNewKeyName(e.target.value)}
+                            placeholder="e.g., Production App, Development, Mobile App"
+                          />
+                        </div>
+                      </div>
+                      <DialogFooter>
+                        <Button variant="outline" onClick={() => setShowNewKeyDialog(false)}>
+                          Cancel
+                        </Button>
+                        <Button onClick={handleCreateApiKey} disabled={creatingKey}>
+                          {creatingKey ? (
+                            <>
+                              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                              Creating...
+                            </>
+                          ) : (
+                            "Create API Key"
+                          )}
+                        </Button>
+                      </DialogFooter>
+                    </DialogContent>
+                  </Dialog>
                 </div>
-                <Button variant="outline" size="sm" onClick={handleCopyApiKey} disabled={!apiKey}>
-                  {copied ? <Check className="h-4 w-4" /> : <Copy className="h-4 w-4" />}
-                </Button>
-                <Button variant="outline" size="sm" onClick={handleRegenerateApiKey} disabled={!apiKey}>
-                  <Key className="h-4 w-4 mr-2" />
-                  Regenerate
-                </Button>
-              </div>
-              <p className="text-sm text-muted-foreground mt-2">
-                Keep your API key secure. Do not share it in publicly accessible areas.
-              </p>
-            </CardContent>
-          </Card>
+              </CardHeader>
+              <CardContent>
+                {apiKeys.length > 0 ? (
+                  <div className="space-y-4">
+                    {apiKeys.map((apiKey) => (
+                      <div key={apiKey.id} className="flex items-center justify-between p-4 border rounded-lg">
+                        <div className="flex-1">
+                          <div className="flex items-center gap-2">
+                            <h4 className="font-medium">{apiKey.key_name}</h4>
+                            {apiKey.is_active ? (
+                              <span className="px-2 py-1 text-xs bg-green-100 text-green-800 rounded-full">Active</span>
+                            ) : (
+                              <span className="px-2 py-1 text-xs bg-gray-100 text-gray-800 rounded-full">Inactive</span>
+                            )}
+                          </div>
+                          <div className="flex items-center gap-4 text-sm text-muted-foreground mt-1">
+                            <span>
+                              {showFullKey === apiKey.id ? (
+                                <code className="bg-gray-100 px-2 py-1 rounded text-xs">{apiKey.key_prefix}...</code>
+                              ) : (
+                                <code className="bg-gray-100 px-2 py-1 rounded text-xs">{apiKey.key_prefix}...</code>
+                              )}
+                            </span>
+                            <span>Created {formatDate(apiKey.created_at)}</span>
+                            {apiKey.last_used_at && <span>Last used {formatDate(apiKey.last_used_at)}</span>}
+                          </div>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => handleDeleteApiKey(apiKey.id)}
+                            className="text-red-600 hover:text-red-700 hover:bg-red-50"
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <div className="text-center py-8">
+                    <Key className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
+                    <h3 className="text-lg font-medium mb-2">No API keys yet</h3>
+                    <p className="text-muted-foreground mb-4">Create your first API key to start using our API.</p>
+                    <Button onClick={() => setShowNewKeyDialog(true)}>
+                      <Plus className="h-4 w-4 mr-2" />
+                      Create API Key
+                    </Button>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          </>
         )}
 
         <Tabs defaultValue="generate" className="space-y-4">
@@ -366,7 +579,7 @@ export default function ApiDocsPage() {
                 <pre className="font-mono bg-muted p-4 rounded-md overflow-auto">
                   {`// Using fetch API
 async function generateContent() {
-  const response = await fetch('https://api.aicontentgenerator.com/v1/generate', {
+  const response = await fetch('${process.env.NEXT_PUBLIC_APP_URL}/api/v1/generate', {
     method: 'POST',
     headers: {
       'Authorization': 'Bearer YOUR_API_KEY',
@@ -392,7 +605,7 @@ import requests
 import json
 
 def generate_content():
-    url = "https://api.aicontentgenerator.com/v1/generate"
+    url = "${process.env.NEXT_PUBLIC_APP_URL}/api/v1/generate"
     headers = {
         "Authorization": "Bearer YOUR_API_KEY",
         "Content-Type": "application/json"
@@ -414,7 +627,7 @@ generate_content()`}
               <TabsContent value="curl">
                 <pre className="font-mono bg-muted p-4 rounded-md overflow-auto">
                   {`curl -X POST \\
-  https://api.aicontentgenerator.com/v1/generate \\
+  ${process.env.NEXT_PUBLIC_APP_URL}/api/v1/generate \\
   -H "Authorization: Bearer YOUR_API_KEY" \\
   -H "Content-Type: application/json" \\
   -d '{

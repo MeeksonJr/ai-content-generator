@@ -152,10 +152,12 @@ export default function CareersPage() {
                           <p className="mt-2 text-sm text-muted-foreground">{job.description}</p>
                         </div>
                         <div className="flex-shrink-0">
-                          <Button className="gap-1 bg-gradient-to-r from-primary to-indigo-600 hover:from-primary/90 hover:to-indigo-600/90 border-0">
-                            Apply Now
-                            <ArrowRight className="h-4 w-4" />
-                          </Button>
+                          <Link href={`/careers/apply?position=${encodeURIComponent(job.title)}`}>
+                            <Button className="gap-1 bg-gradient-to-r from-primary to-indigo-600 hover:from-primary/90 hover:to-indigo-600/90 border-0">
+                              Apply Now
+                              <ArrowRight className="h-4 w-4" />
+                            </Button>
+                          </Link>
                         </div>
                       </div>
                     </div>
@@ -208,10 +210,12 @@ export default function CareersPage() {
                   We're always looking for talented individuals to join our team. Send us your resume and we'll keep you
                   in mind for future opportunities.
                 </p>
-                <Button className="gap-1 bg-gradient-to-r from-primary to-indigo-600 hover:from-primary/90 hover:to-indigo-600/90 border-0">
-                  Send Your Resume
-                  <ArrowRight className="h-4 w-4" />
-                </Button>
+                <Link href="/careers/apply">
+                  <Button className="gap-1 bg-gradient-to-r from-primary to-indigo-600 hover:from-primary/90 hover:to-indigo-600/90 border-0">
+                    Send Your Resume
+                    <ArrowRight className="h-4 w-4" />
+                  </Button>
+                </Link>
               </div>
             </div>
           </div>

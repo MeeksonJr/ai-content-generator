@@ -3,17 +3,17 @@ import { logger } from "@/lib/utils/logger"
 
 const HUGGING_FACE_API_KEY = process.env.HUGGING_FACE_API_KEY
 
-// Sentiment analysis model
-const SENTIMENT_MODEL = "distilbert-base-uncased-finetuned-sst-2-english"
-// Keyword extraction model
-const KEYWORD_MODEL = "yanekyuk/bert-uncased-keyword-extractor"
-// Text summarization model
+// Updated working models
+const SENTIMENT_MODEL = "cardiffnlp/twitter-roberta-base-sentiment-latest"
+const KEYWORD_MODEL = "yanekyuk/bert-keyword-extractor"
 const SUMMARIZATION_MODEL = "facebook/bart-large-cnn"
 
 // Maximum number of retries for API calls
 const MAX_RETRIES = 2
 // Delay between retries in milliseconds
 const RETRY_DELAY = 1000
+// Maximum input length for summarization to prevent errors
+const MAX_SUMMARIZATION_INPUT_LENGTH = 1000
 
 interface SentimentResult {
   success: boolean
@@ -76,29 +76,135 @@ async function fetchWithRetry(
   }
 }
 
-// Simple fallback summarization when API is unavailable
-function fallbackSummarize(text: string, maxLength = 150): string {
-  // Simple extractive summarization by taking the first few sentences
-  const sentences = text.match(/[^.!?]+[.!?]+/g) || []
+// Simple fallback sentiment analysis
+function fallbackSentimentAnalysis(text: string): SentimentResult {
+  const positiveWords = [
+    "good",
+    "great",
+    "excellent",
+    "amazing",
+    "wonderful",
+    "best",
+    "love",
+    "happy",
+    "awesome",
+    "fantastic",
+    "perfect",
+    "outstanding",
+    "brilliant",
+    "superb",
+  ]
+  const negativeWords = [
+    "bad",
+    "worst",
+    "terrible",
+    "awful",
+    "poor",
+    "hate",
+    "sad",
+    "disappointed",
+    "horrible",
+    "disgusting",
+    "pathetic",
+    "useless",
+    "annoying",
+    "frustrating",
+  ]
 
-  let summary = ""
-  let currentLength = 0
+  const lowerText = text.toLowerCase()
+  let positiveCount = 0
+  let negativeCount = 0
 
-  for (const sentence of sentences) {
-    if (currentLength + sentence.length <= maxLength) {
-      summary += sentence
-      currentLength += sentence.length
-    } else {
-      break
-    }
+  positiveWords.forEach((word) => {
+    const regex = new RegExp(`\\b${word}\\b`, "g")
+    const matches = lowerText.match(regex)
+    if (matches) positiveCount += matches.length
+  })
+
+  negativeWords.forEach((word) => {
+    const regex = new RegExp(`\\b${word}\\b`, "g")
+    const matches = lowerText.match(regex)
+    if (matches) negativeCount += matches.length
+  })
+
+  let sentiment = "neutral"
+  let score = 0.5
+
+  if (positiveCount > negativeCount) {
+    sentiment = "positive"
+    score = Math.min(0.6 + positiveCount * 0.1, 0.95)
+  } else if (negativeCount > positiveCount) {
+    sentiment = "negative"
+    score = Math.max(0.4 - negativeCount * 0.1, 0.05)
   }
 
-  // If we couldn't extract sentences or the summary is too short, just truncate
-  if (summary.length < 50 && text.length > 0) {
-    return text.substring(0, maxLength) + "..."
+  return {
+    success: true,
+    sentiment,
+    score,
   }
+}
 
-  return summary
+// Simple fallback keyword extraction
+function fallbackKeywordExtraction(text: string): KeywordResult {
+  const stopWords = [
+    "the",
+    "a",
+    "an",
+    "and",
+    "or",
+    "but",
+    "in",
+    "on",
+    "at",
+    "to",
+    "for",
+    "of",
+    "with",
+    "by",
+    "is",
+    "are",
+    "was",
+    "were",
+    "this",
+    "that",
+    "these",
+    "those",
+    "will",
+    "would",
+    "could",
+    "should",
+    "have",
+    "has",
+    "had",
+    "do",
+    "does",
+    "did",
+  ]
+
+  const words = text
+    .toLowerCase()
+    .replace(/[^\w\s]/g, "")
+    .split(/\s+/)
+    .filter((word) => word.length > 3 && !stopWords.includes(word))
+
+  const wordCounts: Record<string, number> = {}
+  words.forEach((word) => {
+    wordCounts[word] = (wordCounts[word] || 0) + 1
+  })
+
+  const keywords = Object.entries(wordCounts)
+    .map(([word, count]) => ({
+      keyword: word,
+      score: count / words.length,
+    }))
+    .sort((a, b) => b.score - a.score)
+    .slice(0, 10)
+
+  return {
+    success: true,
+    keywords,
+  }
 }
 
 // Analyze sentiment of text
@@ -112,100 +218,105 @@ export async function analyzeSentiment(text: string): Promise<SentimentResult> {
       data: { textLength: truncatedText.length },
     })
 
-    // Make API request to Hugging Face with retry logic
-    const response = await fetchWithRetry(`https://api-inference.huggingface.co/models/${SENTIMENT_MODEL}`, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${HUGGING_FACE_API_KEY}`,
-      },
-      body: JSON.stringify({ inputs: truncatedText }),
-    })
+    // Try multiple sentiment models
+    const sentimentModels = [
+      "cardiffnlp/twitter-roberta-base-sentiment-latest",
+      "nlptown/bert-base-multilingual-uncased-sentiment",
+      "distilbert-base-uncased-finetuned-sst-2-english",
+    ]
 
-    // Check if the request was successful
-    if (!response.ok) {
-      const errorText = await response.text()
-      logger.error(`Sentiment analysis API error: ${response.status} ${response.statusText}`, {
-        context: "HuggingFace",
-        data: {
-          status: response.status,
-          statusText: response.statusText,
-          response: errorText,
-        },
-      })
+    for (const model of sentimentModels) {
+      try {
+        // Make API request to Hugging Face with retry logic
+        const response = await fetchWithRetry(`https://api-inference.huggingface.co/models/${model}`, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${HUGGING_FACE_API_KEY}`,
+          },
+          body: JSON.stringify({ inputs: truncatedText }),
+        })
 
-      // Return a default neutral sentiment if the API fails
-      return {
-        success: false,
-        sentiment: "neutral",
-        score: 0.5,
-        error: `API request failed with status ${response.status}: ${response.status === 503 ? "Service temporarily unavailable" : errorText}`,
-      }
-    }
-
-    const data = await response.json()
-    logger.debug("Sentiment analysis API response", {
-      context: "HuggingFace",
-      data: { response: JSON.stringify(data).substring(0, 200) + "..." },
-    })
-
-    // Process the response
-    if (Array.isArray(data) && data.length > 0) {
-      // Find the sentiment with the highest score
-      const sentiments = data[0]
-      let highestScore = 0
-      let sentiment = "neutral"
-
-      for (const item of sentiments) {
-        if (item.score > highestScore) {
-          highestScore = item.score
-          sentiment = item.label.toLowerCase()
+        // Check if the request was successful
+        if (!response.ok) {
+          const errorText = await response.text()
+          logger.warn(`Sentiment analysis API error with model ${model}: ${response.status}`, {
+            context: "HuggingFace",
+            data: {
+              status: response.status,
+              statusText: response.statusText,
+              response: errorText.substring(0, 200),
+            },
+          })
+          continue // Try next model
         }
-      }
 
-      // Map LABEL_0 and LABEL_1 to negative and positive
-      if (sentiment === "label_0") sentiment = "negative"
-      if (sentiment === "label_1") sentiment = "positive"
+        const data = await response.json()
+        logger.debug("Sentiment analysis API response", {
+          context: "HuggingFace",
+          data: { model, response: JSON.stringify(data).substring(0, 200) + "..." },
+        })
 
-      logger.info("Sentiment analysis completed", {
-        context: "HuggingFace",
-        data: { sentiment, score: highestScore },
-      })
+        // Process the response
+        if (Array.isArray(data) && data.length > 0) {
+          // Find the sentiment with the highest score
+          const sentiments = data[0]
+          let highestScore = 0
+          let sentiment = "neutral"
 
-      return {
-        success: true,
-        sentiment,
-        score: highestScore,
+          for (const item of sentiments) {
+            if (item.score > highestScore) {
+              highestScore = item.score
+              sentiment = item.label.toLowerCase()
+            }
+          }
+
+          // Map labels to standard format
+          if (sentiment.includes("positive") || sentiment === "label_2" || sentiment.includes("pos")) {
+            sentiment = "positive"
+          } else if (sentiment.includes("negative") || sentiment === "label_0" || sentiment.includes("neg")) {
+            sentiment = "negative"
+          } else {
+            sentiment = "neutral"
+          }
+
+          logger.info("Sentiment analysis completed", {
+            context: "HuggingFace",
+            data: { model, sentiment, score: highestScore },
+          })
+
+          return {
+            success: true,
+            sentiment,
+            score: highestScore,
+          }
+        }
+      } catch (modelError) {
+        logger.warn(`Error with sentiment model ${model}`, {
+          context: "HuggingFace",
+          data: { error: modelError instanceof Error ? modelError.message : "Unknown error" },
+        })
+        continue // Try next model
       }
     }
 
-    // Return neutral if the response format is unexpected
-    logger.warn("Unexpected sentiment analysis response format", {
+    // All models failed, use fallback
+    logger.warn("All sentiment models failed, using fallback", {
       context: "HuggingFace",
-      data: { response: data },
     })
 
-    return {
-      success: true,
-      sentiment: "neutral",
-      score: 0.5,
-    }
+    return fallbackSentimentAnalysis(truncatedText)
   } catch (error) {
     logger.error(
-      "Error analyzing sentiment",
+      "Error analyzing sentiment, using fallback",
       {
         context: "HuggingFace",
       },
       error as Error,
     )
 
-    // Return a default neutral sentiment if an error occurs
-    return {
-      success: false,
-      sentiment: "neutral",
-      score: 0.5,
-      error: error instanceof Error ? error.message : "Unknown error",
-    }
+    // Use fallback analysis
+    return fallbackSentimentAnalysis(text)
   }
 }
 
@@ -220,199 +331,128 @@ export async function extractKeywords(text: string): Promise<KeywordResult> {
       data: { textLength: truncatedText.length },
     })
 
-    // Make API request to Hugging Face with retry logic
-    const response = await fetchWithRetry(`https://api-inference.huggingface.co/models/${KEYWORD_MODEL}`, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${HUGGING_FACE_API_KEY}`,
-      },
-      body: JSON.stringify({ inputs: truncatedText }),
-    })
+    // Try multiple keyword extraction models
+    const keywordModels = [
+      "yanekyuk/bert-keyword-extractor",
+      "ml6team/keyphrase-extraction-kbir-inspec",
+      "transformer3/H2-keywordextractor",
+    ]
 
-    // Check if the request was successful
-    if (!response.ok) {
-      const errorText = await response.text()
-      logger.error(`Keyword extraction API error: ${response.status} ${response.statusText}`, {
-        context: "HuggingFace",
-        data: {
-          status: response.status,
-          statusText: response.statusText,
-          response: errorText,
-        },
-      })
-
-      // If service is unavailable, use fallback keyword extraction
-      if (response.status === 503) {
-        logger.info("Using fallback keyword extraction", { context: "HuggingFace" })
-
-        // Simple fallback: extract common words by frequency
-        const words = truncatedText
-          .toLowerCase()
-          .replace(/[^\w\s]/g, "")
-          .split(/\s+/)
-          .filter((word) => word.length > 3)
-
-        const wordCounts: Record<string, number> = {}
-        words.forEach((word) => {
-          wordCounts[word] = (wordCounts[word] || 0) + 1
+    for (const model of keywordModels) {
+      try {
+        // Make API request to Hugging Face with retry logic
+        const response = await fetchWithRetry(`https://api-inference.huggingface.co/models/${model}`, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${HUGGING_FACE_API_KEY}`,
+          },
+          body: JSON.stringify({ inputs: truncatedText }),
         })
 
-        const keywords = Object.entries(wordCounts)
-          .map(([word, count]) => ({
-            keyword: word,
-            score: count / words.length,
-          }))
-          .sort((a, b) => b.score - a.score)
-          .slice(0, 10)
-
-        return {
-          success: true,
-          keywords,
-          error: "Using fallback extraction due to service unavailability",
+        // Check if the request was successful
+        if (!response.ok) {
+          const errorText = await response.text()
+          logger.warn(`Keyword extraction API error with model ${model}: ${response.status}`, {
+            context: "HuggingFace",
+            data: {
+              status: response.status,
+              statusText: response.statusText,
+              response: errorText.substring(0, 200),
+            },
+          })
+          continue // Try next model
         }
-      }
 
-      // Return empty keywords if the API fails
-      return {
-        success: false,
-        keywords: [],
-        error: `API request failed with status ${response.status}: ${errorText}`,
-      }
-    }
+        const data = await response.json()
+        logger.debug("Keyword extraction API response", {
+          context: "HuggingFace",
+          data: { model, response: JSON.stringify(data).substring(0, 200) + "..." },
+        })
 
-    const data = await response.json()
-    logger.debug("Keyword extraction API response", {
-      context: "HuggingFace",
-      data: { response: JSON.stringify(data).substring(0, 200) + "..." },
-    })
+        // Process the response
+        let keywords: Array<{ keyword: string; score: number }> = []
 
-    // Process the response with better error handling
-    let keywords: Array<{ keyword: string; score: number }> = []
-
-    // Check if data is an array and has content
-    if (Array.isArray(data) && data.length > 0) {
-      const firstItem = data[0]
-
-      // Check if the first item is an array (expected format)
-      if (Array.isArray(firstItem)) {
-        keywords = firstItem
-          .filter((item) => item.entity_group === "KEYWORD" && item.score > 0.1)
-          .map((item) => ({
-            keyword: item.word,
-            score: item.score,
-          }))
-          .slice(0, 10) // Limit to top 10 keywords
-      }
-      // Handle case where API returns objects with entity property
-      else if (typeof firstItem === "object" && firstItem !== null) {
-        // Try to extract keywords from different possible formats
-        if (Array.isArray(firstItem.entities)) {
-          keywords = firstItem.entities
-            .filter((item) => item.entity_group === "KEYWORD" && item.score > 0.1)
+        if (Array.isArray(data) && data.length > 0) {
+          keywords = data
+            .filter((item) => item.score > 0.1)
             .map((item) => ({
-              keyword: item.word || item.text,
+              keyword: item.word || item.text || item.entity || item.label,
               score: item.score,
             }))
             .slice(0, 10)
-        } else {
-          // Extract any properties that might contain keywords
-          const possibleKeywords = Object.entries(firstItem)
-            .filter(([key, value]) => typeof value === "number" && value > 0.1 && key !== "id" && key !== "score")
-            .map(([key, value]) => ({
-              keyword: key,
-              score: value as number,
-            }))
-            .sort((a, b) => b.score - a.score)
-            .slice(0, 10)
+        }
 
-          if (possibleKeywords.length > 0) {
-            keywords = possibleKeywords
+        // If we got valid keywords, return them
+        if (keywords.length > 0) {
+          logger.info("Keyword extraction completed", {
+            context: "HuggingFace",
+            data: { model, keywordCount: keywords.length },
+          })
+
+          return {
+            success: true,
+            keywords,
           }
         }
-      }
-    } else if (typeof data === "object" && data !== null) {
-      // Handle case where API returns a single object
-      const entries = Object.entries(data)
-        .filter(([key, value]) => typeof value === "number" && value > 0.1)
-        .map(([key, value]) => ({
-          keyword: key,
-          score: value as number,
-        }))
-        .sort((a, b) => b.score - a.score)
-        .slice(0, 10)
-
-      if (entries.length > 0) {
-        keywords = entries
+      } catch (modelError) {
+        logger.warn(`Error with keyword model ${model}`, {
+          context: "HuggingFace",
+          data: { error: modelError instanceof Error ? modelError.message : "Unknown error" },
+        })
+        continue // Try next model
       }
     }
 
-    // If we couldn't extract keywords in any format, generate some basic ones
-    if (keywords.length === 0) {
-      logger.warn("Failed to extract keywords from API response, using fallback method", {
-        context: "HuggingFace",
-      })
-
-      // Extract simple keywords based on word frequency
-      const words = truncatedText
-        .toLowerCase()
-        .replace(/[^\w\s]/g, "")
-        .split(/\s+/)
-        .filter((word) => word.length > 3)
-
-      const wordCounts: Record<string, number> = {}
-      words.forEach((word) => {
-        wordCounts[word] = (wordCounts[word] || 0) + 1
-      })
-
-      keywords = Object.entries(wordCounts)
-        .map(([word, count]) => ({
-          keyword: word,
-          score: count / words.length,
-        }))
-        .sort((a, b) => b.score - a.score)
-        .slice(0, 10)
-    }
-
-    logger.info("Keyword extraction completed", {
-      context: "HuggingFace",
-      data: { keywordCount: keywords.length },
-    })
-
-    return {
-      success: true,
-      keywords,
-    }
+    // All models failed, use fallback
+    logger.info("All keyword models failed, using fallback", { context: "HuggingFace" })
+    return fallbackKeywordExtraction(truncatedText)
   } catch (error) {
     logger.error(
-      "Error extracting keywords",
+      "Error extracting keywords, using fallback",
       {
         context: "HuggingFace",
       },
       error as Error,
     )
 
-    // Return empty keywords if an error occurs
-    return {
-      success: false,
-      keywords: [],
-      error: error instanceof Error ? error.message : "Unknown error",
-    }
+    // Use fallback keyword extraction
+    return fallbackKeywordExtraction(text)
   }
 }
 
 // Summarize text
 export async function summarizeText(text: string, maxLength = 150): Promise<SummarizationResult> {
   try {
+    // Ensure maxLength is a reasonable value
+    const safeMaxLength = Math.min(Math.max(30, maxLength), 500)
+
     // Truncate text if it's too long for the API
-    const truncatedText = text.length > 5000 ? text.substring(0, 5000) : text
+    const truncatedText =
+      text.length > MAX_SUMMARIZATION_INPUT_LENGTH ? text.substring(0, MAX_SUMMARIZATION_INPUT_LENGTH) : text
 
     logger.info("Summarizing text", {
       context: "HuggingFace",
-      data: { textLength: truncatedText.length, maxLength },
+      data: {
+        originalLength: text.length,
+        truncatedLength: truncatedText.length,
+        maxOutputLength: safeMaxLength,
+      },
     })
 
-    // Make API request to Hugging Face with retry logic
+    // If text is very short, just return it as is
+    if (truncatedText.length < safeMaxLength * 1.5) {
+      logger.info("Text is already short enough, skipping API call", {
+        context: "HuggingFace",
+        data: { textLength: truncatedText.length, maxLength: safeMaxLength },
+      })
+      return {
+        success: true,
+        summary: truncatedText.substring(0, safeMaxLength),
+      }
+    }
+
+    // Try to use the API
     const response = await fetchWithRetry(`https://api-inference.huggingface.co/models/${SUMMARIZATION_MODEL}`, {
       method: "POST",
       headers: {
@@ -422,14 +462,14 @@ export async function summarizeText(text: string, maxLength = 150): Promise<Summ
       body: JSON.stringify({
         inputs: truncatedText,
         parameters: {
-          max_length: maxLength,
-          min_length: Math.min(30, maxLength / 2),
+          max_length: safeMaxLength,
+          min_length: Math.min(30, safeMaxLength / 2),
           do_sample: false,
+          early_stopping: true,
         },
       }),
     })
 
-    // Check if the request was successful
     if (!response.ok) {
       const errorText = await response.text()
       logger.error(`Summarization API error: ${response.status} ${response.statusText}`, {
@@ -441,23 +481,12 @@ export async function summarizeText(text: string, maxLength = 150): Promise<Summ
         },
       })
 
-      // If service is unavailable, use fallback summarization
-      if (response.status === 503) {
-        logger.info("Using fallback summarization", { context: "HuggingFace" })
-        const summary = fallbackSummarize(truncatedText, maxLength)
-
-        return {
-          success: true,
-          summary,
-          error: "Using fallback summarization due to service unavailability",
-        }
-      }
-
-      // Return a simple summary if the API fails
+      // Use simple fallback summarization
+      const summary = truncatedText.substring(0, safeMaxLength) + "..."
       return {
-        success: false,
-        summary: truncatedText.substring(0, maxLength) + "...",
-        error: `API request failed with status ${response.status}: ${errorText}`,
+        success: true,
+        summary,
+        error: `Using fallback summarization due to API error: ${response.status}`,
       }
     }
 
@@ -474,15 +503,9 @@ export async function summarizeText(text: string, maxLength = 150): Promise<Summ
       summary = data[0].summary_text
     } else if (typeof data === "object" && data !== null && data.summary_text) {
       summary = data.summary_text
-    } else if (typeof data === "object" && data !== null && data.generated_text) {
-      summary = data.generated_text
     } else {
-      // Fallback to a simple truncation if we can't parse the response
-      logger.warn("Unexpected summarization response format, using fallback method", {
-        context: "HuggingFace",
-        data: { response: data },
-      })
-      summary = fallbackSummarize(truncatedText, maxLength)
+      // Fallback to simple truncation
+      summary = truncatedText.substring(0, safeMaxLength) + "..."
     }
 
     logger.info("Summarization completed", {
@@ -496,15 +519,15 @@ export async function summarizeText(text: string, maxLength = 150): Promise<Summ
     }
   } catch (error) {
     logger.error(
-      "Error summarizing text",
+      "Error in summarization function",
       {
         context: "HuggingFace",
       },
       error as Error,
     )
 
-    // Use fallback summarization if an error occurs
-    const summary = fallbackSummarize(text, maxLength)
+    // Use fallback summarization
+    const summary = text.substring(0, maxLength) + "..."
 
     return {
       success: true,

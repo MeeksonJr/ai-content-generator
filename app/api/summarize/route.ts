@@ -4,6 +4,42 @@ import { cookies } from "next/headers"
 import { summarizeText } from "@/lib/ai/huggingface-client"
 import { logger } from "@/lib/utils/logger"
 
+// Default usage limits for different plan types
+const DEFAULT_USAGE_LIMITS = {
+  free: {
+    monthly_content_limit: 5,
+    max_content_length: 1000,
+    sentiment_analysis_enabled: false,
+    keyword_extraction_enabled: false,
+    text_summarization_enabled: false,
+    api_access_enabled: false,
+  },
+  basic: {
+    monthly_content_limit: 20,
+    max_content_length: 3000,
+    sentiment_analysis_enabled: true,
+    keyword_extraction_enabled: true,
+    text_summarization_enabled: false,
+    api_access_enabled: false,
+  },
+  professional: {
+    monthly_content_limit: 100,
+    max_content_length: 10000,
+    sentiment_analysis_enabled: true,
+    keyword_extraction_enabled: true,
+    text_summarization_enabled: true,
+    api_access_enabled: true,
+  },
+  enterprise: {
+    monthly_content_limit: -1, // Unlimited
+    max_content_length: 50000,
+    sentiment_analysis_enabled: true,
+    keyword_extraction_enabled: true,
+    text_summarization_enabled: true,
+    api_access_enabled: true,
+  },
+}
+
 export async function POST(request: Request) {
   try {
     const cookieStore = cookies()
@@ -37,13 +73,26 @@ export async function POST(request: Request) {
     }
 
     // Check user's subscription and usage limits
-    const { data: subscription } = await supabase
+    const { data: subscription, error: subscriptionError } = await supabase
       .from("subscriptions")
       .select("plan_type, status")
       .eq("user_id", userId)
-      .single()
+      .maybeSingle()
 
-    if (!subscription || subscription.status !== "active") {
+    if (subscriptionError && subscriptionError.code !== "PGRST116") {
+      logger.error("Error fetching subscription for summarize API", {
+        context: "API",
+        userId,
+        data: { error: subscriptionError },
+      })
+      return NextResponse.json({ error: "Failed to fetch subscription" }, { status: 500 })
+    }
+
+    // Default to free plan if no subscription exists
+    const planType = subscription?.plan_type || "free"
+    const subscriptionStatus = subscription?.status || "inactive"
+
+    if (subscriptionStatus !== "active") {
       logger.warn("No active subscription for summarize API", {
         context: "API",
         userId,
@@ -53,27 +102,41 @@ export async function POST(request: Request) {
     }
 
     // Get usage limits for the user's plan
-    const { data: usageLimits } = await supabase
+    const { data: usageLimits, error: limitsError } = await supabase
       .from("usage_limits")
       .select("text_summarization_enabled")
-      .eq("plan_type", subscription.plan_type)
-      .single()
+      .eq("plan_type", planType)
+      .maybeSingle()
 
-    if (!usageLimits) {
-      logger.error("Could not determine usage limits for summarize API", {
+    // If no usage limits found in the database, use default values
+    const defaultLimits =
+      DEFAULT_USAGE_LIMITS[planType as keyof typeof DEFAULT_USAGE_LIMITS] || DEFAULT_USAGE_LIMITS.free
+
+    // Use database values if available, otherwise use defaults
+    const planLimits = usageLimits || {
+      text_summarization_enabled: defaultLimits.text_summarization_enabled,
+    }
+
+    if (limitsError && limitsError.code !== "PGRST116") {
+      logger.error("Error fetching usage limits for summarize API", {
         context: "API",
         userId,
-        data: { planType: subscription.plan_type },
+        data: { error: limitsError, planType },
       })
-      return NextResponse.json({ error: "Could not determine usage limits" }, { status: 500 })
+      // Continue with default limits instead of returning an error
+      logger.info("Using default usage limits for summarize API", {
+        context: "API",
+        userId,
+        data: { planType, defaultLimits },
+      })
     }
 
     // Check if text summarization is enabled for this plan
-    if (!usageLimits.text_summarization_enabled) {
+    if (!planLimits.text_summarization_enabled) {
       logger.warn("Text summarization not available on current plan", {
         context: "API",
         userId,
-        data: { planType: subscription.plan_type },
+        data: { planType },
       })
       return NextResponse.json({ error: "Text summarization not available on your current plan" }, { status: 403 })
     }
@@ -85,12 +148,21 @@ export async function POST(request: Request) {
     const currentDate = new Date()
     const currentMonth = `${currentDate.getFullYear()}-${String(currentDate.getMonth() + 1).padStart(2, "0")}-01`
 
-    const { data: usageStats } = await supabase
+    const { data: usageStats, error: statsError } = await supabase
       .from("usage_stats")
       .select("*")
       .eq("user_id", userId)
       .eq("month", currentMonth)
-      .single()
+      .maybeSingle()
+
+    if (statsError && statsError.code !== "PGRST116") {
+      logger.error("Error fetching usage stats for summarize API", {
+        context: "API",
+        userId,
+        data: { error: statsError },
+      })
+      // Continue without updating stats
+    }
 
     if (usageStats) {
       await supabase

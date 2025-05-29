@@ -30,7 +30,7 @@ const DEFAULT_USAGE_LIMITS = {
     api_access_enabled: true,
   },
   enterprise: {
-    monthly_content_limit: -1, // Unlimitedc
+    monthly_content_limit: -1, // Unlimited
     max_content_length: 50000,
     sentiment_analysis_enabled: true,
     keyword_extraction_enabled: true,

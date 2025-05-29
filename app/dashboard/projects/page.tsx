@@ -1,13 +1,16 @@
 "use client"
 
 import { useState, useEffect } from "react"
-import { useRouter } from "next/navigation"
 import { DashboardLayout } from "@/components/dashboard/dashboard-layout"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
+import { createClient } from "@/lib/supabase/client"
+import { Loader2, PlusCircle, FolderOpen, Calendar, FileText } from "lucide-react"
+import { useToast } from "@/components/ui/use-toast"
+import Link from "next/link"
 import {
   Dialog,
   DialogContent,
@@ -17,41 +20,27 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog"
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
-import { createClient } from "@/lib/supabase/client"
-import {
-  Loader2,
-  FolderPlus,
-  MoreVertical,
-  Pencil,
-  Trash2,
-  FileText,
-  Plus,
-  Calendar,
-  Users,
-  BarChart,
-} from "lucide-react"
-import { Progress } from "@/components/ui/progress"
-import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs"
-
-interface Project {
-  id: string
-  name: string
-  description: string | null
-  created_at: string
-}
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 
 export default function ProjectsPage() {
-  const [projects, setProjects] = useState<Project[]>([])
+  const [projects, setProjects] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
-  const [newProjectName, setNewProjectName] = useState("")
-  const [newProjectDescription, setNewProjectDescription] = useState("")
-  const [isDialogOpen, setIsDialogOpen] = useState(false)
-  const [editingProject, setEditingProject] = useState<Project | null>(null)
-  const [deletingId, setDeletingId] = useState<string | null>(null)
-  const [viewMode, setViewMode] = useState<"grid" | "list">("grid")
+  const [openNewProjectDialog, setOpenNewProjectDialog] = useState(false)
+  const [openNewContentDialog, setOpenNewContentDialog] = useState(false)
+  const [newProject, setNewProject] = useState({
+    name: "",
+    description: "",
+  })
+  const [newContent, setNewContent] = useState({
+    title: "",
+    contentType: "product_description",
+    prompt: "",
+    projectId: "",
+  })
+  const [creatingProject, setCreatingProject] = useState(false)
+  const [generatingContent, setGeneratingContent] = useState(false)
+  const { toast } = useToast()
   const supabase = createClient()
-  const router = useRouter()
 
   useEffect(() => {
     fetchProjects()
@@ -60,142 +49,193 @@ export default function ProjectsPage() {
   const fetchProjects = async () => {
     try {
       setLoading(true)
-      const {
-        data: { user },
-      } = await supabase.auth.getUser()
-
-      if (!user) throw new Error("User not authenticated")
-
-      const { data, error } = await supabase
+      const { data: projectsData, error } = await supabase
         .from("projects")
         .select("*")
-        .eq("user_id", user.id)
         .order("created_at", { ascending: false })
 
       if (error) throw error
 
-      setProjects(data || [])
+      setProjects(projectsData || [])
     } catch (error) {
       console.error("Error fetching projects:", error)
+      toast({
+        title: "Error loading projects",
+        description: "Failed to load projects. Please try again.",
+        variant: "destructive",
+      })
     } finally {
       setLoading(false)
     }
   }
 
   const handleCreateProject = async () => {
-    if (!newProjectName.trim()) return
-
-    setLoading(true)
-
-    try {
-      const {
-        data: { user },
-      } = await supabase.auth.getUser()
-
-      if (!user) throw new Error("User not authenticated")
-
-      const { data, error } = await supabase
-        .from("projects")
-        .insert({
-          name: newProjectName.trim(),
-          description: newProjectDescription.trim() || null,
-          user_id: user.id,
-        })
-        .select()
-
-      if (error) throw error
-
-      setNewProjectName("")
-      setNewProjectDescription("")
-      setIsDialogOpen(false)
-
-      // Navigate to the new project
-      if (data && data.length > 0) {
-        router.push(`/dashboard/projects/${data[0].id}`)
-      } else {
-        fetchProjects()
-      }
-    } catch (error) {
-      console.error("Error creating project:", error)
-      alert("Failed to create project. Please try again.")
-    } finally {
-      setLoading(false)
-    }
-  }
-
-  const handleUpdateProject = async () => {
-    if (!editingProject || !newProjectName.trim()) return
-
-    setLoading(true)
-
-    try {
-      const { error } = await supabase
-        .from("projects")
-        .update({
-          name: newProjectName.trim(),
-          description: newProjectDescription.trim() || null,
-        })
-        .eq("id", editingProject.id)
-
-      if (error) throw error
-
-      setNewProjectName("")
-      setNewProjectDescription("")
-      setEditingProject(null)
-      setIsDialogOpen(false)
-      fetchProjects()
-    } catch (error) {
-      console.error("Error updating project:", error)
-      alert("Failed to update project. Please try again.")
-    } finally {
-      setLoading(false)
-    }
-  }
-
-  const handleDeleteProject = async (projectId: string) => {
-    if (!confirm("Are you sure you want to delete this project? This action cannot be undone.")) {
+    if (!newProject.name.trim()) {
+      toast({
+        title: "Missing information",
+        description: "Project name is required.",
+        variant: "destructive",
+      })
       return
     }
 
-    setDeletingId(projectId)
-
+    setCreatingProject(true)
     try {
-      const { error } = await supabase.from("projects").delete().eq("id", projectId)
+      const { data: userData } = await supabase.auth.getUser()
+      if (!userData.user) {
+        throw new Error("User not authenticated")
+      }
+
+      const { data: projectData, error } = await supabase
+        .from("projects")
+        .insert({
+          name: newProject.name,
+          description: newProject.description,
+          user_id: userData.user.id,
+        })
+        .select()
+        .single()
 
       if (error) throw error
 
-      fetchProjects()
+      setProjects([projectData, ...projects])
+      setNewProject({ name: "", description: "" })
+      setOpenNewProjectDialog(false)
+
+      toast({
+        title: "Project created",
+        description: "Your new project has been created successfully.",
+      })
     } catch (error) {
-      console.error("Error deleting project:", error)
-      alert("Failed to delete project. Please try again.")
+      console.error("Error creating project:", error)
+      toast({
+        title: "Error creating project",
+        description: "Failed to create project. Please try again.",
+        variant: "destructive",
+      })
     } finally {
-      setDeletingId(null)
+      setCreatingProject(false)
     }
   }
 
-  const openEditDialog = (project: Project) => {
-    setEditingProject(project)
-    setNewProjectName(project.name)
-    setNewProjectDescription(project.description || "")
-    setIsDialogOpen(true)
+  const handleGenerateContent = async () => {
+    if (!newContent.title.trim() || !newContent.prompt.trim() || !newContent.projectId) {
+      toast({
+        title: "Missing information",
+        description: "Please provide title, prompt, and select a project.",
+        variant: "destructive",
+      })
+      return
+    }
+
+    setGeneratingContent(true)
+    try {
+      // Generate content using the AI
+      const response = await fetch("/api/generate", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          contentType: newContent.contentType.replace("_", "-"), // Convert to kebab-case
+          title: newContent.title,
+          prompt: newContent.prompt,
+          temperature: 0.7,
+          maxLength: 1000,
+        }),
+      })
+
+      if (!response.ok) {
+        const errorData = await response.json()
+        throw new Error(errorData.error || "Failed to generate content")
+      }
+
+      const data = await response.json()
+
+      // Get user data
+      const { data: userData } = await supabase.auth.getUser()
+      if (!userData.user) {
+        throw new Error("User not authenticated")
+      }
+
+      // Save the generated content to the database
+      const { data: savedContent, error } = await supabase
+        .from("content")
+        .insert({
+          title: newContent.title,
+          content_type: newContent.contentType,
+          content: data.content,
+          keywords: data.keywords || [],
+          sentiment: data.sentiment || "neutral",
+          project_id: newContent.projectId,
+          user_id: userData.user.id,
+          content_category: getCategoryFromContentType(newContent.contentType),
+        })
+        .select()
+        .single()
+
+      if (error) throw error
+
+      // Reset the form
+      setNewContent({
+        title: "",
+        contentType: "product_description",
+        prompt: "",
+        projectId: "",
+      })
+      setOpenNewContentDialog(false)
+
+      toast({
+        title: "Content generated",
+        description: "New content has been generated and added to your project.",
+      })
+
+      // Refresh projects to show updated content count
+      fetchProjects()
+    } catch (error) {
+      console.error("Error generating content:", error)
+      toast({
+        title: "Error generating content",
+        description: error instanceof Error ? error.message : "An unknown error occurred",
+        variant: "destructive",
+      })
+    } finally {
+      setGeneratingContent(false)
+    }
   }
 
-  const resetForm = () => {
-    setNewProjectName("")
-    setNewProjectDescription("")
-    setEditingProject(null)
+  // Add this helper function
+  const getCategoryFromContentType = (contentType: string): string => {
+    switch (contentType) {
+      case "product_description":
+        return "product"
+      case "blog_post":
+        return "blog"
+      case "social_media":
+        return "social"
+      case "email":
+        return "email"
+      default:
+        return "general"
+    }
   }
 
-  const getRandomProgress = () => {
-    return Math.floor(Math.random() * 100)
+  const formatDate = (dateString: string) => {
+    return new Date(dateString).toLocaleDateString("en-US", {
+      year: "numeric",
+      month: "long",
+      day: "numeric",
+    })
   }
 
-  const getRandomContentCount = () => {
-    return Math.floor(Math.random() * 20)
-  }
-
-  const getRandomTeamSize = () => {
-    return Math.floor(Math.random() * 5) + 1
+  if (loading) {
+    return (
+      <DashboardLayout>
+        <div className="flex items-center justify-center h-[60vh]">
+          <Loader2 className="h-8 w-8 animate-spin text-primary" />
+        </div>
+      </DashboardLayout>
+    )
   }
 
   return (
@@ -204,86 +244,142 @@ export default function ProjectsPage() {
         <div className="flex items-center justify-between">
           <div>
             <h2 className="text-3xl font-bold tracking-tight">Projects</h2>
-            <p className="text-muted-foreground">Manage your content projects</p>
+            <p className="text-muted-foreground">Organize your content into projects for better management.</p>
           </div>
-          <div className="flex items-center gap-4">
-            <Tabs
-              value={viewMode}
-              onValueChange={(value) => setViewMode(value as "grid" | "list")}
-              className="hidden md:block"
-            >
-              <TabsList className="bg-gray-900 border-gray-800">
-                <TabsTrigger value="grid">Grid View</TabsTrigger>
-                <TabsTrigger value="list">List View</TabsTrigger>
-              </TabsList>
-            </Tabs>
-            <Dialog
-              open={isDialogOpen}
-              onOpenChange={(open) => {
-                setIsDialogOpen(open)
-                if (!open) resetForm()
-              }}
-            >
+          <div className="flex gap-2">
+            <Dialog open={openNewContentDialog} onOpenChange={setOpenNewContentDialog}>
+              <DialogTrigger asChild>
+                <Button variant="outline">
+                  <FileText className="mr-2 h-4 w-4" />
+                  New Content
+                </Button>
+              </DialogTrigger>
+              <DialogContent>
+                <DialogHeader>
+                  <DialogTitle>Generate New Content</DialogTitle>
+                  <DialogDescription>Create content and assign it to a project.</DialogDescription>
+                </DialogHeader>
+                <div className="space-y-4 py-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="project-select">Project</Label>
+                    <Select
+                      value={newContent.projectId}
+                      onValueChange={(value) => setNewContent({ ...newContent, projectId: value })}
+                    >
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select a project" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {projects.map((project) => (
+                          <SelectItem key={project.id} value={project.id}>
+                            {project.name}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="content-type">Content Type</Label>
+                    <Select
+                      value={newContent.contentType}
+                      onValueChange={(value) => setNewContent({ ...newContent, contentType: value })}
+                    >
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select content type" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="product_description">Product Description</SelectItem>
+                        <SelectItem value="blog_post">Blog Post</SelectItem>
+                        <SelectItem value="social_media">Social Media Post</SelectItem>
+                        <SelectItem value="email">Email Template</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="content-title">Title</Label>
+                    <Input
+                      id="content-title"
+                      value={newContent.title}
+                      onChange={(e) => setNewContent({ ...newContent, title: e.target.value })}
+                      placeholder="Enter a title for your content"
+                    />
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="content-prompt">Prompt</Label>
+                    <Textarea
+                      id="content-prompt"
+                      value={newContent.prompt}
+                      onChange={(e) => setNewContent({ ...newContent, prompt: e.target.value })}
+                      placeholder="Provide details about what you want to generate"
+                      rows={5}
+                    />
+                  </div>
+                </div>
+                <DialogFooter>
+                  <Button variant="outline" onClick={() => setOpenNewContentDialog(false)}>
+                    Cancel
+                  </Button>
+                  <Button onClick={handleGenerateContent} disabled={generatingContent}>
+                    {generatingContent ? (
+                      <>
+                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                        Generating...
+                      </>
+                    ) : (
+                      "Generate Content"
+                    )}
+                  </Button>
+                </DialogFooter>
+              </DialogContent>
+            </Dialog>
+
+            <Dialog open={openNewProjectDialog} onOpenChange={setOpenNewProjectDialog}>
               <DialogTrigger asChild>
                 <Button>
-                  <FolderPlus className="mr-2 h-4 w-4" />
+                  <PlusCircle className="mr-2 h-4 w-4" />
                   New Project
                 </Button>
               </DialogTrigger>
-              <DialogContent className="bg-gray-900 border-gray-800">
+              <DialogContent>
                 <DialogHeader>
-                  <DialogTitle>{editingProject ? "Edit Project" : "Create New Project"}</DialogTitle>
-                  <DialogDescription>
-                    {editingProject
-                      ? "Update your project details below"
-                      : "Add a new project to organize your content"}
-                  </DialogDescription>
+                  <DialogTitle>Create New Project</DialogTitle>
+                  <DialogDescription>Create a new project to organize your content.</DialogDescription>
                 </DialogHeader>
                 <div className="space-y-4 py-4">
                   <div className="space-y-2">
                     <Label htmlFor="project-name">Project Name</Label>
                     <Input
                       id="project-name"
-                      value={newProjectName}
-                      onChange={(e) => setNewProjectName(e.target.value)}
+                      value={newProject.name}
+                      onChange={(e) => setNewProject({ ...newProject, name: e.target.value })}
                       placeholder="Enter project name"
-                      className="bg-gray-800 border-gray-700"
                     />
                   </div>
+
                   <div className="space-y-2">
-                    <Label htmlFor="project-description">Description (Optional)</Label>
+                    <Label htmlFor="project-description">Description</Label>
                     <Textarea
                       id="project-description"
-                      value={newProjectDescription}
-                      onChange={(e) => setNewProjectDescription(e.target.value)}
-                      placeholder="Enter project description"
-                      rows={3}
-                      className="bg-gray-800 border-gray-700"
+                      value={newProject.description}
+                      onChange={(e) => setNewProject({ ...newProject, description: e.target.value })}
+                      placeholder="Enter project description (optional)"
+                      rows={4}
                     />
                   </div>
                 </div>
                 <DialogFooter>
-                  <Button
-                    variant="outline"
-                    onClick={() => {
-                      setIsDialogOpen(false)
-                      resetForm()
-                    }}
-                    className="border-gray-700"
-                  >
+                  <Button variant="outline" onClick={() => setOpenNewProjectDialog(false)}>
                     Cancel
                   </Button>
-                  <Button
-                    onClick={editingProject ? handleUpdateProject : handleCreateProject}
-                    disabled={!newProjectName.trim() || loading}
-                  >
-                    {loading ? (
+                  <Button onClick={handleCreateProject} disabled={creatingProject}>
+                    {creatingProject ? (
                       <>
                         <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                        {editingProject ? "Updating..." : "Creating..."}
+                        Creating...
                       </>
-                    ) : editingProject ? (
-                      "Update Project"
                     ) : (
                       "Create Project"
                     )}
@@ -294,160 +390,49 @@ export default function ProjectsPage() {
           </div>
         </div>
 
-        {loading ? (
-          <div className="flex justify-center py-8">
-            <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
-          </div>
-        ) : projects.length === 0 ? (
-          <Card className="bg-gray-900 border-gray-800">
-            <CardContent className="flex flex-col items-center justify-center py-12">
-              <FolderPlus className="h-12 w-12 text-muted-foreground mb-4" />
-              <h3 className="text-xl font-medium mb-2">No projects yet</h3>
-              <p className="text-muted-foreground text-center max-w-md mb-6">
-                Create your first project to organize your content and keep track of your work.
-              </p>
-              <Button onClick={() => setIsDialogOpen(true)}>
-                <FolderPlus className="mr-2 h-4 w-4" />
-                Create Your First Project
-              </Button>
-            </CardContent>
-          </Card>
-        ) : viewMode === "grid" ? (
-          <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+        {projects.length > 0 ? (
+          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
             {projects.map((project) => (
-              <Card key={project.id} className="bg-gray-900 border-gray-800 overflow-hidden">
-                <CardHeader className="pb-3">
-                  <div className="flex items-start justify-between">
-                    <CardTitle className="text-lg">{project.name}</CardTitle>
-                    <DropdownMenu>
-                      <DropdownMenuTrigger asChild>
-                        <Button variant="ghost" size="icon">
-                          <MoreVertical className="h-4 w-4" />
-                          <span className="sr-only">Actions</span>
-                        </Button>
-                      </DropdownMenuTrigger>
-                      <DropdownMenuContent align="end" className="bg-gray-800 border-gray-700">
-                        <DropdownMenuItem onClick={() => openEditDialog(project)} className="cursor-pointer">
-                          <Pencil className="mr-2 h-4 w-4" />
-                          Edit
-                        </DropdownMenuItem>
-                        <DropdownMenuItem
-                          onClick={() => handleDeleteProject(project.id)}
-                          className="text-red-600 cursor-pointer"
-                          disabled={deletingId === project.id}
-                        >
-                          {deletingId === project.id ? (
-                            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                          ) : (
-                            <Trash2 className="mr-2 h-4 w-4" />
-                          )}
-                          Delete
-                        </DropdownMenuItem>
-                      </DropdownMenuContent>
-                    </DropdownMenu>
-                  </div>
-                  <CardDescription className="flex items-center gap-2">
-                    <Calendar className="h-3 w-3" />
-                    {new Date(project.created_at).toLocaleDateString()}
+              <Card key={project.id} className="hover:shadow-lg transition-shadow">
+                <CardHeader className="pb-2">
+                  <CardTitle className="flex items-center gap-2">
+                    <FolderOpen className="h-5 w-5 text-primary" />
+                    {project.name}
+                  </CardTitle>
+                  <CardDescription className="line-clamp-2">
+                    {project.description || "No description provided"}
                   </CardDescription>
                 </CardHeader>
                 <CardContent>
-                  <p className="text-sm text-muted-foreground mb-4">
-                    {project.description || "No description provided"}
-                  </p>
-                  <div className="space-y-3">
-                    <div className="flex justify-between text-sm">
-                      <span className="text-muted-foreground">Progress</span>
-                      <span>{getRandomProgress()}%</span>
-                    </div>
-                    <Progress value={getRandomProgress()} className="h-1" />
-                    <div className="flex justify-between items-center">
-                      <div className="flex items-center gap-2">
-                        <FileText className="h-4 w-4 text-muted-foreground" />
-                        <span className="text-xs text-muted-foreground">{getRandomContentCount()} Contents</span>
-                      </div>
-                      <div className="flex items-center gap-2">
-                        <Users className="h-4 w-4 text-muted-foreground" />
-                        <span className="text-xs text-muted-foreground">{getRandomTeamSize()} Members</span>
-                      </div>
+                  <div className="flex items-center gap-4 text-sm text-muted-foreground">
+                    <div className="flex items-center gap-1">
+                      <Calendar className="h-3 w-3" />
+                      <span>{formatDate(project.created_at)}</span>
                     </div>
                   </div>
                 </CardContent>
-                <div className="bg-gradient-to-r from-primary/10 to-primary/5 h-1 w-full"></div>
-                <CardFooter className="pt-4">
-                  <Button variant="outline" className="w-full border-gray-700" asChild>
-                    <a href={`/dashboard/projects/${project.id}`}>View Project</a>
+                <CardFooter>
+                  <Button asChild className="w-full">
+                    <Link href={`/dashboard/projects/${project.id}`}>View Project</Link>
                   </Button>
                 </CardFooter>
               </Card>
             ))}
           </div>
         ) : (
-          <Card className="bg-gray-900 border-gray-800">
+          <Card>
             <CardHeader>
-              <CardTitle>All Projects</CardTitle>
-              <CardDescription>Manage and organize your content projects</CardDescription>
+              <CardTitle>No projects yet</CardTitle>
+              <CardDescription>Create your first project to start organizing your content.</CardDescription>
             </CardHeader>
             <CardContent>
-              <div className="space-y-2">
-                {projects.map((project) => (
-                  <div
-                    key={project.id}
-                    className="flex items-center justify-between p-3 rounded-md border border-gray-800 bg-gray-800/50 hover:bg-gray-800 transition-colors"
-                  >
-                    <div className="flex items-center gap-3">
-                      <div className="w-10 h-10 rounded-md bg-primary/20 flex items-center justify-center">
-                        <FolderPlus className="h-5 w-5 text-primary" />
-                      </div>
-                      <div>
-                        <h4 className="font-medium">{project.name}</h4>
-                        <div className="flex items-center gap-3 text-xs text-muted-foreground">
-                          <span className="flex items-center gap-1">
-                            <Calendar className="h-3 w-3" />
-                            {new Date(project.created_at).toLocaleDateString()}
-                          </span>
-                          <span className="flex items-center gap-1">
-                            <FileText className="h-3 w-3" />
-                            {getRandomContentCount()} Contents
-                          </span>
-                          <span className="flex items-center gap-1">
-                            <BarChart className="h-3 w-3" />
-                            {getRandomProgress()}% Complete
-                          </span>
-                        </div>
-                      </div>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <Button variant="ghost" size="sm" asChild>
-                        <a href={`/dashboard/projects/${project.id}`}>View</a>
-                      </Button>
-                      <Button variant="ghost" size="sm" onClick={() => openEditDialog(project)}>
-                        <Pencil className="h-4 w-4" />
-                      </Button>
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => handleDeleteProject(project.id)}
-                        disabled={deletingId === project.id}
-                        className="text-red-400 hover:text-red-300 hover:bg-red-900/20"
-                      >
-                        {deletingId === project.id ? (
-                          <Loader2 className="h-4 w-4 animate-spin" />
-                        ) : (
-                          <Trash2 className="h-4 w-4" />
-                        )}
-                      </Button>
-                    </div>
-                  </div>
-                ))}
+              <div className="flex justify-center">
+                <Button onClick={() => setOpenNewProjectDialog(true)}>
+                  <PlusCircle className="mr-2 h-4 w-4" />
+                  Create Your First Project
+                </Button>
               </div>
             </CardContent>
-            <CardFooter>
-              <Button variant="outline" className="w-full border-gray-700" onClick={() => setIsDialogOpen(true)}>
-                <Plus className="mr-2 h-4 w-4" />
-                Add New Project
-              </Button>
-            </CardFooter>
           </Card>
         )}
       </div>

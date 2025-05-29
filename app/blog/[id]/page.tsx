@@ -1,407 +1,286 @@
-"use client"
-
-import Link from "next/link"
 import { notFound } from "next/navigation"
+import Link from "next/link"
 import { Button } from "@/components/ui/button"
-import { ArrowLeft, Download, Sparkles, Calendar, ArrowRight, Clock } from "lucide-react"
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { ArrowLeft, Calendar, Clock, Eye, Tag, Sparkles } from "lucide-react"
 import { formatDate } from "@/lib/utils"
-import { generateContent } from "@/lib/ai/gemini-client"
-import { useState, useEffect } from "react"
+import type { JSX } from "react/jsx-runtime"
 
-// Sample blog data - in a real app, this would come from a database
-const blogs = [
-  {
-    id: "1",
-    title: "AI Technology: How AI is Revolutionizing Content Creation",
-    description:
-      "Discover how artificial intelligence is transforming the way businesses create and optimize content for their audiences.",
-    author: "Alex Chen",
-    date: "2025-04-05",
-    readTime: "5 min read",
-    category: "Technology",
-    image: "/blog-content-creation_ai-seo-content-generator.jpg?height=400&width=600",
-  },
-  {
-    id: "2",
-    title: "The Future of SEO with AI-Generated Content",
-    description:
-      "Learn how AI-powered content generation is changing SEO strategies and what it means for digital marketers.",
-    author: "Sarah Johnson",
-    date: "2025-03-28",
-    readTime: "7 min read",
-    category: "Marketing",
-    image: "/blog-SEO_ai-seo-content-generator.jpg?height=400&width=600",
-  },
-  {
-    id: "3",
-    title: "Maximizing E-commerce Conversions with AI Copy",
-    description:
-      "Explore how e-commerce businesses are using AI to create product descriptions that convert browsers into buyers.",
-    author: "Michael Wong",
-    date: "2025-03-15",
-    readTime: "6 min read",
-    category: "E-commerce",
-    image: "/blog-Gen-AI-in-ecomerce-seo-content-generator.jpg?height=400&width=600",
-  },
-  {
-    id: "4",
-    title: "Ethical Considerations in AI Content Creation",
-    description:
-      "A deep dive into the ethical implications of using AI to generate content and how businesses can navigate these challenges.",
-    author: "Dr. Emily Roberts",
-    date: "2025-02-20",
-    readTime: "8 min read",
-    category: "Ethics",
-    image: "/blog-Ethical-Considerations-ai-seo-content-generator.jpg?height=400&width=600",
-  },
-  {
-    id: "5",
-    title: "How Small Businesses Can Leverage AI for Content Marketing",
-    description:
-      "Practical strategies for small businesses to use AI content generation tools to compete with larger companies.",
-    author: "David Martinez",
-    date: "2025-02-10",
-    readTime: "4 min read",
-    category: "Small Business",
-    image: "/blog-Marketing-ai-seo-content-generator.jpg?height=400&width=600",
-  },
-]
+interface BlogPost {
+  id: string
+  title: string
+  slug: string
+  content: string
+  excerpt: string
+  search_query: string
+  category: string
+  author: string
+  image_url?: string
+  tags: string[]
+  read_time: string
+  view_count: number
+  created_at: string
+  ai_provider: string
+}
 
-// Fallback blog content for when the API fails
-const fallbackBlogContent = `
-# Introduction
+async function getBlogPost(id: string): Promise<BlogPost | null> {
+  try {
+    console.log("Fetching blog post for ID:", id)
 
-AI-powered content generation is revolutionizing how businesses create marketing materials, product descriptions, and blog posts. This technology enables faster content creation while maintaining quality and relevance.
+    const baseUrl = process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000"
+    const response = await fetch(`${baseUrl}/api/blog/${encodeURIComponent(id)}`, {
+      cache: "no-store",
+    })
 
-## Key Benefits of AI Content Generation
+    console.log("API response status:", response.status)
 
-AI content generation offers several advantages for businesses:
+    if (!response.ok) {
+      console.log("Blog post not found for ID:", id)
+      return null
+    }
 
-- **Efficiency**: Create content in seconds rather than hours or days
-- **Consistency**: Maintain a consistent brand voice across all content
-- **Scalability**: Generate large volumes of content without proportional increases in time or resources
-- **SEO Optimization**: Automatically include relevant keywords and phrases
-
-## How Businesses Are Using AI Content
-
-Modern businesses are implementing AI content generation in various ways:
-
-- E-commerce product descriptions
-- Blog posts and articles
-- Social media updates
-- Email marketing campaigns
-- Ad copy for digital marketing
-
-## Getting Started with AI Content Generation
-
-If you're interested in leveraging AI for your content needs:
-
-1. Identify your content requirements
-2. Choose the right AI content platform
-3. Provide clear guidelines and examples
-4. Review and refine the generated content
-5. Measure performance and iterate
-
-## Conclusion
-
-AI content generation is not just a trend but a transformative technology that's changing how businesses approach content creation. By embracing these tools, companies can produce more content, faster, while maintaining quality and relevance.
-`
-
-export default function BlogPost({ params }: { params: { id: string } }) {
-  const [blogContent, setBlogContent] = useState<string>("")
-  const [isLoading, setIsLoading] = useState<boolean>(true)
-  const [error, setError] = useState<string | null>(null)
-
-  const blog = blogs.find((blog) => blog.id === params.id)
-  
-  interface blog {
-    contentType: "product-description" | "blog-post" | "social-media" | "email" | "ad-copy" | "blog_post"
-    title: string
-    prompt: string
-    temperature?: number
-    maxLength?: number
-    category?: string
-    description?: string
+    const data = await response.json()
+    console.log("Successfully fetched blog post:", data.post?.id)
+    return data.post
+  } catch (error) {
+    console.error("Error fetching blog post:", error)
+    return null
   }
-  if (!blog) {
-    notFound()
-  }
+}
 
-  useEffect(() => {
-    async function loadBlogContent() {
-      try {
-        setIsLoading(true)
+function SimpleMarkdownRenderer({ content }: { content: string }) {
+  const lines = content.split("\n")
+  const elements: JSX.Element[] = []
 
-        // Generate the blog content using Gemini
-        const prompt = `
-          Write a comprehensive, informative, and engaging blog post with the following details:
-          
-          Title: ${blog.title}
-          Description: ${blog.description}
-          Category: ${blog.category}
-          
-          The blog should be well-structured with:
-          1. An engaging introduction that hooks the reader
-          2. 3-5 main sections with subheadings
-          3. Practical examples and actionable insights
-          4. A conclusion that summarizes key points
-          
-          The tone should be professional but conversational, and the content should be informative and valuable to readers interested in this topic.
-          Include some statistics or research findings where appropriate (you can create plausible ones).
-          
-          Format the blog post in markdown with proper headings (##, ###), paragraphs, bullet points, and emphasis where appropriate.
-        `
+  for (let i = 0; i < lines.length; i++) {
+    const line = lines[i]
 
-        const { content, success, error } = await generateContent({
-          contentType: "blog_post",
-          title: blog.title,
-          prompt: prompt,
-          category: blog.category,
-          description: blog.description,
-        })
-
-        if (!success || !content) {
-          console.warn("Failed to generate blog content:", error)
-          setBlogContent(processMarkdown(fallbackBlogContent))
-          setError("We're experiencing high demand. Using a simplified version of this article.")
-        } else {
-          setBlogContent(processMarkdown(content))
-        }
-      } catch (err) {
-        console.error("Error loading blog content:", err)
-        setBlogContent(processMarkdown(fallbackBlogContent))
-        setError("We're experiencing technical difficulties. Using a simplified version of this article.")
-      } finally {
-        setIsLoading(false)
+    if (line.startsWith("# ")) {
+      elements.push(
+        <h1 key={i} className="text-3xl font-bold text-gray-900 mb-6 mt-8">
+          {line.substring(2)}
+        </h1>,
+      )
+    } else if (line.startsWith("## ")) {
+      elements.push(
+        <h2 key={i} className="text-2xl font-semibold text-gray-900 mb-4 mt-6">
+          {line.substring(3)}
+        </h2>,
+      )
+    } else if (line.startsWith("### ")) {
+      elements.push(
+        <h3 key={i} className="text-xl font-semibold text-gray-900 mb-3 mt-4">
+          {line.substring(4)}
+        </h3>,
+      )
+    } else if (line.startsWith("- ")) {
+      // Handle bullet points
+      const listItems = [line.substring(2)]
+      let j = i + 1
+      while (j < lines.length && lines[j].startsWith("- ")) {
+        listItems.push(lines[j].substring(2))
+        j++
       }
+      elements.push(
+        <ul key={i} className="list-disc list-inside mb-4 space-y-1 text-gray-700">
+          {listItems.map((item, idx) => (
+            <li key={idx}>{item}</li>
+          ))}
+        </ul>,
+      )
+      i = j - 1
+    } else if (line.match(/^\d+\. /)) {
+      // Handle numbered lists
+      const listItems = [line.replace(/^\d+\. /, "")]
+      let j = i + 1
+      while (j < lines.length && lines[j].match(/^\d+\. /)) {
+        listItems.push(lines[j].replace(/^\d+\. /, ""))
+        j++
+      }
+      elements.push(
+        <ol key={i} className="list-decimal list-inside mb-4 space-y-1 text-gray-700">
+          {listItems.map((item, idx) => (
+            <li key={idx}>{item}</li>
+          ))}
+        </ol>,
+      )
+      i = j - 1
+    } else if (line.trim() === "") {
+      elements.push(<br key={i} />)
+    } else {
+      // Regular paragraph
+      const processedLine = line.replace(/\*\*(.*?)\*\*/g, "<strong>$1</strong>").replace(/\*(.*?)\*/g, "<em>$1</em>")
+
+      elements.push(
+        <p
+          key={i}
+          className="mb-4 text-gray-700 leading-relaxed"
+          dangerouslySetInnerHTML={{ __html: processedLine }}
+        />,
+      )
     }
-
-    loadBlogContent()
-  }, [blog.title, blog.description, blog.category])
-
-  // Process the markdown content to HTML (simple version)
-  function processMarkdown(markdown: string) {
-    return markdown
-      .replace(/^# (.*$)/gim, '<h1 class="text-3xl font-bold my-6">$1</h1>')
-      .replace(/^## (.*$)/gim, '<h2 class="text-2xl font-bold my-5 pt-4">$1</h2>')
-      .replace(/^### (.*$)/gim, '<h3 class="text-xl font-bold my-4 pt-2">$1</h3>')
-      .replace(/\*\*(.*)\*\*/gim, '<strong class="font-semibold">$1</strong>')
-      .replace(/\*(.*)\*/gim, '<em class="italic">$1</em>')
-      .replace(/\n\n/gim, '</p><p class="my-4 text-gray-700 leading-relaxed">')
-      .replace(/^- (.*$)/gim, '<li class="ml-6 list-disc my-2 text-gray-700">$1</li>')
   }
 
-  // Function to download blog as text
-  const downloadBlogContent = () => {
-    // Strip HTML tags for plain text download
-    const stripHtml = (html: string) => {
-      return html.replace(/<[^>]*>?/gm, "")
-    }
+  return <div className="prose prose-lg max-w-none">{elements}</div>
+}
 
-    const blogText = `
-      ${blog.title}
-      ${blog.author} | ${formatDate(blog.date)} | ${blog.readTime}
-      
-      ${blog.description}
-      
-      ${stripHtml(blogContent)}
-      
-      This content was generated by AI Content Generator.
-    `
+export default async function BlogPostPage({ params }: { params: { id: string } }) {
+  console.log("BlogPostPage called with ID:", params.id)
 
-    const blob = new Blob([blogText], { type: "text/plain" })
-    const url = URL.createObjectURL(blob)
-    const a = document.createElement("a")
-    a.href = url
-    a.download = `${blog.title.replace(/[^a-z0-9]/gi, "-").toLowerCase()}.txt`
-    document.body.appendChild(a)
-    a.click()
-    document.body.removeChild(a)
-    URL.revokeObjectURL(url)
+  const blogPost = await getBlogPost(params.id)
+
+  if (!blogPost) {
+    console.log("Blog post not found, calling notFound()")
+    notFound()
   }
 
   return (
     <div className="flex flex-col min-h-screen bg-white">
+      {/* Header */}
       <header className="sticky top-0 z-40 w-full border-b border-gray-200 bg-white/95 backdrop-blur supports-[backdrop-filter]:bg-white/60">
         <div className="container flex h-16 items-center space-x-4 sm:justify-between sm:space-x-0">
           <div className="flex gap-6 md:gap-10">
             <Link href="/" className="flex items-center space-x-2">
-              <Sparkles className="h-6 w-6 text-primary" />
-              <span className="inline-block font-bold">AI Content Generator</span>
+              <Sparkles className="h-6 w-6 text-blue-600" />
+              <span className="inline-block font-bold text-gray-900">AI Content Generator</span>
             </Link>
           </div>
           <div className="flex flex-1 items-center justify-end space-x-4">
             <nav className="flex items-center space-x-2">
               <Link href="/login">
-                <Button variant="ghost" size="sm">
+                <Button variant="ghost" size="sm" className="text-gray-700 hover:text-gray-900">
                   Login
                 </Button>
               </Link>
               <Link href="/login">
-                <Button size="sm">Sign Up</Button>
+                <Button size="sm" className="bg-blue-600 hover:bg-blue-700 text-white">
+                  Sign Up
+                </Button>
               </Link>
             </nav>
           </div>
         </div>
       </header>
 
-      <main className="flex-1 bg-white">
-        <article className="max-w-4xl mx-auto px-4 py-12">
-          <div className="mb-8">
-            <div className="flex justify-between items-center mb-6">
-              <Link href="/blog">
-                <Button variant="ghost" size="sm" className="gap-1">
+      <main className="flex-1">
+        <article className="w-full py-12 md:py-24 bg-gray-50">
+          <div className="container px-4 md:px-6">
+            <div className="max-w-4xl mx-auto">
+              <Link href="/blog" className="inline-block mb-6">
+                <Button variant="ghost" size="sm" className="gap-1 text-gray-600 hover:text-gray-900">
                   <ArrowLeft className="h-4 w-4" />
-                  Back to Blogs
+                  Back to Blog
                 </Button>
               </Link>
-              <div className="flex gap-2">
-                <Button variant="outline" size="sm" onClick={downloadBlogContent} className="gap-1">
-                  <Download className="h-4 w-4" />
-                  Download
-                </Button>
-                <Link href="/login">
-                  <Button size="sm" className="gap-1">
-                    <ArrowRight className="h-4 w-4" />
-                    Go to Dashboard
-                  </Button>
-                </Link>
-              </div>
-            </div>
 
-            <div className="inline-block px-3 py-1 mb-4 text-xs font-medium bg-primary/10 text-primary rounded-full">
-              {blog.category}
-            </div>
-
-            <h1 className="text-4xl font-bold mb-6 text-gray-900 leading-tight">{blog.title}</h1>
-
-            <div className="flex items-center gap-6 text-sm text-gray-600 mb-8">
-              <div className="flex items-center gap-2">
-                <div className="w-10 h-10 rounded-full bg-gray-200 flex items-center justify-center text-gray-700 font-medium">
-                  {blog.author.charAt(0)}
-                </div>
-                <span>{blog.author}</span>
-              </div>
-              <div className="flex items-center gap-2">
-                <Calendar className="h-4 w-4 text-gray-500" />
-                <span>{formatDate(blog.date)}</span>
-              </div>
-              <div className="flex items-center gap-2">
-                <Clock className="h-4 w-4 text-gray-500" />
-                <span>{blog.readTime}</span>
-              </div>
-            </div>
-
-            <div className="w-full h-[400px] rounded-xl overflow-hidden mb-10">
-              <img src={blog.image || "/placeholder.svg"} alt={blog.title} className="w-full h-full object-cover" />
-            </div>
-          </div>
-
-          {isLoading ? (
-            <div className="prose max-w-none animate-pulse">
-              <div className="h-6 bg-gray-200 rounded w-3/4 mb-4"></div>
-              <div className="h-4 bg-gray-200 rounded w-full mb-2"></div>
-              <div className="h-4 bg-gray-200 rounded w-full mb-2"></div>
-              <div className="h-4 bg-gray-200 rounded w-5/6 mb-6"></div>
-
-              <div className="h-5 bg-gray-200 rounded w-1/2 mb-4 mt-8"></div>
-              <div className="h-4 bg-gray-200 rounded w-full mb-2"></div>
-              <div className="h-4 bg-gray-200 rounded w-full mb-2"></div>
-              <div className="h-4 bg-gray-200 rounded w-4/5 mb-6"></div>
-
-              <div className="h-5 bg-gray-200 rounded w-2/3 mb-4 mt-8"></div>
-              <div className="h-4 bg-gray-200 rounded w-full mb-2"></div>
-              <div className="h-4 bg-gray-200 rounded w-full mb-2"></div>
-              <div className="h-4 bg-gray-200 rounded w-3/4 mb-6"></div>
-            </div>
-          ) : (
-            <>
-              {error && (
-                <div className="bg-amber-50 border border-amber-200 text-amber-800 px-4 py-3 rounded-md mb-6">
-                  {error}
-                </div>
-              )}
-              <div className="prose max-w-none">
-                <div
-                  dangerouslySetInnerHTML={{
-                    __html: `<p class="my-4 text-gray-700 leading-relaxed">${blogContent}</p>`,
-                  }}
-                  className="text-lg"
-                />
-              </div>
-            </>
-          )}
-
-          <div className="mt-12 p-8 bg-gray-50 rounded-xl border border-gray-200 shadow-sm">
-            <p className="text-center text-gray-600 italic">
-              Thank you for reading this blog. This content was created by our AI to demonstrate the capabilities of our
-              platform. Experience the power of AI-generated content for your business by signing up today.
-            </p>
-            <div className="flex justify-center mt-4">
-              <Link href="/login">
-                <Button>Try It For Free</Button>
-              </Link>
-            </div>
-          </div>
-
-          <div className="mt-12">
-            <h3 className="text-2xl font-bold mb-6">Related Articles</h3>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              {blogs
-                .filter((relatedBlog) => relatedBlog.id !== blog.id)
-                .slice(0, 2)
-                .map((relatedBlog) => (
-                  <Link key={relatedBlog.id} href={`/blog/${relatedBlog.id}`} className="group">
-                    <div className="border border-gray-200 rounded-xl p-4 transition-all duration-200 hover:shadow-md bg-white">
-                      <div className="h-40 overflow-hidden rounded-lg mb-4">
-                        <img
-                          src={relatedBlog.image || "/placeholder.svg"}
-                          alt={relatedBlog.title}
-                          className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
-                        />
-                      </div>
-                      <div className="inline-block px-2 py-1 mb-2 text-xs font-medium bg-primary/10 text-primary rounded-full">
-                        {relatedBlog.category}
-                      </div>
-                      <h4 className="text-lg font-semibold mb-2 group-hover:text-primary transition-colors">
-                        {relatedBlog.title}
-                      </h4>
-                      <p className="text-gray-600 text-sm mb-4 line-clamp-2">{relatedBlog.description}</p>
-                      <div className="flex justify-between items-center text-sm text-gray-500">
-                        <span>{relatedBlog.author}</span>
-                        <span className="flex items-center gap-1">
-                          Read More <ArrowRight className="h-3 w-3" />
-                        </span>
-                      </div>
+              <Card className="bg-white border-gray-200 shadow-lg">
+                {/* Hero Image */}
+                <div className="h-64 md:h-80 overflow-hidden bg-gradient-to-r from-blue-100 to-indigo-100 flex items-center justify-center">
+                  {blogPost.image_url && !blogPost.image_url.includes("placeholder") ? (
+                    <img
+                      src={blogPost.image_url || "/placeholder.svg"}
+                      alt={blogPost.title}
+                      className="w-full h-full object-cover"
+                    />
+                  ) : (
+                    <div className="text-center">
+                      <Sparkles className="h-16 w-16 text-blue-600 mx-auto mb-4" />
+                      <p className="text-blue-800 font-medium">AI Generated Content</p>
                     </div>
-                  </Link>
-                ))}
+                  )}
+                </div>
+
+                <CardHeader>
+                  {/* Category and AI Provider */}
+                  <div className="flex items-center justify-between mb-4">
+                    <div className="inline-block px-3 py-1 text-sm font-medium bg-blue-50 text-blue-600 rounded-full">
+                      {blogPost.category}
+                    </div>
+                    <div className="text-sm text-gray-500">Generated using {blogPost.ai_provider}</div>
+                  </div>
+
+                  {/* Title */}
+                  <CardTitle className="text-3xl md:text-4xl font-bold text-gray-900 mb-4">{blogPost.title}</CardTitle>
+
+                  {/* Excerpt */}
+                  <p className="text-lg text-gray-600 mb-6">{blogPost.excerpt}</p>
+
+                  {/* Meta Information */}
+                  <div className="flex items-center gap-6 text-gray-600 mb-6 flex-wrap">
+                    <div className="flex items-center gap-2">
+                      <div className="w-8 h-8 rounded-full bg-blue-100 flex items-center justify-center text-sm font-medium text-blue-600">
+                        {blogPost.author.charAt(0)}
+                      </div>
+                      <span className="font-medium">{blogPost.author}</span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <Calendar className="h-4 w-4" />
+                      <span>{formatDate(blogPost.created_at)}</span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <Clock className="h-4 w-4" />
+                      <span>{blogPost.read_time}</span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <Eye className="h-4 w-4" />
+                      <span>{blogPost.view_count} views</span>
+                    </div>
+                  </div>
+
+                  {/* Tags */}
+                  {blogPost.tags && blogPost.tags.length > 0 && (
+                    <div className="flex flex-wrap gap-2 mb-6">
+                      {blogPost.tags.slice(0, 6).map((tag, index) => (
+                        <span
+                          key={index}
+                          className="inline-flex items-center gap-1 px-3 py-1 text-sm bg-gray-100 text-gray-600 rounded-full"
+                        >
+                          <Tag className="h-3 w-3" />
+                          {tag}
+                        </span>
+                      ))}
+                    </div>
+                  )}
+                </CardHeader>
+
+                <CardContent>
+                  {/* Content */}
+                  <div className="mb-8">
+                    <SimpleMarkdownRenderer content={blogPost.content} />
+                  </div>
+
+                  {/* Actions */}
+                  <div className="border-t border-gray-200 pt-6">
+                    <div className="flex gap-4 justify-center">
+                      <Link href={`/blog-search?q=${encodeURIComponent(blogPost.search_query)}`}>
+                        <Button variant="outline" className="border-gray-300">
+                          <Sparkles className="h-4 w-4 mr-2" />
+                          Regenerate Content
+                        </Button>
+                      </Link>
+                      <Button variant="outline" className="border-gray-300">
+                        Share Article
+                      </Button>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
             </div>
           </div>
         </article>
       </main>
 
+      {/* Footer */}
       <footer className="w-full py-6 bg-gray-100 border-t border-gray-200">
         <div className="container px-4 md:px-6">
           <div className="flex flex-col items-center justify-center space-y-4 text-center">
             <div className="flex items-center space-x-2">
-              <Sparkles className="h-6 w-6 text-primary" />
-              <span className="font-bold">AI Content Generator</span>
+              <Sparkles className="h-6 w-6 text-blue-600" />
+              <span className="font-bold text-gray-900">AI Content Generator</span>
             </div>
             <p className="text-sm text-gray-600">
               © {new Date().getFullYear()} AI Content Generator. All rights reserved.
             </p>
-            <div className="flex space-x-4">
-              <Link href="/privacy" className="text-xs text-gray-600 hover:text-gray-900">
-                Privacy Policy
-              </Link>
-              <Link href="/terms" className="text-xs text-gray-600 hover:text-gray-900">
-                Terms of Service
-              </Link>
-              <Link href="/cookies" className="text-xs text-gray-600 hover:text-gray-900">
-                Cookie Policy
-              </Link>
-            </div>
           </div>
         </div>
       </footer>

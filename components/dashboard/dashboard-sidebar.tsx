@@ -16,6 +16,8 @@ import {
   CreditCard,
   Folder,
   User,
+  Users,
+  Shield,
 } from "lucide-react"
 import {
   DropdownMenu,
@@ -32,6 +34,7 @@ export function DashboardSidebar() {
   const pathname = usePathname()
   const supabase = createClient()
   const [user, setUser] = useState<any>(null)
+  const [isAdmin, setIsAdmin] = useState(false)
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
@@ -41,6 +44,13 @@ export function DashboardSidebar() {
           data: { user },
         } = await supabase.auth.getUser()
         setUser(user)
+
+        if (user) {
+          // Check if user is admin
+          const { data: profile } = await supabase.from("user_profiles").select("is_admin").eq("id", user.id).single()
+
+          setIsAdmin(profile?.is_admin || false)
+        }
       } catch (error) {
         console.error("Error fetching user:", error)
       } finally {
@@ -140,6 +150,36 @@ export function DashboardSidebar() {
             <CreditCard className="h-4 w-4" />
             Subscription
           </Link>
+
+          {/* Admin Section */}
+          {isAdmin && (
+            <>
+              <div className="my-2 border-t border-gray-200 dark:border-gray-700"></div>
+              <div className="px-3 py-2 text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+                Admin
+              </div>
+              <Link
+                href="/dashboard/admin/applications"
+                className={`flex items-center gap-3 rounded-lg px-3 py-2 transition-all hover:text-primary ${
+                  pathname === "/dashboard/admin/applications" ? "bg-secondary text-primary" : "text-muted-foreground"
+                }`}
+              >
+                <Users className="h-4 w-4" />
+                Applications
+              </Link>
+              <Link
+                href="/dashboard/admin/users"
+                className={`flex items-center gap-3 rounded-lg px-3 py-2 transition-all hover:text-primary ${
+                  pathname === "/dashboard/admin/users" ? "bg-secondary text-primary" : "text-muted-foreground"
+                }`}
+              >
+                <Shield className="h-4 w-4" />
+                User Management
+              </Link>
+            </>
+          )}
+
+          <div className="my-2 border-t border-gray-200 dark:border-gray-700"></div>
           <Link
             href="/dashboard/settings"
             className={`flex items-center gap-3 rounded-lg px-3 py-2 transition-all hover:text-primary ${
@@ -171,7 +211,9 @@ export function DashboardSidebar() {
                   </Avatar>
                   <div className="flex flex-col items-start text-sm">
                     <span className="font-medium">{getUserName()}</span>
-                    <span className="text-xs text-muted-foreground">{user?.email}</span>
+                    <span className="text-xs text-muted-foreground">
+                      {user?.email} {isAdmin && "(Admin)"}
+                    </span>
                   </div>
                 </div>
               </Button>
