@@ -1,8 +1,10 @@
 import { type NextRequest, NextResponse } from "next/server"
 import { createClient } from "@supabase/supabase-js"
+import { getSupabaseServiceRoleKey, getSupabaseUrl } from "@/lib/utils/supabase-env"
+import { logger } from "@/lib/utils/logger"
 
-const supabaseUrl = process.env.SUPABASE_URL || process.env.NEXT_PUBLIC_SUPABASE_URL
-const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY
+const supabaseUrl = getSupabaseUrl()
+const supabaseServiceKey = getSupabaseServiceRoleKey()
 
 if (!supabaseUrl || !supabaseServiceKey) {
   throw new Error("Missing Supabase environment variables")
@@ -46,12 +48,9 @@ function estimateReadTime(content: string): string {
 }
 
 async function generateContentWithFallback(prompt: string): Promise<{ content: string; provider: string }> {
-  console.log("[SERVER] Starting content generation...")
-
   // Try Groq first
   if (process.env.GROQ_API_KEY) {
     try {
-      console.log("[SERVER] Trying Groq...")
       const { generateText } = await import("ai")
       const { groq } = await import("@ai-sdk/groq")
 
@@ -62,33 +61,35 @@ async function generateContentWithFallback(prompt: string): Promise<{ content: s
       })
 
       if (text && text.length > 500) {
-        console.log("[SERVER] Groq generation successful")
         return { content: text, provider: "Groq (llama-3.1-8b-instant)" }
       }
     } catch (error) {
-      console.log("[SERVER] Groq failed:", error)
+      logger.error("Groq content generation failed", {
+        context: "BlogGenerate",
+        data: { error },
+      })
     }
   }
 
   // Try Gemini as fallback
   if (process.env.GEMINI_API_KEY) {
     try {
-      console.log("[SERVER] Trying Gemini...")
       // Use the existing Gemini client instead of @ai-sdk/google wrapper
       const { generateContentWithGemini } = await import("@/lib/ai/gemini-client")
       const text = await generateContentWithGemini(prompt)
 
       if (text && text.length > 500) {
-        console.log("[SERVER] Gemini generation successful")
         return { content: text, provider: "Gemini (gemini-2.0-flash-exp)" }
       }
     } catch (error) {
-      console.log("[SERVER] Gemini failed:", error)
+      logger.error("Gemini content generation failed", {
+        context: "BlogGenerate",
+        data: { error },
+      })
     }
   }
 
   // Fallback content if both AI providers fail
-  console.log("[SERVER] Using fallback content generation")
   return {
     content: generateFallbackContent(prompt),
     provider: "Fallback System",
@@ -239,7 +240,7 @@ This guide provides a foundation for understanding "${searchQuery}" and its appl
 
 async function generateImage(title: string): Promise<string | null> {
   if (!process.env.HUGGING_FACE_API_KEY) {
-    console.log("[SERVER] Hugging Face API key not found, skipping image generation")
+    logger.warn("Hugging Face API key not found, skipping image generation", { context: "BlogGenerate" })
     return null
   }
 
@@ -253,8 +254,6 @@ async function generateImage(title: string): Promise<string | null> {
 
   for (const model of models) {
     try {
-      console.log("[SERVER] Generating image with model:", model)
-
       const response = await fetch(`https://router.huggingface.co/hf-inference/models/${model}`, {
         method: "POST",
         headers: {
@@ -274,27 +273,36 @@ async function generateImage(title: string): Promise<string | null> {
 
       if (!response.ok) {
         const errorText = await response.text().catch(() => response.statusText)
-        console.log("[SERVER] Hugging Face API error:", model, response.status, errorText)
+        logger.error("Hugging Face API error", {
+          context: "BlogGenerate",
+          data: { model, status: response.status, error: errorText },
+        })
         continue
       }
 
       const imageBuffer = await response.arrayBuffer()
       const base64Image = Buffer.from(imageBuffer).toString("base64")
-      console.log("[SERVER] Image generated successfully with:", model)
+      logger.info("Blog header image generated", {
+        context: "BlogGenerate",
+        data: { model, size: imageBuffer.byteLength },
+      })
       return `data:image/png;base64,${base64Image}`
     } catch (error) {
-      console.log("[SERVER] Error generating image with model", model, error)
+      logger.error("Error generating image", {
+        context: "BlogGenerate",
+        data: { model, error },
+      })
       continue
     }
   }
 
-  console.log("[SERVER] All Hugging Face models failed, skipping image")
+  logger.warn("All Hugging Face models failed, skipping image", { context: "BlogGenerate" })
   return null
 }
 
 export async function POST(request: NextRequest) {
   try {
-    console.log("[SERVER] Blog generate API called")
+    logger.info("Blog generate API called", { context: "BlogGenerate" })
 
     // Parse request body
     let body
@@ -308,17 +316,16 @@ export async function POST(request: NextRequest) {
     const { searchQuery, forceRegenerate = false } = body
 
     if (!searchQuery || typeof searchQuery !== "string") {
-      console.log("[SERVER] Invalid search query")
+      logger.warn("Invalid search query received", { context: "BlogGenerate" })
       return NextResponse.json({ error: "Search query is required" }, { status: 400 })
     }
 
     const trimmedQuery = searchQuery.trim()
-    console.log("[SERVER] Processing search query:", trimmedQuery)
+    logger.info("Processing blog query", { context: "BlogGenerate", data: { searchQuery: trimmedQuery } })
 
     // Check if content already exists (unless force regenerate)
     if (!forceRegenerate) {
       try {
-        console.log("[SERVER] Checking for existing content...")
         const { data: existingContent, error: searchError } = await supabase
           .from("blog_content")
           .select("*")
@@ -330,7 +337,7 @@ export async function POST(request: NextRequest) {
         if (searchError) {
           console.error("[SERVER] Database search error:", searchError)
         } else if (existingContent) {
-          console.log("[SERVER] Found existing content:", existingContent.id)
+          logger.info("Reusing existing content", { context: "BlogGenerate", data: { id: existingContent.id } })
           return NextResponse.json({
             content: existingContent,
             isExisting: true,
@@ -342,7 +349,7 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    console.log("[SERVER] Generating new content...")
+    logger.info("Generating new blog content", { context: "BlogGenerate" })
 
     // Generate content
     const prompt = `Write a comprehensive, well-researched blog post about: "${trimmedQuery}". 
@@ -381,12 +388,12 @@ Topic: ${trimmedQuery}`
     const readTime = estimateReadTime(generatedContent)
 
     // Generate image
-    console.log("[SERVER] Generating image...")
+    logger.info("Generating blog header image", { context: "BlogGenerate" })
     const imageUrl = await generateImage(title)
 
     // Save to database
     try {
-      console.log("[SERVER] Saving to database...")
+      logger.info("Saving generated content to database", { context: "BlogGenerate", data: { title } })
       const { data: savedContent, error: saveError } = await supabase
         .from("blog_content")
         .insert({
@@ -413,7 +420,10 @@ Topic: ${trimmedQuery}`
         return NextResponse.json({ error: "Failed to save content to database" }, { status: 500 })
       }
 
-      console.log("[SERVER] Content saved successfully:", savedContent.id)
+      logger.info("Blog content saved successfully", {
+        context: "BlogGenerate",
+        data: { id: savedContent.id },
+      })
 
       return NextResponse.json({
         content: savedContent,

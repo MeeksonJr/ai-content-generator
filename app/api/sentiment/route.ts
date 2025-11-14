@@ -1,12 +1,10 @@
 import { NextResponse } from "next/server"
-import { createRouteHandlerClient } from "@supabase/auth-helpers-nextjs"
-import { cookies } from "next/headers"
 import { analyzeSentiment } from "@/lib/ai/huggingface-client"
+import { createSupabaseRouteClient } from "@/lib/supabase/route-client"
 
 export async function POST(request: Request) {
   try {
-    const cookieStore = await cookies()
-    const supabase = createRouteHandlerClient({ cookies: () => cookieStore })
+    const supabase = createSupabaseRouteClient()
 
     // Check if user is authenticated
     const {

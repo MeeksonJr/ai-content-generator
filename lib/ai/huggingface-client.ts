@@ -15,20 +15,20 @@ const RETRY_DELAY = 1000
 // Maximum input length for summarization to prevent errors
 const MAX_SUMMARIZATION_INPUT_LENGTH = 1000
 
-interface SentimentResult {
+export interface SentimentResult {
   success: boolean
   sentiment: string
   score: number
   error?: string
 }
 
-interface KeywordResult {
+export interface KeywordResult {
   success: boolean
   keywords: Array<{ keyword: string; score: number }>
   error?: string
 }
 
-interface SummarizationResult {
+export interface SummarizationResult {
   success: boolean
   summary: string
   error?: string

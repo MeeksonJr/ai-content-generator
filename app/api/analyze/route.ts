@@ -1,13 +1,11 @@
 import { NextResponse } from "next/server"
-import { createRouteHandlerClient } from "@supabase/auth-helpers-nextjs"
-import { cookies } from "next/headers"
 import { analyzeSentiment, extractKeywords } from "@/lib/ai/huggingface-client"
 import { logger } from "@/lib/utils/logger"
+import { createSupabaseRouteClient } from "@/lib/supabase/route-client"
 
 export async function POST(request: Request) {
   try {
-    const cookieStore = await cookies()
-    const supabase = createRouteHandlerClient({ cookies: () => cookieStore })
+    const supabase = createSupabaseRouteClient()
 
     // Check if user is authenticated
     const {
@@ -139,7 +137,7 @@ export async function POST(request: Request) {
             .toLowerCase()
             .replace(/[^\w\s]/g, "")
             .split(/\s+/)
-            .filter((word) => word.length > 3)
+            .filter((word: string) => word.length > 3)
 
           const stopWords = [
             "this",
@@ -158,10 +156,10 @@ export async function POST(request: Request) {
             "about",
             "which",
           ]
-          const filteredWords = words.filter((word) => !stopWords.includes(word))
+          const filteredWords = words.filter((word: string) => !stopWords.includes(word))
 
           const wordCounts: Record<string, number> = {}
-          filteredWords.forEach((word) => {
+          filteredWords.forEach((word: string) => {
             wordCounts[word] = (wordCounts[word] || 0) + 1
           })
 
@@ -182,7 +180,7 @@ export async function POST(request: Request) {
           .toLowerCase()
           .replace(/[^\w\s]/g, "")
           .split(/\s+/)
-          .filter((word) => word.length > 3)
+          .filter((word: string) => word.length > 3)
 
         const stopWords = [
           "this",
@@ -201,10 +199,10 @@ export async function POST(request: Request) {
           "about",
           "which",
         ]
-        const filteredWords = words.filter((word) => !stopWords.includes(word))
+        const filteredWords = words.filter((word: string) => !stopWords.includes(word))
 
         const wordCounts: Record<string, number> = {}
-        filteredWords.forEach((word) => {
+        filteredWords.forEach((word: string) => {
           wordCounts[word] = (wordCounts[word] || 0) + 1
         })
 

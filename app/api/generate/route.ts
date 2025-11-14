@@ -1,4 +1,5 @@
 import { type NextRequest, NextResponse } from "next/server"
+import { logger } from "@/lib/utils/logger"
 
 function createSlug(title: string): string {
   return title
@@ -35,12 +36,9 @@ function estimateReadTime(content: string): string {
 }
 
 async function generateContentWithFallback(prompt: string): Promise<{ content: string; provider: string }> {
-  console.log("[SERVER] Starting content generation...")
-
   // Try Groq first
   if (process.env.GROQ_API_KEY) {
     try {
-      console.log("[SERVER] Trying Groq...")
       const { generateText } = await import("ai")
       const { groq } = await import("@ai-sdk/groq")
 
@@ -51,33 +49,29 @@ async function generateContentWithFallback(prompt: string): Promise<{ content: s
       })
 
       if (generatedContent && generatedContent.length > 500) {
-        console.log("[SERVER] Groq generation successful")
         return { content: generatedContent, provider: "Groq (llama-3.1-8b-instant)" }
       }
     } catch (error) {
-      console.log("[SERVER] Groq failed:", error)
+      logger.error("Groq content generation failed", { context: "GenerateAPI" }, error as Error)
     }
   }
 
   // Try Gemini as fallback
   if (process.env.GEMINI_API_KEY) {
     try {
-      console.log("[SERVER] Trying Gemini...")
       // Use the existing Gemini client instead of @ai-sdk/google wrapper
       const { generateContentWithGemini } = await import("@/lib/ai/gemini-client")
       const generatedContent = await generateContentWithGemini(prompt)
 
       if (generatedContent && generatedContent.length > 500) {
-        console.log("[SERVER] Gemini generation successful")
         return { content: generatedContent, provider: "Gemini (gemini-2.0-flash-exp)" }
       }
     } catch (error) {
-      console.log("[SERVER] Gemini failed:", error)
+      logger.error("Gemini content generation failed", { context: "GenerateAPI" }, error as Error)
     }
   }
 
   // Fallback content if both AI providers fail
-  console.log("[SERVER] Using fallback content generation")
   return {
     content: generateFallbackContent(prompt),
     provider: "Fallback System",

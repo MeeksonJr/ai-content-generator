@@ -6,9 +6,11 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter }
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
+import { Progress } from "@/components/ui/progress"
 import { Loader2, BarChart3, FileText, MessageSquare, Tag, Download, RefreshCw } from "lucide-react"
 import { useToast } from "@/components/ui/use-toast"
 import { createClient } from "@/lib/supabase/client"
+import { cn } from "@/lib/utils"
 import {
   BarChart,
   Bar,
@@ -236,6 +238,28 @@ export default function AnalyticsPage() {
     Negative: "#f87171",
   }
 
+  const BADGE_COLOR_CLASSES = [
+    "bg-blue-500/10 text-blue-400 border-blue-500/40",
+    "bg-emerald-500/10 text-emerald-400 border-emerald-500/40",
+    "bg-amber-500/10 text-amber-400 border-amber-500/40",
+    "bg-purple-500/10 text-purple-400 border-purple-500/40",
+    "bg-rose-500/10 text-rose-400 border-rose-500/40",
+  ]
+
+  const calculateUsagePercentage = (used: number, limit?: number | null) => {
+    if (!limit || limit <= 0) {
+      return used > 0 ? 100 : 0
+    }
+    return Math.min(100, (used / limit) * 100)
+  }
+
+  const getKeywordSizeClass = (value: number) => {
+    if (value >= 8) return "text-2xl"
+    if (value >= 5) return "text-xl"
+    if (value >= 3) return "text-lg"
+    return "text-base"
+  }
+
   const containerVariants = {
     hidden: { opacity: 0 },
     visible: {
@@ -426,8 +450,13 @@ export default function AnalyticsPage() {
                   </div>
                   <div className="flex items-center gap-2">
                     <div className="flex items-center space-x-1">
+                      <label htmlFor="timeRange" className="sr-only">
+                        Select time range
+                      </label>
                       <select
-                        className="bg-gray-800 border-gray-700 rounded-md text-xs px-2 py-1"
+                        id="timeRange"
+                        aria-label="Select time range"
+                        className="bg-gray-800 border border-gray-700 rounded-md text-xs px-2 py-1 text-white focus:outline-none focus:ring-2 focus:ring-primary"
                         value={timeRange}
                         onChange={(e) => setTimeRange(e.target.value)}
                       >
@@ -674,13 +703,11 @@ export default function AnalyticsPage() {
                       <Badge
                         key={index}
                         variant="outline"
-                        className="text-base py-2 px-3"
-                        style={{
-                          fontSize: `${Math.max(1, Math.min(2, 1 + keyword.value / 5))}rem`,
-                          backgroundColor: `${COLORS[index % COLORS.length]}20`,
-                          borderColor: COLORS[index % COLORS.length],
-                          color: COLORS[index % COLORS.length],
-                        }}
+                        className={cn(
+                          "py-2 px-3 border rounded-full font-semibold transition-colors",
+                          BADGE_COLOR_CLASSES[index % BADGE_COLOR_CLASSES.length],
+                          getKeywordSizeClass(keyword.value || 0),
+                        )}
                       >
                         {keyword.name}
                       </Badge>
@@ -702,20 +729,21 @@ export default function AnalyticsPage() {
                     <div className="flex justify-between mb-2">
                       <div className="text-sm font-medium">Content Generation</div>
                       <div className="text-sm text-muted-foreground">
-                        {usageStats?.content_generated || 0} / {usageLimits?.monthly_content_limit || "∞"}
+                        {usageStats?.content_generated || 0} /{" "}
+                        {usageLimits?.monthly_content_limit === -1
+                          ? "∞"
+                          : usageLimits?.monthly_content_limit ?? "N/A"}
                       </div>
                     </div>
-                    <div className="h-2 bg-gray-800 rounded-full overflow-hidden">
-                      <div
-                        className="h-full bg-primary"
-                        style={{
-                          width: `${Math.min(
-                            100,
-                            ((usageStats?.content_generated || 0) / (usageLimits?.monthly_content_limit || 1)) * 100,
-                          )}%`,
-                        }}
-                      ></div>
-                    </div>
+                    <Progress
+                      value={calculateUsagePercentage(
+                        usageStats?.content_generated || 0,
+                        usageLimits?.monthly_content_limit === -1
+                          ? null
+                          : usageLimits?.monthly_content_limit ?? null,
+                      )}
+                      className="h-2 bg-gray-800/70"
+                    />
                   </div>
                   <div>
                     <div className="flex justify-between mb-2">
@@ -724,14 +752,10 @@ export default function AnalyticsPage() {
                         {usageStats?.sentiment_analysis_used || 0} uses
                       </div>
                     </div>
-                    <div className="h-2 bg-gray-800 rounded-full overflow-hidden">
-                      <div
-                        className="h-full bg-green-500"
-                        style={{
-                          width: `${Math.min(100, ((usageStats?.sentiment_analysis_used || 0) / 100) * 100)}%`,
-                        }}
-                      ></div>
-                    </div>
+                    <Progress
+                      value={calculateUsagePercentage(usageStats?.sentiment_analysis_used || 0, 100)}
+                      className="h-2 bg-gray-800/70 [&>div]:bg-green-500"
+                    />
                   </div>
                   <div>
                     <div className="flex justify-between mb-2">
@@ -740,14 +764,10 @@ export default function AnalyticsPage() {
                         {usageStats?.keyword_extraction_used || 0} uses
                       </div>
                     </div>
-                    <div className="h-2 bg-gray-800 rounded-full overflow-hidden">
-                      <div
-                        className="h-full bg-blue-500"
-                        style={{
-                          width: `${Math.min(100, ((usageStats?.keyword_extraction_used || 0) / 100) * 100)}%`,
-                        }}
-                      ></div>
-                    </div>
+                    <Progress
+                      value={calculateUsagePercentage(usageStats?.keyword_extraction_used || 0, 100)}
+                      className="h-2 bg-gray-800/70 [&>div]:bg-blue-500"
+                    />
                   </div>
                   <div>
                     <div className="flex justify-between mb-2">
@@ -756,14 +776,10 @@ export default function AnalyticsPage() {
                         {usageStats?.text_summarization_used || 0} uses
                       </div>
                     </div>
-                    <div className="h-2 bg-gray-800 rounded-full overflow-hidden">
-                      <div
-                        className="h-full bg-purple-500"
-                        style={{
-                          width: `${Math.min(100, ((usageStats?.text_summarization_used || 0) / 100) * 100)}%`,
-                        }}
-                      ></div>
-                    </div>
+                    <Progress
+                      value={calculateUsagePercentage(usageStats?.text_summarization_used || 0, 100)}
+                      className="h-2 bg-gray-800/70 [&>div]:bg-purple-500"
+                    />
                   </div>
                   {subscription?.plan_type === "enterprise" && (
                     <div>
@@ -771,14 +787,10 @@ export default function AnalyticsPage() {
                         <div className="text-sm font-medium">API Calls</div>
                         <div className="text-sm text-muted-foreground">{usageStats?.api_calls || 0} calls</div>
                       </div>
-                      <div className="h-2 bg-gray-800 rounded-full overflow-hidden">
-                        <div
-                          className="h-full bg-yellow-500"
-                          style={{
-                            width: `${Math.min(100, ((usageStats?.api_calls || 0) / 1000) * 100)}%`,
-                          }}
-                        ></div>
-                      </div>
+                      <Progress
+                        value={calculateUsagePercentage(usageStats?.api_calls || 0, 1000)}
+                        className="h-2 bg-gray-800/70 [&>div]:bg-yellow-500"
+                      />
                     </div>
                   )}
                 </div>
@@ -881,3 +893,4 @@ export default function AnalyticsPage() {
     </DashboardLayout>
   )
 }
+

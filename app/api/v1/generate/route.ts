@@ -3,10 +3,10 @@ import { createClient } from "@supabase/supabase-js"
 import { generateContent } from "@/lib/ai/groq-client"
 import { analyzeSentiment, extractKeywords } from "@/lib/ai/huggingface-client"
 import { logger } from "@/lib/utils/logger"
+import { getSupabaseServiceRoleKey, getSupabaseUrl } from "@/lib/utils/supabase-env"
 
-// Create Supabase client for server-side operations
-const supabaseUrl = process.env.SUPABASE_URL || process.env.NEXT_PUBLIC_SUPABASE_URL
-const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY
+const supabaseUrl = getSupabaseUrl()
+const supabaseServiceKey = getSupabaseServiceRoleKey()
 
 if (!supabaseUrl || !supabaseServiceKey) {
   throw new Error("Missing Supabase environment variables")

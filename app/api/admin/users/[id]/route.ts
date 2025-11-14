@@ -1,7 +1,11 @@
 import { NextResponse } from "next/server"
-import { cookies } from "next/headers"
-import { createRouteHandlerClient } from "@supabase/auth-helpers-nextjs"
+import type { Database } from "@/lib/database.types"
+import { createSupabaseRouteClient } from "@/lib/supabase/route-client"
 import { logger } from "@/lib/utils/logger"
+
+type UserProfileRow = Database["public"]["Tables"]["user_profiles"]["Row"]
+type SubscriptionRow = Database["public"]["Tables"]["subscriptions"]["Row"]
+type UsageStatsRow = Database["public"]["Tables"]["usage_stats"]["Row"]
 
 interface AdminUserUpdatePayload {
   isAdmin?: boolean
@@ -10,11 +14,10 @@ interface AdminUserUpdatePayload {
 
 export async function PATCH(request: Request, { params }: { params: { id: string } }) {
   try {
-    const supabase = createRouteHandlerClient({ cookies })
+    const supabase = createSupabaseRouteClient()
 
-    const {
-      data: { session },
-    } = await supabase.auth.getSession()
+    const sessionResult = await supabase.auth.getSession()
+    const session = sessionResult.data.session
 
     if (!session) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
@@ -22,16 +25,22 @@ export async function PATCH(request: Request, { params }: { params: { id: string
 
     const actingUserId = session.user.id
 
-    const { data: actingProfile, error: actingProfileError } = await supabase
+    const actingProfileResponse = await supabase
       .from("user_profiles")
       .select("is_admin")
       .eq("id", actingUserId)
       .maybeSingle()
 
-    if (actingProfileError) {
-      logger.error("Failed to fetch acting user profile", { context: "AdminUsers", data: { actingUserId } }, actingProfileError as Error)
+    if (actingProfileResponse.error) {
+      logger.error(
+        "Failed to fetch acting user profile",
+        { context: "AdminUsers", data: { actingUserId } },
+        actingProfileResponse.error as Error,
+      )
       return NextResponse.json({ error: "Failed to verify permissions" }, { status: 500 })
     }
+
+    const actingProfile = actingProfileResponse.data as Pick<UserProfileRow, "is_admin"> | null
 
     if (!actingProfile?.is_admin) {
       return NextResponse.json({ error: "Forbidden" }, { status: 403 })
@@ -66,7 +75,7 @@ export async function PATCH(request: Request, { params }: { params: { id: string
     }
 
     if (body.subscriptionStatus) {
-      const { data: subscription, error: subscriptionError } = await supabase
+      const subscriptionResponse = await supabase
         .from("subscriptions")
         .select("*")
         .eq("user_id", targetUserId)
@@ -74,14 +83,16 @@ export async function PATCH(request: Request, { params }: { params: { id: string
         .limit(1)
         .maybeSingle()
 
-      if (subscriptionError) {
+      if (subscriptionResponse.error) {
         logger.error(
           "Failed to fetch subscription for admin update",
           { context: "AdminUsers", data: { targetUserId } },
-          subscriptionError as Error,
+          subscriptionResponse.error as Error,
         )
         return NextResponse.json({ error: "Failed to fetch subscription" }, { status: 500 })
       }
+
+      const subscription = subscriptionResponse.data as SubscriptionRow | null
 
       if (!subscription) {
         return NextResponse.json({ error: "Subscription not found" }, { status: 404 })
@@ -105,13 +116,13 @@ export async function PATCH(request: Request, { params }: { params: { id: string
       }
     }
 
-    const { data: profile, error: profileError } = await supabase
+    const profileResponse = await supabase
       .from("user_profiles")
       .select("*")
       .eq("id", targetUserId)
       .maybeSingle()
 
-    const { data: subscription } = await supabase
+    const subscriptionResponse = await supabase
       .from("subscriptions")
       .select("*")
       .eq("user_id", targetUserId)
@@ -119,24 +130,24 @@ export async function PATCH(request: Request, { params }: { params: { id: string
       .limit(1)
       .maybeSingle()
 
-    const { data: usage } = await supabase
+    const usageResponse = await supabase
       .from("usage_stats")
       .select("*")
       .eq("user_id", targetUserId)
       .order("created_at", { ascending: false })
 
-    if (profileError) {
+    if (profileResponse.error) {
       logger.error(
         "Failed to refetch profile after admin update",
         { context: "AdminUsers", data: { targetUserId } },
-        profileError as Error,
+        profileResponse.error as Error,
       )
     }
 
     return NextResponse.json({
-      profile,
-      subscription,
-      usage,
+      profile: profileResponse.data as UserProfileRow | null,
+      subscription: subscriptionResponse.data as SubscriptionRow | null,
+      usage: usageResponse.data as UsageStatsRow[] | null,
     })
   } catch (error) {
     logger.error("Unhandled error in admin user update API", { context: "AdminUsers" }, error as Error)

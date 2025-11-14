@@ -1,12 +1,11 @@
 import { NextResponse } from "next/server"
-import { createRouteHandlerClient } from "@supabase/auth-helpers-nextjs"
-import { cookies } from "next/headers"
 import { cancelSubscription as cancelPayPalSubscription } from "@/lib/paypal/client"
 import { logger } from "@/lib/utils/logger"
+import { createSupabaseRouteClient } from "@/lib/supabase/route-client"
 
 export async function POST(request: Request) {
   try {
-    const supabase = createRouteHandlerClient({ cookies })
+    const supabase = createSupabaseRouteClient()
 
     const {
       data: { session },

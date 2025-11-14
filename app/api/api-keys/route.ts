@@ -1,7 +1,6 @@
 import { NextResponse } from "next/server"
-import { createRouteHandlerClient } from "@supabase/auth-helpers-nextjs"
-import { cookies } from "next/headers"
 import { logger } from "@/lib/utils/logger"
+import { createSupabaseRouteClient } from "@/lib/supabase/route-client"
 
 // Generate a secure API key
 function generateApiKey(userId: string): { apiKey: string; keyPrefix: string } {
@@ -18,8 +17,7 @@ function generateApiKey(userId: string): { apiKey: string; keyPrefix: string } {
 
 export async function GET(request: Request) {
   try {
-    const cookieStore = await cookies()
-    const supabase = createRouteHandlerClient({ cookies: () => cookieStore })
+    const supabase = createSupabaseRouteClient()
 
     // Check if user is authenticated
     const {
@@ -51,8 +49,7 @@ export async function GET(request: Request) {
 
 export async function POST(request: Request) {
   try {
-    const cookieStore = await cookies()
-    const supabase = createRouteHandlerClient({ cookies: () => cookieStore })
+    const supabase = createSupabaseRouteClient()
 
     // Check if user is authenticated
     const {
@@ -133,7 +130,7 @@ export async function POST(request: Request) {
     logger.info("API key created", {
       context: "API",
       userId: session.user.id,
-      keyName: keyName.trim(),
+      data: { keyName: keyName.trim() },
     })
 
     // Return the full API key only once (for the user to copy)
@@ -151,8 +148,7 @@ export async function POST(request: Request) {
 
 export async function DELETE(request: Request) {
   try {
-    const cookieStore = await cookies()
-    const supabase = createRouteHandlerClient({ cookies: () => cookieStore })
+    const supabase = createSupabaseRouteClient()
 
     // Check if user is authenticated
     const {
@@ -182,7 +178,7 @@ export async function DELETE(request: Request) {
     logger.info("API key deleted", {
       context: "API",
       userId: session.user.id,
-      keyId,
+      data: { keyId },
     })
 
     return NextResponse.json({ success: true })

@@ -1,7 +1,6 @@
 import { NextResponse } from "next/server"
-import { createRouteHandlerClient } from "@supabase/auth-helpers-nextjs"
-import { cookies } from "next/headers"
 import { logger } from "@/lib/utils/logger"
+import { createSupabaseRouteClient } from "@/lib/supabase/route-client"
 
 // Default usage limits for different plan types
 const DEFAULT_USAGE_LIMITS = {
@@ -41,7 +40,7 @@ const DEFAULT_USAGE_LIMITS = {
 
 export async function GET(request: Request) {
   try {
-    const supabase = createRouteHandlerClient({ cookies })
+    const supabase = createSupabaseRouteClient()
 
     // Check if user is authenticated
     const {
@@ -157,7 +156,7 @@ export async function GET(request: Request) {
 
 export async function POST(request: Request) {
   try {
-    const supabase = createRouteHandlerClient({ cookies })
+    const supabase = createSupabaseRouteClient()
 
     // Check if user is authenticated
     const {

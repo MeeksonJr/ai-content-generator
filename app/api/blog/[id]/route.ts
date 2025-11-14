@@ -1,8 +1,10 @@
 import { type NextRequest, NextResponse } from "next/server"
 import { createClient } from "@supabase/supabase-js"
+import { getSupabaseServiceRoleKey, getSupabaseUrl } from "@/lib/utils/supabase-env"
+import { logger } from "@/lib/utils/logger"
 
-const supabaseUrl = process.env.SUPABASE_URL || process.env.NEXT_PUBLIC_SUPABASE_URL
-const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY
+const supabaseUrl = getSupabaseUrl()
+const supabaseServiceKey = getSupabaseServiceRoleKey()
 
 if (!supabaseUrl || !supabaseServiceKey) {
   throw new Error("Missing Supabase environment variables")
@@ -14,16 +16,11 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
   try {
     const { id } = await params
 
-    console.log("Blog ID API called with:", id)
-
     // Validate UUID format
     const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i
     if (!uuidRegex.test(id)) {
-      console.log("Invalid UUID format:", id)
       return NextResponse.json({ error: "Invalid blog post ID" }, { status: 400 })
     }
-
-    console.log("Fetching blog post with ID:", id)
 
     // Fetch blog post by ID
     const { data: blogPost, error } = await supabase
@@ -34,12 +31,14 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
       .maybeSingle()
 
     if (error) {
-      console.error("Database error:", error)
+      logger.error("Database error fetching blog post", {
+        context: "BlogPostAPI",
+        data: { id, error },
+      })
       return NextResponse.json({ error: "Database error", details: error.message }, { status: 500 })
     }
 
     if (!blogPost) {
-      console.log("Blog post not found for ID:", id)
       return NextResponse.json({ error: "Blog post not found" }, { status: 404 })
     }
 
@@ -49,10 +48,12 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
       .update({ view_count: (blogPost.view_count || 0) + 1 })
       .eq("id", blogPost.id)
 
-    console.log("Successfully fetched blog post:", blogPost.id, "with title:", blogPost.title)
     return NextResponse.json({ post: blogPost })
   } catch (error) {
-    console.error("Error in blog ID API:", error)
+    logger.error("Error in blog ID API", {
+      context: "BlogPostAPI",
+      data: { error },
+    })
     return NextResponse.json(
       { error: "Internal server error", details: error instanceof Error ? error.message : "Unknown error" },
       { status: 500 },

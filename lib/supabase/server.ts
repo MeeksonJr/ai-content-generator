@@ -1,14 +1,14 @@
+import "@/lib/utils/supabase-env"
 import { createServerComponentClient } from "@supabase/auth-helpers-nextjs"
 import { cookies } from "next/headers"
 import type { Database } from "@/lib/database.types"
 
-export const createClient = async () => {
-  const cookieStore = await cookies()
-  return createServerComponentClient<Database>({ cookies: () => cookieStore })
+export const createClient = () => {
+  const cookieStore = cookies()
+  return createServerComponentClient<Database, "public">({ cookies: () => cookieStore })
 }
 
-// Add the missing createServerClient export
-export const createServerClient = async () => {
-  const cookieStore = await cookies()
-  return createServerComponentClient<Database>({ cookies: () => cookieStore })
+export const createServerClient = () => {
+  const cookieStore = cookies()
+  return createServerComponentClient<Database, "public">({ cookies: () => cookieStore })
 }

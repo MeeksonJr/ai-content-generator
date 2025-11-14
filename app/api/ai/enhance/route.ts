@@ -1,18 +1,26 @@
 import { NextResponse } from "next/server"
-import { createRouteHandlerClient } from "@supabase/auth-helpers-nextjs"
-import { cookies } from "next/headers"
 import { GoogleGenerativeAI } from "@google/generative-ai"
+import type { Database } from "@/lib/database.types"
+import { getDefaultUsageLimits } from "@/lib/constants/usage-limits"
+import { createSupabaseRouteClient } from "@/lib/supabase/route-client"
 import { logger } from "@/lib/utils/logger"
+
+type SubscriptionRow = Database["public"]["Tables"]["subscriptions"]["Row"]
+type UsageLimitsRow = Database["public"]["Tables"]["usage_limits"]["Row"]
+type UsageStatsRow = Database["public"]["Tables"]["usage_stats"]["Row"]
+
+const getCurrentMonth = () => {
+  const now = new Date()
+  return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-01`
+}
 
 export async function POST(request: Request) {
   try {
-    const cookieStore = await cookies()
-    const supabase = createRouteHandlerClient({ cookies: () => cookieStore })
+    const supabase = createSupabaseRouteClient()
 
     // Check if user is authenticated
-    const {
-      data: { session },
-    } = await supabase.auth.getSession()
+    const sessionResult = await supabase.auth.getSession()
+    const session = sessionResult.data.session
 
     if (!session) {
       logger.warn("Unauthorized access attempt to enhance content API", {
@@ -38,63 +46,70 @@ export async function POST(request: Request) {
 
     // Check if user has reached their usage limit
     // First get the user's subscription
-    const { data: subscription, error: subscriptionError } = await supabase
+    const subscriptionResponse = await supabase
       .from("subscriptions")
       .select("plan_type")
       .eq("user_id", userId)
-      .single()
+      .maybeSingle()
 
-    if (subscriptionError && subscriptionError.code !== "PGRST116") {
+    if (subscriptionResponse.error && subscriptionResponse.error.code !== "PGRST116") {
       // PGRST116 is "no rows returned" which is fine for new users
       logger.error("Error fetching subscription", {
         context: "API",
         userId,
-        data: { error: subscriptionError },
+        data: { error: subscriptionResponse.error },
       })
       return NextResponse.json({ error: "Failed to check subscription" }, { status: 500 })
     }
 
-    const planType = subscription?.plan_type || "free"
+    const subscriptionData = subscriptionResponse.data as Pick<SubscriptionRow, "plan_type"> | null
+    const planType = subscriptionData?.plan_type || "free"
 
     // Get usage limits for the plan
-    const { data: usageLimits, error: limitsError } = await supabase
+    const usageLimitsResponse = await supabase
       .from("usage_limits")
       .select("*")
       .eq("plan_type", planType)
-      .single()
+      .maybeSingle()
 
-    if (limitsError) {
+    if (usageLimitsResponse.error && usageLimitsResponse.error.code !== "PGRST116") {
       logger.error("Error fetching usage limits", {
         context: "API",
         userId,
-        data: { error: limitsError },
+        data: { error: usageLimitsResponse.error },
       })
       return NextResponse.json({ error: "Failed to check usage limits" }, { status: 500 })
     }
 
+    const usageLimits = (usageLimitsResponse.data as UsageLimitsRow | null) || getDefaultUsageLimits(planType)
+
     // Get current usage stats
-    const { data: usageStats, error: statsError } = await supabase
+    const currentMonth = getCurrentMonth()
+
+    const usageStatsResponse = await supabase
       .from("usage_stats")
       .select("*")
       .eq("user_id", userId)
-      .order("month", { ascending: false })
-      .limit(1)
-      .single()
+      .eq("month", currentMonth)
+      .maybeSingle()
 
-    if (statsError && statsError.code !== "PGRST116") {
+    if (usageStatsResponse.error && usageStatsResponse.error.code !== "PGRST116") {
       // PGRST116 is "no rows returned" which is fine for new users
       logger.error("Error fetching usage stats", {
         context: "API",
         userId,
-        data: { error: statsError },
+        data: { error: usageStatsResponse.error },
       })
       return NextResponse.json({ error: "Failed to check usage stats" }, { status: 500 })
     }
+
+    const usageStats = usageStatsResponse.data as UsageStatsRow | null
 
     // Check if user has reached their content generation limit
     if (
       usageLimits.monthly_content_limit !== null &&
       usageStats &&
+      usageLimits.monthly_content_limit !== -1 &&
       usageStats.content_generated >= usageLimits.monthly_content_limit
     ) {
       logger.warn("User reached content generation limit", {
@@ -126,13 +141,13 @@ export async function POST(request: Request) {
     const enhancedContent = result.response.text()
 
     // Update usage stats
-    const currentMonth = new Date().toISOString().slice(0, 7) // YYYY-MM format
-    if (usageStats && usageStats.month === currentMonth) {
+    if (usageStats) {
       // Update existing stats
       await supabase
         .from("usage_stats")
         .update({
           content_generated: usageStats.content_generated + 1,
+          updated_at: new Date().toISOString(),
         })
         .eq("id", usageStats.id)
     } else {
@@ -145,6 +160,8 @@ export async function POST(request: Request) {
         keyword_extraction_used: 0,
         text_summarization_used: 0,
         api_calls: 0,
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
       })
     }
 
