@@ -5,8 +5,13 @@ import { analyzeSentiment, extractKeywords } from "@/lib/ai/huggingface-client"
 import { logger } from "@/lib/utils/logger"
 
 // Create Supabase client for server-side operations
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!
-const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY!
+const supabaseUrl = process.env.SUPABASE_URL || process.env.NEXT_PUBLIC_SUPABASE_URL
+const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY
+
+if (!supabaseUrl || !supabaseServiceKey) {
+  throw new Error("Missing Supabase environment variables")
+}
+
 const supabase = createClient(supabaseUrl, supabaseServiceKey)
 
 // Default usage limits for different plan types
@@ -221,7 +226,10 @@ export async function POST(request: Request) {
 
     // Perform additional NLP tasks based on subscription
     let sentimentResult = { success: true, sentiment: "neutral", score: 0.5 }
-    let keywordsResult = { success: true, keywords: [] }
+    let keywordsResult: { success: boolean; keywords: { keyword: string; score: number }[] } = {
+      success: true,
+      keywords: [],
+    }
 
     // Try to perform sentiment analysis if enabled
     if (planLimits.sentiment_analysis_enabled) {

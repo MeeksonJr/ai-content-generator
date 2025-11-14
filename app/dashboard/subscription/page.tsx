@@ -19,6 +19,7 @@ export default function SubscriptionPage() {
   const [usageLimits, setUsageLimits] = useState<any>(null)
   const [error, setError] = useState<string | null>(null)
   const [paypalUnavailable, setPaypalUnavailable] = useState(false)
+  const [cancelling, setCancelling] = useState(false)
   const { toast } = useToast()
 
   useEffect(() => {
@@ -176,6 +177,51 @@ export default function SubscriptionPage() {
       })
     } finally {
       setSubscribing(false)
+    }
+  }
+
+  const handleCancelSubscription = async () => {
+    if (!subscription || subscription.plan_type === "free") {
+      return
+    }
+
+    const confirmed = window.confirm("Are you sure you want to cancel your current subscription?")
+    if (!confirmed) {
+      return
+    }
+
+    try {
+      setCancelling(true)
+      setError(null)
+
+      const response = await fetch("/api/paypal/cancel", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ reason: "User initiated cancellation from dashboard" }),
+      })
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({ error: "Failed to cancel subscription" }))
+        throw new Error(errorData.error || "Failed to cancel subscription")
+      }
+
+      toast({
+        title: "Subscription cancelled",
+        description: "Your subscription has been cancelled successfully.",
+      })
+
+      await fetchSubscriptionData()
+    } catch (error) {
+      console.error("Error canceling subscription:", error)
+      toast({
+        title: "Cancellation failed",
+        description: error instanceof Error ? error.message : "Failed to cancel subscription",
+        variant: "destructive",
+      })
+    } finally {
+      setCancelling(false)
     }
   }
 
@@ -357,6 +403,23 @@ export default function SubscriptionPage() {
                   )}
                 </Button>
               )}
+              {subscription?.plan_type === "professional" && (
+                <Button
+                  onClick={handleCancelSubscription}
+                  disabled={cancelling}
+                  variant="destructive"
+                  className="w-full"
+                >
+                  {cancelling ? (
+                    <>
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                      Cancelling...
+                    </>
+                  ) : (
+                    "Cancel Subscription"
+                  )}
+                </Button>
+              )}
             </CardFooter>
           </Card>
 
@@ -435,6 +498,23 @@ export default function SubscriptionPage() {
                     </>
                   ) : (
                     "Direct Subscription (Test)"
+                  )}
+                </Button>
+              )}
+              {subscription?.plan_type === "enterprise" && (
+                <Button
+                  onClick={handleCancelSubscription}
+                  disabled={cancelling}
+                  variant="destructive"
+                  className="w-full"
+                >
+                  {cancelling ? (
+                    <>
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                      Cancelling...
+                    </>
+                  ) : (
+                    "Cancel Subscription"
                   )}
                 </Button>
               )}

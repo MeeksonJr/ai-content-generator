@@ -1,13 +1,12 @@
 import { NextResponse } from "next/server"
-import { createRouteHandlerClient } from "@supabase/auth-helpers-nextjs"
-import { cookies } from "next/headers"
 import { logger } from "@/lib/utils/logger"
 import { getSubscription } from "@/lib/paypal/client"
+import { createRouteHandlerClient } from "@supabase/auth-helpers-nextjs"
+import { cookies } from "next/headers"
 
 export async function POST(request: Request) {
   try {
-    const cookieStore = await cookies()
-    const supabase = createRouteHandlerClient({ cookies: () => cookieStore })
+    const supabase = createRouteHandlerClient({ cookies })
 
     // Check if user is authenticated
     const {
@@ -26,14 +25,14 @@ export async function POST(request: Request) {
 
     // Get request body
     const body = await request.json()
-    const { subscriptionId, token } = body
+    const { subscriptionId } = body
 
-    if (!subscriptionId || !token) {
+    if (!subscriptionId) {
       logger.warn("Missing parameters in PayPal success API", {
         context: "API",
         userId,
       })
-      return NextResponse.json({ error: "Missing required parameters" }, { status: 400 })
+      return NextResponse.json({ error: "Missing subscription ID" }, { status: 400 })
     }
     // Verify subscription using centralized PayPal client (handles env + sandbox/prod)
     let subscriptionData
@@ -99,7 +98,7 @@ export async function POST(request: Request) {
     } else {
       // Create new subscription if not found
       // Extract plan type from subscription data
-      const planName = subscriptionData.plan.name.toLowerCase()
+      const planName = subscriptionData?.plan?.name?.toLowerCase?.() ?? ""
       const planType = planName.includes("professional") ? "professional" : "enterprise"
 
       const { error: createError } = await supabase.from("subscriptions").insert({

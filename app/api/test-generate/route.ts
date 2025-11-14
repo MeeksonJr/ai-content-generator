@@ -8,7 +8,8 @@ export async function GET() {
     const hasGroq = !!process.env.GROQ_API_KEY
     const hasGemini = !!process.env.GEMINI_API_KEY
     const hasHuggingFace = !!process.env.HUGGING_FACE_API_KEY
-    const hasSupabase = !!process.env.NEXT_PUBLIC_SUPABASE_URL && !!process.env.SUPABASE_SERVICE_ROLE_KEY
+    const hasSupabase =
+      !!(process.env.SUPABASE_URL || process.env.NEXT_PUBLIC_SUPABASE_URL) && !!process.env.SUPABASE_SERVICE_ROLE_KEY
 
     return NextResponse.json({
       message: "Test API is working!",

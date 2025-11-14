@@ -42,20 +42,18 @@
     - `app/api/blog/[id]/route.ts`
     - `app/api/generate/route.ts`
 
-- [ ] **PayPal Subscription Success Handler** - Hardcoded to sandbox URL
+- [x] **PayPal Subscription Success Handler** - Hardcoded to sandbox URL ✅
   - **Location:** `app/api/paypal/subscription-success/route.ts:51`
-  - **Issue:** Uses hardcoded `https://api-m.sandbox.paypal.com` instead of environment-based URL
-  - **Fix:** Use `PAYPAL_API_URL` from environment or `lib/paypal/client.ts` logic
+  - **Fix:** Handler now reuses `getSubscription()` from `lib/paypal/client.ts`, inheriting environment-aware API base and centralised auth logic
 
 - [ ] **Missing Database Tables**
   - `blog_content` table not in database types
   - `user_profiles` table not in database types (referenced but missing)
   - **Impact:** Admin features disabled, blog functionality may fail
 
-- [ ] **Sidebar Collapse/Expand** - Not fully implemented
+- [x] **Sidebar Collapse/Expand** - Not fully implemented ✅
   - **Location:** `components/dashboard/dashboard-sidebar.tsx`
-  - **Issue:** No toggle button for desktop sidebar collapse
-  - **Current:** Only mobile hamburger menu exists
+  - **Fix:** Added desktop toggle, animations, and localStorage persistence (`components/dashboard/dashboard-sidebar.tsx`, `components/dashboard/dashboard-layout.tsx`)
 
 ---
 
@@ -63,20 +61,18 @@
 
 ### Issues Found
 
-- [ ] **Environment-based API URL**
+- [x] **Environment-based API URL**
   - **File:** `app/api/paypal/subscription-success/route.ts:51`
-  - **Current:** Hardcoded sandbox URL
-  - **Fix:** Use `PAYPAL_API_URL` from `lib/paypal/client.ts` pattern
+  - **Status:** Success route now calls `getSubscription()` from `lib/paypal/client.ts`, which chooses the correct PayPal API base URL
 
 - [ ] **Subscription Webhook Handler Missing**
   - **Status:** Not implemented
   - **Needed:** Webhook endpoint to handle PayPal subscription events (renewals, cancellations, failures)
   - **Location:** Should be `app/api/paypal/webhook/route.ts`
 
-- [ ] **Subscription Cancellation Flow**
-  - **File:** `app/dashboard/subscription/cancel/page.tsx` exists but needs implementation
-  - **Issue:** No API endpoint to cancel PayPal subscriptions
-  - **Needed:** Cancel subscription API route
+- [x] **Subscription Cancellation Flow**
+  - **Files:** `app/api/paypal/cancel/route.ts`, `app/dashboard/subscription/page.tsx`
+  - **Status:** Added API endpoint to cancel PayPal subscriptions (and update DB) plus UI button to trigger cancellation
 
 - [ ] **Subscription Status Sync**
   - **Issue:** No periodic sync with PayPal to update subscription status
@@ -102,9 +98,9 @@
 
 ### Missing Tables
 
-- [ ] **`blog_content` Table**
+- [x] **`blog_content` Table**
   - **Referenced in:** Multiple API routes (`app/api/blog-posts/route.ts`, etc.)
-  - **Not in:** `lib/database.types.ts`
+  - **Status:** Added to `lib/database.types.ts` so Supabase client typings match the real table schema
   - **Needed Schema:**
     ```sql
     - id (uuid)
@@ -126,9 +122,9 @@
     - updated_at (timestamp)
     ```
 
-- [ ] **`user_profiles` Table**
+- [x] **`user_profiles` Table**
   - **Referenced in:** `components/dashboard/dashboard-sidebar.tsx:50`
-  - **Not in:** `lib/database.types.ts`
+  - **Status:** Added to `lib/database.types.ts` with `is_admin` flag for type-safe access
   - **Needed Schema:**
     ```sql
     - id (uuid, references auth.users)
@@ -417,12 +413,8 @@
 ### Admin Features
 
 - [ ] **User Management**
-  - **Route:** `/dashboard/admin/users` referenced but may not exist
-  - **Needed:**
-    - List all users
-    - Edit user details
-    - Manage subscriptions
-    - Suspend/activate users
+  - **Route:** `/dashboard/admin/users`
+  - **Status:** Initial dashboard implemented (user listing, filters, admin toggle, plan activation/cancel). Remaining work: surface email/profile metadata and advanced actions (suspensions, usage history export).
 
 - [ ] **System Settings**
   - Configure subscription plans

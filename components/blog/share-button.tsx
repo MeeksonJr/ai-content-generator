@@ -21,6 +21,7 @@ export function ShareButton({ title, url, excerpt }: ShareButtonProps) {
   const [copied, setCopied] = useState(false)
   const { toast } = useToast()
   const fullUrl = typeof window !== "undefined" ? window.location.href : url
+  const canNativeShare = typeof navigator !== "undefined" && typeof navigator.share === "function"
 
   const handleCopyLink = async () => {
     try {
@@ -63,16 +64,18 @@ export function ShareButton({ title, url, excerpt }: ShareButtonProps) {
   }
 
   const handleNativeShare = async () => {
-    if (navigator.share) {
-      try {
-        await navigator.share({
-          title,
-          text: excerpt || title,
-          url: fullUrl,
-        })
-      } catch (error) {
-        // User cancelled or error occurred
-      }
+    if (!canNativeShare) {
+      return
+    }
+
+    try {
+      await navigator.share({
+        title,
+        text: excerpt || title,
+        url: fullUrl,
+      })
+    } catch (_error) {
+      // User cancelled or error occurred
     }
   }
 
@@ -85,7 +88,7 @@ export function ShareButton({ title, url, excerpt }: ShareButtonProps) {
         </Button>
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end" className="w-56">
-        {navigator.share && (
+        {canNativeShare && (
           <DropdownMenuItem onClick={handleNativeShare} className="cursor-pointer">
             <Share2 className="h-4 w-4 mr-2" />
             Share via...

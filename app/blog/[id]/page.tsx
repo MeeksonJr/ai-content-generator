@@ -238,148 +238,141 @@ export default async function BlogPostPage({ params }: { params: Promise<{ id: s
           <div className="container px-4 md:px-6">
             <div className="max-w-7xl mx-auto grid grid-cols-1 lg:grid-cols-12 gap-8">
               {/* Main Content */}
-              <div className="lg:col-span-8">
-              <Link href="/blog" className="inline-block mb-6">
-                <Button variant="ghost" size="sm" className="gap-1 text-gray-600 hover:text-gray-900">
-                  <ArrowLeft className="h-4 w-4" />
-                  Back to Blog
-                </Button>
-              </Link>
+              <div className="lg:col-span-8 space-y-12">
+                <Link href="/blog" className="inline-block">
+                  <Button variant="ghost" size="sm" className="gap-1 text-gray-600 hover:text-gray-900">
+                    <ArrowLeft className="h-4 w-4" />
+                    Back to Blog
+                  </Button>
+                </Link>
 
-              <Card className="bg-white border-gray-200 shadow-lg">
-                {/* Hero Image */}
-                <div className="h-64 md:h-80 overflow-hidden bg-gradient-to-r from-blue-100 to-indigo-100 flex items-center justify-center">
-                  {blogPost.image_url && !blogPost.image_url.includes("placeholder") ? (
-                    <img
-                      src={blogPost.image_url || "/placeholder.svg"}
-                      alt={blogPost.title}
-                      className="w-full h-full object-cover"
-                    />
-                  ) : (
-                    <div className="text-center">
-                      <Sparkles className="h-16 w-16 text-blue-600 mx-auto mb-4" />
-                      <p className="text-blue-800 font-medium">AI Generated Content</p>
-                    </div>
-                  )}
-                </div>
-
-                <CardHeader>
-                  {/* Category and AI Provider */}
-                  <div className="flex items-center justify-between mb-4">
-                    <div className="inline-block px-3 py-1 text-sm font-medium bg-blue-50 text-blue-600 rounded-full">
-                      {blogPost.category}
-                    </div>
-                    <div className="text-sm text-gray-500">Generated using {blogPost.ai_provider}</div>
-                  </div>
-
-                  {/* Title */}
-                  <CardTitle className="text-3xl md:text-4xl font-bold text-gray-900 mb-4">{blogPost.title}</CardTitle>
-
-                  {/* Excerpt */}
-                  <p className="text-lg text-gray-600 mb-6">{blogPost.excerpt}</p>
-
-                  {/* Meta Information */}
-                  <div className="flex items-center gap-6 text-gray-600 mb-6 flex-wrap">
-                    <div className="flex items-center gap-2">
-                      <div className="w-8 h-8 rounded-full bg-blue-100 flex items-center justify-center text-sm font-medium text-blue-600">
-                        {blogPost.author.charAt(0)}
+                <Card className="bg-white border-gray-200 shadow-lg">
+                  <div className="h-64 md:h-80 overflow-hidden bg-gradient-to-r from-blue-100 to-indigo-100 flex items-center justify-center">
+                    {blogPost.image_url && !blogPost.image_url.includes("placeholder") ? (
+                      <img
+                        src={blogPost.image_url || "/placeholder.svg"}
+                        alt={blogPost.title}
+                        className="w-full h-full object-cover"
+                      />
+                    ) : (
+                      <div className="text-center">
+                        <Sparkles className="h-16 w-16 text-blue-600 mx-auto mb-4" />
+                        <p className="text-blue-800 font-medium">AI Generated Content</p>
                       </div>
-                      <span className="font-medium">{blogPost.author}</span>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <Calendar className="h-4 w-4" />
-                      <span>{formatDate(blogPost.created_at)}</span>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <Clock className="h-4 w-4" />
-                      <span>{blogPost.read_time}</span>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <Eye className="h-4 w-4" />
-                      <span>{blogPost.view_count} views</span>
-                    </div>
+                    )}
                   </div>
 
-                  {/* Tags */}
-                  {blogPost.tags && blogPost.tags.length > 0 && (
-                    <div className="flex flex-wrap gap-2 mb-6">
-                      {blogPost.tags.slice(0, 6).map((tag, index) => (
-                        <span
-                          key={index}
-                          className="inline-flex items-center gap-1 px-3 py-1 text-sm bg-gray-100 text-gray-600 rounded-full"
-                        >
-                          <Tag className="h-3 w-3" />
-                          {tag}
-                        </span>
+                  <CardHeader>
+                    <div className="flex items-center justify-between mb-4">
+                      <div className="inline-block px-3 py-1 text-sm font-medium bg-blue-50 text-blue-600 rounded-full">
+                        {blogPost.category}
+                      </div>
+                      <div className="text-sm text-gray-500">Generated using {blogPost.ai_provider}</div>
+                    </div>
+
+                    <CardTitle className="text-3xl md:text-4xl font-bold text-gray-900 mb-4">{blogPost.title}</CardTitle>
+
+                    <p className="text-lg text-gray-600 mb-6">{blogPost.excerpt}</p>
+
+                    <div className="flex items-center gap-6 text-gray-600 mb-6 flex-wrap">
+                      <div className="flex items-center gap-2">
+                        <div className="w-8 h-8 rounded-full bg-blue-100 flex items-center justify-center text-sm font-medium text-blue-600">
+                          {blogPost.author.charAt(0)}
+                        </div>
+                        <span className="font-medium">{blogPost.author}</span>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <Calendar className="h-4 w-4" />
+                        <span>{formatDate(blogPost.created_at)}</span>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <Clock className="h-4 w-4" />
+                        <span>{blogPost.read_time}</span>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <Eye className="h-4 w-4" />
+                        <span>{blogPost.view_count} views</span>
+                      </div>
+                    </div>
+
+                    {blogPost.tags && blogPost.tags.length > 0 && (
+                      <div className="flex flex-wrap gap-2">
+                        {blogPost.tags.slice(0, 6).map((tag, index) => (
+                          <span
+                            key={index}
+                            className="inline-flex items-center gap-1 px-3 py-1 text-sm bg-gray-100 text-gray-600 rounded-full"
+                          >
+                            <Tag className="h-3 w-3" />
+                            {tag}
+                          </span>
+                        ))}
+                      </div>
+                    )}
+                  </CardHeader>
+
+                  <CardContent>
+                    <div className="mb-8">
+                      <SimpleMarkdownRenderer content={blogPost.content} />
+                    </div>
+
+                    <div className="border-t border-gray-200 pt-6">
+                      <div className="flex gap-4 justify-center flex-wrap">
+                        <Link href={`/blog-search?q=${encodeURIComponent(blogPost.search_query)}`}>
+                          <Button variant="outline" className="border-gray-300">
+                            <Sparkles className="h-4 w-4 mr-2" />
+                            Regenerate Content
+                          </Button>
+                        </Link>
+                        <ShareButton title={blogPost.title} url={fullUrl} excerpt={blogPost.excerpt} />
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+
+                {relatedPosts.length > 0 && (
+                  <div>
+                    <h2 className="text-2xl font-bold text-gray-900 mb-6">Related Articles</h2>
+                    <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+                      {relatedPosts.map((post) => (
+                        <Link key={post.id} href={`/blog/${post.id}`} className="group">
+                          <Card className="h-full border border-gray-200 transition-all duration-200 shadow-sm hover:shadow-lg bg-white">
+                            <div className="h-40 overflow-hidden bg-gray-100">
+                              <img
+                                src={post.image_url || "/placeholder.svg?height=200&width=300"}
+                                alt={post.title}
+                                className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
+                              />
+                            </div>
+                            <CardHeader>
+                              <div className="inline-block px-2 py-1 text-xs font-medium bg-blue-50 text-blue-600 rounded-full mb-2">
+                                {post.category}
+                              </div>
+                              <CardTitle className="text-lg font-bold text-gray-900 group-hover:text-blue-600 transition-colors line-clamp-2">
+                                {post.title}
+                              </CardTitle>
+                              <p className="text-sm text-gray-600 line-clamp-2">{post.excerpt}</p>
+                            </CardHeader>
+                            <CardContent>
+                              <div className="flex items-center gap-2 text-xs text-gray-500">
+                                <Clock className="h-3 w-3" />
+                                <span>{post.read_time}</span>
+                              </div>
+                            </CardContent>
+                          </Card>
+                        </Link>
                       ))}
                     </div>
-                  )}
-                </CardHeader>
-
-                <CardContent>
-                  {/* Content */}
-                  <div className="mb-8">
-                    <SimpleMarkdownRenderer content={blogPost.content} />
                   </div>
-
-                  {/* Actions */}
-                  <div className="border-t border-gray-200 pt-6">
-                    <div className="flex gap-4 justify-center flex-wrap">
-                      <Link href={`/blog-search?q=${encodeURIComponent(blogPost.search_query)}`}>
-                        <Button variant="outline" className="border-gray-300">
-                          <Sparkles className="h-4 w-4 mr-2" />
-                          Regenerate Content
-                        </Button>
-                      </Link>
-                      <ShareButton title={blogPost.title} url={fullUrl} excerpt={blogPost.excerpt} />
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-
-              {/* Related Posts */}
-              {relatedPosts.length > 0 && (
-                <div className="mt-12">
-                  <h2 className="text-2xl font-bold text-gray-900 mb-6">Related Articles</h2>
-                  <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-                    {relatedPosts.map((post) => (
-                      <Link key={post.id} href={`/blog/${post.id}`} className="group">
-                        <Card className="h-full border border-gray-200 transition-all duration-200 shadow-sm hover:shadow-lg bg-white">
-                          <div className="h-40 overflow-hidden bg-gray-100">
-                            <img
-                              src={post.image_url || "/placeholder.svg?height=200&width=300"}
-                              alt={post.title}
-                              className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
-                            />
-                          </div>
-                          <CardHeader>
-                            <div className="inline-block px-2 py-1 text-xs font-medium bg-blue-50 text-blue-600 rounded-full mb-2">
-                              {post.category}
-                            </div>
-                            <CardTitle className="text-lg font-bold text-gray-900 group-hover:text-blue-600 transition-colors line-clamp-2">
-                              {post.title}
-                            </CardTitle>
-                            <p className="text-sm text-gray-600 line-clamp-2">{post.excerpt}</p>
-                          </CardHeader>
-                          <CardContent>
-                            <div className="flex items-center gap-2 text-xs text-gray-500">
-                              <Clock className="h-3 w-3" />
-                              <span>{post.read_time}</span>
-                            </div>
-                          </CardContent>
-                        </Card>
-                      </Link>
-                    ))}
-                  </div>
-                </div>
-              )}
-            </div>
-            {/* Sidebar with Table of Contents */}
-            <div className="lg:col-span-4">
-              <div className="sticky top-24">
-                <TableOfContents content={blogPost.content} />
+                )}
               </div>
-            </div>
+
+              {/* Sidebar with Table of Contents */}
+              <div className="lg:col-span-4">
+                <div className="sticky top-24">
+                  <TableOfContents content={blogPost.content} />
+                </div>
+              </div>
+          </div>
           </div>
         </article>
       </main>

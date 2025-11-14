@@ -301,7 +301,7 @@ export default function AnalyticsPage() {
               </>
             )}
           </Button>
-        </div>
+        </motion.div>
 
         <motion.div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4" variants={containerVariants}>
           <motion.div variants={itemVariants}>
@@ -389,12 +389,15 @@ export default function AnalyticsPage() {
                           data={contentTypeStats}
                           cx="50%"
                           cy="50%"
-                          labelLine={true}
+                          labelLine
                           outerRadius={100}
                           fill="#8884d8"
                           dataKey="value"
                           nameKey="name"
-                          label={({ name, percent }) => `${name}: ${(percent * 100).toFixed(0)}%`}
+                          label={({ name, percent }) => {
+                            const value = percent ?? 0
+                            return `${name}: ${(value * 100).toFixed(0)}%`
+                          }}
                         >
                           {contentTypeStats.map((entry: any, index: number) => (
                             <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
@@ -503,17 +506,20 @@ export default function AnalyticsPage() {
               <CardContent className="h-[400px]">
                 {sentimentStats && sentimentStats.length > 0 ? (
                   <ResponsiveContainer width="100%" height="100%">
-                    <PieChart>
-                      <Pie
-                        data={sentimentStats}
-                        cx="50%"
-                        cy="50%"
-                        labelLine={true}
-                        label={({ name, percent }) => `${name}: ${(percent * 100).toFixed(0)}%`}
-                        outerRadius={150}
-                        fill="#8884d8"
-                        dataKey="value"
-                      >
+                      <PieChart>
+                        <Pie
+                          data={sentimentStats}
+                          cx="50%"
+                          cy="50%"
+                          labelLine
+                          label={({ name, percent }) => {
+                            const value = percent ?? 0
+                            return `${name}: ${(value * 100).toFixed(0)}%`
+                          }}
+                          outerRadius={150}
+                          fill="#8884d8"
+                          dataKey="value"
+                        >
                         {sentimentStats.map((entry: any, index: number) => (
                           <Cell
                             key={`cell-${index}`}

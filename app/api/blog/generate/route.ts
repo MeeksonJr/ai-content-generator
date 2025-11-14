@@ -1,7 +1,14 @@
 import { type NextRequest, NextResponse } from "next/server"
 import { createClient } from "@supabase/supabase-js"
 
-const supabase = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.SUPABASE_SERVICE_ROLE_KEY!)
+const supabaseUrl = process.env.SUPABASE_URL || process.env.NEXT_PUBLIC_SUPABASE_URL
+const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY
+
+if (!supabaseUrl || !supabaseServiceKey) {
+  throw new Error("Missing Supabase environment variables")
+}
+
+const supabase = createClient(supabaseUrl, supabaseServiceKey)
 
 function createSlug(title: string): string {
   return title
@@ -50,8 +57,7 @@ async function generateContentWithFallback(prompt: string): Promise<{ content: s
 
       const { text } = await generateText({
         model: groq("llama-3.1-8b-instant"),
-        prompt: prompt,
-        maxTokens: 4000 as any, // AI SDK type issue
+        prompt,
         temperature: 0.7,
       })
 
@@ -232,48 +238,58 @@ This guide provides a foundation for understanding "${searchQuery}" and its appl
 }
 
 async function generateImage(title: string): Promise<string | null> {
-  try {
-    if (!process.env.HUGGING_FACE_API_KEY) {
-      console.log("[SERVER] Hugging Face API key not found, skipping image generation")
-      return null
-    }
-
-    console.log("[SERVER] Generating image for:", title)
-
-    const imagePrompt = `Professional blog header image for: "${title}". Modern, clean design, high quality, suitable for a technology blog, 16:9 aspect ratio, vibrant colors, professional lighting`
-
-    const response = await fetch("https://router.huggingface.co/hf-inference/models/black-forest-labs/FLUX.1-dev", {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${process.env.HUGGING_FACE_API_KEY}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        inputs: imagePrompt,
-        parameters: {
-          width: 1024,
-          height: 576,
-          num_inference_steps: 20,
-          guidance_scale: 7.5,
-        },
-      }),
-    })
-
-    if (!response.ok) {
-      console.log("[SERVER] Hugging Face API error:", response.status, response.statusText)
-      return null
-    }
-
-    const imageBuffer = await response.arrayBuffer()
-    const base64Image = Buffer.from(imageBuffer).toString("base64")
-    const dataUrl = `data:image/jpeg;base64,${base64Image}`
-
-    console.log("[SERVER] Image generated successfully")
-    return dataUrl
-  } catch (error) {
-    console.log("[SERVER] Error generating image:", error)
+  if (!process.env.HUGGING_FACE_API_KEY) {
+    console.log("[SERVER] Hugging Face API key not found, skipping image generation")
     return null
   }
+
+  const imagePrompt = `Professional blog header image for: "${title}". Modern, clean design, high quality, suitable for a technology blog, 16:9 aspect ratio, vibrant colors, professional lighting`
+
+  const models = [
+    "stabilityai/stable-diffusion-xl-base-1.0",
+    "runwayml/stable-diffusion-v1-5",
+    "black-forest-labs/FLUX.1-dev",
+  ]
+
+  for (const model of models) {
+    try {
+      console.log("[SERVER] Generating image with model:", model)
+
+      const response = await fetch(`https://router.huggingface.co/hf-inference/models/${model}`, {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${process.env.HUGGING_FACE_API_KEY}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          inputs: imagePrompt,
+          parameters: {
+            width: 1024,
+            height: 576,
+            num_inference_steps: 25,
+            guidance_scale: 7,
+          },
+        }),
+      })
+
+      if (!response.ok) {
+        const errorText = await response.text().catch(() => response.statusText)
+        console.log("[SERVER] Hugging Face API error:", model, response.status, errorText)
+        continue
+      }
+
+      const imageBuffer = await response.arrayBuffer()
+      const base64Image = Buffer.from(imageBuffer).toString("base64")
+      console.log("[SERVER] Image generated successfully with:", model)
+      return `data:image/png;base64,${base64Image}`
+    } catch (error) {
+      console.log("[SERVER] Error generating image with model", model, error)
+      continue
+    }
+  }
+
+  console.log("[SERVER] All Hugging Face models failed, skipping image")
+  return null
 }
 
 export async function POST(request: NextRequest) {

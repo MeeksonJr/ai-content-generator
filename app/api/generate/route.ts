@@ -1,7 +1,4 @@
 import { type NextRequest, NextResponse } from "next/server"
-import { createClient } from "@supabase/supabase-js"
-
-const supabase = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.SUPABASE_SERVICE_ROLE_KEY!)
 
 function createSlug(title: string): string {
   return title
@@ -49,8 +46,7 @@ async function generateContentWithFallback(prompt: string): Promise<{ content: s
 
       const { text: generatedContent } = await generateText({
         model: groq("llama-3.1-8b-instant"),
-        prompt: prompt,
-        maxTokens: 4000 as any, // AI SDK type issue
+        prompt,
         temperature: 0.7,
       })
 

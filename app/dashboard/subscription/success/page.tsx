@@ -18,13 +18,11 @@ export default function SubscriptionSuccessPage() {
       try {
         setLoading(true)
 
-        // Get subscription ID and token from URL
+        // Get subscription ID from URL
         const urlParams = new URLSearchParams(window.location.search)
         const subscriptionId = urlParams.get("subscription_id")
-        const token = urlParams.get("token")
-
-        if (!subscriptionId || !token) {
-          throw new Error("Missing subscription information")
+        if (!subscriptionId) {
+          throw new Error("Missing subscription information. Please ensure the PayPal redirect included a subscription ID.")
         }
 
         // Call API to update subscription status
@@ -33,7 +31,7 @@ export default function SubscriptionSuccessPage() {
           headers: {
             "Content-Type": "application/json",
           },
-          body: JSON.stringify({ subscriptionId, token }),
+          body: JSON.stringify({ subscriptionId }),
         })
 
         if (!response.ok) {
@@ -48,7 +46,7 @@ export default function SubscriptionSuccessPage() {
       } catch (error) {
         console.error("Error updating subscription:", error)
         toast({
-          title: "Error",
+          title: "Subscription Update Failed",
           description: error instanceof Error ? error.message : "Failed to update subscription",
           variant: "destructive",
         })
@@ -58,7 +56,9 @@ export default function SubscriptionSuccessPage() {
     }
 
     updateSubscription()
-  }, [toast])
+    // intentionally run only once on mount
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
 
   return (
     <DashboardLayout>

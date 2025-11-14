@@ -178,6 +178,85 @@ export interface Database {
           updated_at?: string
         }
       }
+      blog_content: {
+        Row: {
+          id: string
+          title: string
+          slug: string
+          content: string
+          excerpt: string | null
+          search_query: string | null
+          category: string | null
+          author: string | null
+          image_url: string | null
+          image_prompt: string | null
+          tags: string[] | null
+          read_time: string | null
+          view_count: number | null
+          is_published: boolean | null
+          ai_provider: string | null
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          title: string
+          slug: string
+          content: string
+          excerpt?: string | null
+          search_query?: string | null
+          category?: string | null
+          author?: string | null
+          image_url?: string | null
+          image_prompt?: string | null
+          tags?: string[] | null
+          read_time?: string | null
+          view_count?: number | null
+          is_published?: boolean | null
+          ai_provider?: string | null
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          title?: string
+          slug?: string
+          content?: string
+          excerpt?: string | null
+          search_query?: string | null
+          category?: string | null
+          author?: string | null
+          image_url?: string | null
+          image_prompt?: string | null
+          tags?: string[] | null
+          read_time?: string | null
+          view_count?: number | null
+          is_published?: boolean | null
+          ai_provider?: string | null
+          created_at?: string
+          updated_at?: string
+        }
+      }
+      user_profiles: {
+        Row: {
+          id: string
+          is_admin: boolean
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id: string
+          is_admin?: boolean
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          is_admin?: boolean
+          created_at?: string
+          updated_at?: string
+        }
+      }
     }
   }
   auth: {

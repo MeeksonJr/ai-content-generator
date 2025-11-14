@@ -51,14 +51,24 @@ export async function POST(request: NextRequest) {
       const appUrl = process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000"
 
       // Store the test subscription in the database
-      const { error: subscriptionError } = await supabase.from("subscriptions").upsert({
-        user_id: user.id,
-        plan_type: planType,
-        paypal_subscription_id: `TEST_SUB_${Date.now()}`,
-        paypal_plan_id: `TEST_PLAN_${Date.now()}`,
-        status: "pending",
-        created_at: new Date().toISOString(),
-      })
+      const testSubscriptionId = `TEST_SUB_${Date.now()}`
+      const testPlanId = `TEST_PLAN_${Date.now()}`
+
+      const { error: subscriptionError } = await supabase
+        .from("subscriptions")
+        .upsert(
+          {
+            user_id: user.id,
+            plan_type: planType,
+            paypal_subscription_id: testSubscriptionId,
+            paypal_plan_id: testPlanId,
+            payment_id: testSubscriptionId,
+            status: "pending",
+            created_at: new Date().toISOString(),
+            updated_at: new Date().toISOString(),
+          },
+          { onConflict: "user_id" },
+        )
 
       if (subscriptionError) {
         logger.error("Failed to store test subscription in database", {
@@ -70,8 +80,8 @@ export async function POST(request: NextRequest) {
 
       // Return a test approval URL
       return NextResponse.json({
-        subscriptionId: `TEST_SUB_${Date.now()}`,
-        approvalUrl: `${appUrl}/dashboard/subscription/success?subscription_id=TEST_SUB_${Date.now()}&plan=${planType}`,
+        subscriptionId: testSubscriptionId,
+        approvalUrl: `${appUrl}/dashboard/subscription/success?subscription_id=${testSubscriptionId}&plan=${planType}`,
       })
     }
 
@@ -111,14 +121,21 @@ export async function POST(request: NextRequest) {
       }
 
       // Store the subscription details in the database
-      const { error: subscriptionError } = await supabase.from("subscriptions").upsert({
-        user_id: user.id,
-        plan_type: planType,
-        paypal_subscription_id: subscription.id,
-        paypal_plan_id: plan.id,
-        status: "pending",
-        created_at: new Date().toISOString(),
-      })
+      const { error: subscriptionError } = await supabase
+        .from("subscriptions")
+        .upsert(
+          {
+            user_id: user.id,
+            plan_type: planType,
+            paypal_subscription_id: subscription.id,
+            paypal_plan_id: plan.id,
+            payment_id: subscription.id,
+            status: "pending",
+            created_at: new Date().toISOString(),
+            updated_at: new Date().toISOString(),
+          },
+          { onConflict: "user_id" },
+        )
 
       if (subscriptionError) {
         logger.error("Failed to store subscription in database", {
