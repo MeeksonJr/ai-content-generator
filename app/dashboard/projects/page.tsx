@@ -8,9 +8,11 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
 import { createClient } from "@/lib/supabase/client"
-import { Loader2, PlusCircle, FolderOpen, Calendar, FileText } from "lucide-react"
+import { Loader2, PlusCircle, FolderOpen, Calendar, FileText, Search } from "lucide-react"
 import { useToast } from "@/components/ui/use-toast"
 import Link from "next/link"
+import { motion } from "framer-motion"
+import { SkeletonCard } from "@/components/dashboard/skeleton-card"
 import {
   Dialog,
   DialogContent,
@@ -24,7 +26,9 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 
 export default function ProjectsPage() {
   const [projects, setProjects] = useState<any[]>([])
+  const [filteredProjects, setFilteredProjects] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
+  const [searchQuery, setSearchQuery] = useState("")
   const [openNewProjectDialog, setOpenNewProjectDialog] = useState(false)
   const [openNewContentDialog, setOpenNewContentDialog] = useState(false)
   const [newProject, setNewProject] = useState({
@@ -39,12 +43,72 @@ export default function ProjectsPage() {
   })
   const [creatingProject, setCreatingProject] = useState(false)
   const [generatingContent, setGeneratingContent] = useState(false)
+  const [projectContentCounts, setProjectContentCounts] = useState<Record<string, number>>({})
   const { toast } = useToast()
   const supabase = createClient()
+
+  const containerVariants = {
+    hidden: { opacity: 0 },
+    visible: {
+      opacity: 1,
+      transition: {
+        staggerChildren: 0.1,
+      },
+    },
+  }
+
+  const itemVariants = {
+    hidden: { opacity: 0, y: 20 },
+    visible: {
+      opacity: 1,
+      y: 0,
+      transition: {
+        duration: 0.4,
+      },
+    },
+  }
 
   useEffect(() => {
     fetchProjects()
   }, [])
+
+  useEffect(() => {
+    fetchContentCounts()
+  }, [projects])
+
+  useEffect(() => {
+    if (searchQuery.trim()) {
+      const filtered = projects.filter(
+        (project) =>
+          project.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+          (project.description && project.description.toLowerCase().includes(searchQuery.toLowerCase())),
+      )
+      setFilteredProjects(filtered)
+    } else {
+      setFilteredProjects(projects)
+    }
+  }, [searchQuery, projects])
+
+  const fetchContentCounts = async () => {
+    if (projects.length === 0) return
+
+    try {
+      const counts: Record<string, number> = {}
+      for (const project of projects) {
+        const { count, error } = await supabase
+          .from("content")
+          .select("*", { count: "exact", head: true })
+          .eq("project_id", project.id)
+
+        if (!error && count !== null) {
+          counts[project.id] = count
+        }
+      }
+      setProjectContentCounts(counts)
+    } catch (error) {
+      console.error("Error fetching content counts:", error)
+    }
+  }
 
   const fetchProjects = async () => {
     try {
@@ -231,8 +295,16 @@ export default function ProjectsPage() {
   if (loading) {
     return (
       <DashboardLayout>
-        <div className="flex items-center justify-center h-[60vh]">
-          <Loader2 className="h-8 w-8 animate-spin text-primary" />
+        <div className="space-y-6">
+          <div>
+            <div className="h-9 w-48 bg-gray-800 rounded mb-2 animate-pulse" />
+            <div className="h-5 w-96 bg-gray-800 rounded animate-pulse" />
+          </div>
+          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+            {[...Array(6)].map((_, i) => (
+              <SkeletonCard key={i} />
+            ))}
+          </div>
         </div>
       </DashboardLayout>
     )
@@ -240,8 +312,13 @@ export default function ProjectsPage() {
 
   return (
     <DashboardLayout>
-      <div className="space-y-6">
-        <div className="flex items-center justify-between">
+      <motion.div
+        className="space-y-6"
+        initial="hidden"
+        animate="visible"
+        variants={containerVariants}
+      >
+        <motion.div className="flex items-center justify-between" variants={itemVariants}>
           <div>
             <h2 className="text-3xl font-bold tracking-tight">Projects</h2>
             <p className="text-muted-foreground">Organize your content into projects for better management.</p>
@@ -388,12 +465,34 @@ export default function ProjectsPage() {
               </DialogContent>
             </Dialog>
           </div>
-        </div>
+        </motion.div>
 
-        {projects.length > 0 ? (
-          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-            {projects.map((project) => (
-              <Card key={project.id} className="hover:shadow-lg transition-shadow">
+        {projects.length > 0 && (
+          <motion.div variants={itemVariants} className="relative">
+            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+            <Input
+              type="text"
+              placeholder="Search projects..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="pl-10 bg-gray-900 border-gray-800"
+            />
+          </motion.div>
+        )}
+
+        {filteredProjects.length > 0 ? (
+          <motion.div
+            className="grid gap-4 md:grid-cols-2 lg:grid-cols-3"
+            variants={containerVariants}
+          >
+            {filteredProjects.map((project) => (
+              <motion.div
+                key={project.id}
+                variants={itemVariants}
+                whileHover={{ y: -4, scale: 1.02 }}
+                transition={{ type: "spring", stiffness: 400, damping: 17 }}
+              >
+                <Card className="bg-gray-900 border-gray-800 hover:border-primary/50 transition-all duration-200">
                 <CardHeader className="pb-2">
                   <CardTitle className="flex items-center gap-2">
                     <FolderOpen className="h-5 w-5 text-primary" />
@@ -404,11 +503,17 @@ export default function ProjectsPage() {
                   </CardDescription>
                 </CardHeader>
                 <CardContent>
-                  <div className="flex items-center gap-4 text-sm text-muted-foreground">
+                    <div className="flex items-center justify-between text-sm text-muted-foreground">
                     <div className="flex items-center gap-1">
                       <Calendar className="h-3 w-3" />
                       <span>{formatDate(project.created_at)}</span>
                     </div>
+                      {projectContentCounts[project.id] !== undefined && (
+                        <div className="flex items-center gap-1">
+                          <FileText className="h-3 w-3" />
+                          <span>{projectContentCounts[project.id]} items</span>
+                        </div>
+                      )}
                   </div>
                 </CardContent>
                 <CardFooter>
@@ -417,10 +522,12 @@ export default function ProjectsPage() {
                   </Button>
                 </CardFooter>
               </Card>
+              </motion.div>
             ))}
-          </div>
-        ) : (
-          <Card>
+          </motion.div>
+        ) : projects.length === 0 ? (
+          <motion.div variants={itemVariants}>
+            <Card className="bg-gray-900 border-gray-800">
             <CardHeader>
               <CardTitle>No projects yet</CardTitle>
               <CardDescription>Create your first project to start organizing your content.</CardDescription>
@@ -434,8 +541,18 @@ export default function ProjectsPage() {
               </div>
             </CardContent>
           </Card>
+          </motion.div>
+        ) : (
+          <motion.div variants={itemVariants}>
+            <Card className="bg-gray-900 border-gray-800">
+              <CardHeader>
+                <CardTitle>No projects found</CardTitle>
+                <CardDescription>Try adjusting your search query.</CardDescription>
+              </CardHeader>
+            </Card>
+          </motion.div>
         )}
-      </div>
+      </motion.div>
     </DashboardLayout>
   )
 }

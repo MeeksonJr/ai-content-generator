@@ -8,7 +8,8 @@ import Link from "next/link"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { ArrowLeft, Sparkles, Calendar, Search, Clock, Eye, Tag } from "lucide-react"
+import { ArrowLeft, Sparkles, Calendar, Search, Clock, Eye, Tag, Menu } from "lucide-react"
+import { BlogMobileMenu } from "@/components/blog/blog-mobile-menu"
 import { formatDate } from "@/lib/utils"
 
 interface BlogPost {
@@ -95,9 +96,29 @@ export default function BlogPage() {
               <Sparkles className="h-6 w-6 text-blue-600" />
               <span className="inline-block font-bold text-gray-900">AI Content Generator</span>
             </Link>
+            <nav className="hidden md:flex gap-6">
+              <Link
+                href="/blog"
+                className="flex items-center text-sm font-medium text-gray-600 transition-colors hover:text-gray-900"
+              >
+                Blog
+              </Link>
+              <Link
+                href="/about"
+                className="flex items-center text-sm font-medium text-gray-600 transition-colors hover:text-gray-900"
+              >
+                About
+              </Link>
+              <Link
+                href="/careers"
+                className="flex items-center text-sm font-medium text-gray-600 transition-colors hover:text-gray-900"
+              >
+                Careers
+              </Link>
+            </nav>
           </div>
           <div className="flex flex-1 items-center justify-end space-x-4">
-            <nav className="flex items-center space-x-2">
+            <nav className="hidden md:flex items-center space-x-2">
               <Link href="/login">
                 <Button variant="ghost" size="sm" className="text-gray-700 hover:text-gray-900">
                   Login
@@ -109,6 +130,9 @@ export default function BlogPage() {
                 </Button>
               </Link>
             </nav>
+            <div className="md:hidden">
+              <BlogMobileMenu />
+            </div>
           </div>
         </div>
       </header>

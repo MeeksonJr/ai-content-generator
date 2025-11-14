@@ -6,7 +6,7 @@ import { logger } from "@/lib/utils/logger"
 
 export async function POST(request: Request) {
   try {
-    const cookieStore = cookies()
+    const cookieStore = await cookies()
     const supabase = createRouteHandlerClient({ cookies: () => cookieStore })
 
     // Check if user is authenticated

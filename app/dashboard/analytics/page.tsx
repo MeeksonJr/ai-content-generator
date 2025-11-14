@@ -25,6 +25,7 @@ import {
   Treemap,
 } from "recharts"
 import { motion } from "framer-motion"
+import { SkeletonCard } from "@/components/dashboard/skeleton-card"
 
 export default function AnalyticsPage() {
   const [loading, setLoading] = useState(true)
@@ -235,11 +236,40 @@ export default function AnalyticsPage() {
     Negative: "#f87171",
   }
 
+  const containerVariants = {
+    hidden: { opacity: 0 },
+    visible: {
+      opacity: 1,
+      transition: {
+        staggerChildren: 0.1,
+      },
+    },
+  }
+
+  const itemVariants = {
+    hidden: { opacity: 0, y: 20 },
+    visible: {
+      opacity: 1,
+      y: 0,
+      transition: {
+        duration: 0.4,
+      },
+    },
+  }
+
   if (loading) {
     return (
       <DashboardLayout>
-        <div className="flex items-center justify-center h-[60vh]">
-          <Loader2 className="h-8 w-8 animate-spin text-primary" />
+        <div className="space-y-6">
+          <div>
+            <div className="h-9 w-64 bg-gray-800 rounded mb-2 animate-pulse" />
+            <div className="h-5 w-96 bg-gray-800 rounded animate-pulse" />
+          </div>
+          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+            {[...Array(4)].map((_, i) => (
+              <SkeletonCard key={i} />
+            ))}
+          </div>
         </div>
       </DashboardLayout>
     )
@@ -247,8 +277,13 @@ export default function AnalyticsPage() {
 
   return (
     <DashboardLayout>
-      <div className="space-y-6">
-        <div className="flex items-center justify-between">
+      <motion.div
+        className="space-y-6"
+        initial="hidden"
+        animate="visible"
+        variants={containerVariants}
+      >
+        <motion.div className="flex items-center justify-between" variants={itemVariants}>
           <div>
             <h2 className="text-3xl font-bold tracking-tight">Analytics Dashboard</h2>
             <p className="text-muted-foreground">View insights and statistics about your content</p>
@@ -268,12 +303,12 @@ export default function AnalyticsPage() {
           </Button>
         </div>
 
-        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-          <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.3 }}>
-            <Card className="bg-gray-900 border-gray-800">
+        <motion.div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4" variants={containerVariants}>
+          <motion.div variants={itemVariants}>
+            <Card className="bg-gray-900 border-gray-800 hover:border-primary/50 transition-all duration-200 group">
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                 <CardTitle className="text-sm font-medium">Total Content</CardTitle>
-                <FileText className="h-4 w-4 text-muted-foreground" />
+                <FileText className="h-4 w-4 text-muted-foreground group-hover:text-primary transition-colors" />
               </CardHeader>
               <CardContent>
                 <div className="text-2xl font-bold">{contentStats?.total || 0}</div>
@@ -281,15 +316,11 @@ export default function AnalyticsPage() {
               </CardContent>
             </Card>
           </motion.div>
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.3, delay: 0.1 }}
-          >
-            <Card className="bg-gray-900 border-gray-800">
+          <motion.div variants={itemVariants}>
+            <Card className="bg-gray-900 border-gray-800 hover:border-primary/50 transition-all duration-200 group">
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                 <CardTitle className="text-sm font-medium">Content Types</CardTitle>
-                <BarChart3 className="h-4 w-4 text-muted-foreground" />
+                <BarChart3 className="h-4 w-4 text-muted-foreground group-hover:text-primary transition-colors" />
               </CardHeader>
               <CardContent>
                 <div className="text-2xl font-bold">{contentStats?.types || 0}</div>
@@ -297,15 +328,11 @@ export default function AnalyticsPage() {
               </CardContent>
             </Card>
           </motion.div>
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.3, delay: 0.2 }}
-          >
-            <Card className="bg-gray-900 border-gray-800">
+          <motion.div variants={itemVariants}>
+            <Card className="bg-gray-900 border-gray-800 hover:border-primary/50 transition-all duration-200 group">
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                 <CardTitle className="text-sm font-medium">Sentiment Analysis</CardTitle>
-                <MessageSquare className="h-4 w-4 text-muted-foreground" />
+                <MessageSquare className="h-4 w-4 text-muted-foreground group-hover:text-primary transition-colors" />
               </CardHeader>
               <CardContent>
                 <div className="text-2xl font-bold">{contentStats?.withSentiment || 0}</div>
@@ -313,15 +340,11 @@ export default function AnalyticsPage() {
               </CardContent>
             </Card>
           </motion.div>
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.3, delay: 0.3 }}
-          >
-            <Card className="bg-gray-900 border-gray-800">
+          <motion.div variants={itemVariants}>
+            <Card className="bg-gray-900 border-gray-800 hover:border-primary/50 transition-all duration-200 group">
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                 <CardTitle className="text-sm font-medium">Keyword Extraction</CardTitle>
-                <Tag className="h-4 w-4 text-muted-foreground" />
+                <Tag className="h-4 w-4 text-muted-foreground group-hover:text-primary transition-colors" />
               </CardHeader>
               <CardContent>
                 <div className="text-2xl font-bold">{contentStats?.withKeywords || 0}</div>
@@ -329,8 +352,9 @@ export default function AnalyticsPage() {
               </CardContent>
             </Card>
           </motion.div>
-        </div>
+        </motion.div>
 
+        <motion.div variants={itemVariants}>
         <Tabs defaultValue="content" className="space-y-4">
           <TabsList className="bg-gray-900 border-gray-800">
             <TabsTrigger value="content">Content Analytics</TabsTrigger>
@@ -846,7 +870,8 @@ export default function AnalyticsPage() {
             </Card>
           </TabsContent>
         </Tabs>
-      </div>
+        </motion.div>
+      </motion.div>
     </DashboardLayout>
   )
 }

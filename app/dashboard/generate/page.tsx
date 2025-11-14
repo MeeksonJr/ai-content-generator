@@ -29,6 +29,7 @@ import {
 } from "lucide-react"
 import { useToast } from "@/hooks/use-toast"
 import { createClient } from "@/lib/supabase/client"
+import { motion, AnimatePresence } from "framer-motion"
 
 export default function GeneratePage() {
   // Content Generation State
@@ -38,7 +39,7 @@ export default function GeneratePage() {
   const [prompt, setPrompt] = useState("")
   const [generatedContent, setGeneratedContent] = useState("")
   const [sentiment, setSentiment] = useState<string | null>(null)
-  const [keywords, setKeywords] = useState<string[]>([])
+  const [keywords, setKeywords] = useState<(string | { keyword: string })[]>([])
   const [temperature, setTemperature] = useState(0.7)
   const [maxLength, setMaxLength] = useState(1000)
   const [usingFallback, setUsingFallback] = useState(false)
@@ -494,15 +495,42 @@ export default function GeneratePage() {
     setInferenceSteps(50)
   }
 
+  const containerVariants = {
+    hidden: { opacity: 0 },
+    visible: {
+      opacity: 1,
+      transition: {
+        staggerChildren: 0.1,
+      },
+    },
+  }
+
+  const itemVariants = {
+    hidden: { opacity: 0, y: 20 },
+    visible: {
+      opacity: 1,
+      y: 0,
+      transition: {
+        duration: 0.4,
+      },
+    },
+  }
+
   return (
     <DashboardLayout>
-      <div className="space-y-6">
-        <div>
+      <motion.div
+        className="space-y-6"
+        initial="hidden"
+        animate="visible"
+        variants={containerVariants}
+      >
+        <motion.div variants={itemVariants}>
           <h2 className="text-3xl font-bold tracking-tight">AI Content Studio</h2>
           <p className="text-muted-foreground">Generate high-quality content and images using AI</p>
-        </div>
+        </motion.div>
 
-        <Tabs defaultValue="content" className="space-y-4">
+        <motion.div variants={itemVariants}>
+          <Tabs defaultValue="content" className="space-y-4">
           <TabsList className="bg-gray-900 border-gray-800">
             <TabsTrigger value="content" className="flex items-center gap-2">
               <FileText className="h-4 w-4" />
@@ -520,7 +548,14 @@ export default function GeneratePage() {
 
           {/* Content Generation Tab */}
           <TabsContent value="content" className="space-y-4">
+            <AnimatePresence>
             {usingFallback && (
+                <motion.div
+                  initial={{ opacity: 0, y: -10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: -10 }}
+                  transition={{ duration: 0.3 }}
+                >
               <Alert variant="default" className="bg-yellow-900/20 border-yellow-800">
                 <AlertTriangle className="h-4 w-4" />
                 <AlertTitle>AI Service Notice</AlertTitle>
@@ -529,11 +564,18 @@ export default function GeneratePage() {
                   results, please try again later.
                 </AlertDescription>
               </Alert>
+                </motion.div>
             )}
+            </AnimatePresence>
 
             <div className="grid gap-6 lg:grid-cols-2">
               {/* Content Input */}
-              <Card className="bg-gray-900 border-gray-800">
+              <motion.div
+                variants={itemVariants}
+                whileHover={{ scale: 1.01 }}
+                transition={{ duration: 0.2 }}
+              >
+              <Card className="bg-gray-900 border-gray-800 hover:border-primary/50 transition-all duration-200">
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2">
                     <Sparkles className="h-5 w-5" />
@@ -627,9 +669,15 @@ export default function GeneratePage() {
                   </Button>
                 </CardFooter>
               </Card>
+              </motion.div>
 
               {/* Content Output */}
-              <Card className="bg-gray-900 border-gray-800">
+              <motion.div
+                variants={itemVariants}
+                whileHover={{ scale: 1.01 }}
+                transition={{ duration: 0.2 }}
+              >
+              <Card className="bg-gray-900 border-gray-800 hover:border-primary/50 transition-all duration-200">
                 <CardHeader>
                   <div className="flex items-center justify-between">
                     <CardTitle>Generated Content</CardTitle>
@@ -653,23 +701,58 @@ export default function GeneratePage() {
                 </CardHeader>
                 <CardContent className="space-y-4">
                   <div className="min-h-[400px] rounded-md border border-gray-700 bg-gray-800 p-4 overflow-auto">
+                    <AnimatePresence mode="wait">
                     {contentLoading ? (
-                      <div className="flex h-full items-center justify-center">
+                        <motion.div
+                          key="loading"
+                          initial={{ opacity: 0 }}
+                          animate={{ opacity: 1 }}
+                          exit={{ opacity: 0 }}
+                          className="flex h-full items-center justify-center"
+                        >
                         <Loader2 className="h-8 w-8 animate-spin text-primary" />
-                      </div>
+                        </motion.div>
                     ) : generatedContent ? (
-                      <div className="whitespace-pre-wrap text-sm">{generatedContent}</div>
+                        <motion.div
+                          key="content"
+                          initial={{ opacity: 0, y: 10 }}
+                          animate={{ opacity: 1, y: 0 }}
+                          exit={{ opacity: 0, y: -10 }}
+                          transition={{ duration: 0.3 }}
+                          className="whitespace-pre-wrap text-sm"
+                        >
+                          {generatedContent}
+                        </motion.div>
                     ) : (
-                      <div className="flex h-full items-center justify-center text-muted-foreground">
+                        <motion.div
+                          key="empty"
+                          initial={{ opacity: 0 }}
+                          animate={{ opacity: 1 }}
+                          exit={{ opacity: 0 }}
+                          className="flex h-full items-center justify-center text-muted-foreground"
+                        >
                         Generated content will appear here
-                      </div>
+                        </motion.div>
                     )}
+                    </AnimatePresence>
                   </div>
 
+                  <AnimatePresence>
                   {generatedContent && (
-                    <div className="space-y-4">
+                      <motion.div
+                        initial={{ opacity: 0, y: 10 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        exit={{ opacity: 0, y: -10 }}
+                        transition={{ duration: 0.3 }}
+                        className="space-y-4"
+                      >
                       {sentiment && (
-                        <div className="flex items-center space-x-2">
+                          <motion.div
+                            initial={{ opacity: 0, x: -10 }}
+                            animate={{ opacity: 1, x: 0 }}
+                            transition={{ delay: 0.1 }}
+                            className="flex items-center space-x-2"
+                          >
                           <MessageSquare className="h-4 w-4 text-muted-foreground" />
                           <span className="text-sm">Sentiment:</span>
                           <Badge
@@ -684,28 +767,42 @@ export default function GeneratePage() {
                           >
                             {sentiment.charAt(0).toUpperCase() + sentiment.slice(1)}
                           </Badge>
-                        </div>
+                          </motion.div>
                       )}
 
                       {keywords.length > 0 && (
-                        <div className="space-y-2">
+                          <motion.div
+                            initial={{ opacity: 0, x: -10 }}
+                            animate={{ opacity: 1, x: 0 }}
+                            transition={{ delay: 0.2 }}
+                            className="space-y-2"
+                          >
                           <div className="flex items-center space-x-2">
                             <Tag className="h-4 w-4 text-muted-foreground" />
                             <span className="text-sm">Keywords:</span>
                           </div>
                           <div className="flex flex-wrap gap-2">
                             {keywords.map((keyword, index) => (
-                              <Badge key={index} variant="outline" className="bg-gray-800 border-gray-700">
-                                {typeof keyword === "string" ? keyword : keyword.keyword || keyword}
+                                <motion.div
+                                  key={index}
+                                  initial={{ opacity: 0, scale: 0.8 }}
+                                  animate={{ opacity: 1, scale: 1 }}
+                                  transition={{ delay: 0.3 + index * 0.05 }}
+                                >
+                                  <Badge variant="outline" className="bg-gray-800 border-gray-700">
+                                {typeof keyword === "string" ? keyword : keyword.keyword ?? ""}
                               </Badge>
+                                </motion.div>
                             ))}
                           </div>
-                        </div>
+                          </motion.div>
                       )}
-                    </div>
+                      </motion.div>
                   )}
+                  </AnimatePresence>
                 </CardContent>
               </Card>
+              </motion.div>
             </div>
           </TabsContent>
 
@@ -713,7 +810,12 @@ export default function GeneratePage() {
           <TabsContent value="image" className="space-y-4">
             <div className="grid gap-6 lg:grid-cols-2">
               {/* Image Input */}
-              <Card className="bg-gray-900 border-gray-800">
+              <motion.div
+                variants={itemVariants}
+                whileHover={{ scale: 1.01 }}
+                transition={{ duration: 0.2 }}
+              >
+              <Card className="bg-gray-900 border-gray-800 hover:border-primary/50 transition-all duration-200">
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2">
                     <Wand2 className="h-5 w-5" />
@@ -806,9 +908,15 @@ export default function GeneratePage() {
                   </Button>
                 </CardFooter>
               </Card>
+              </motion.div>
 
               {/* Image Output */}
-              <Card className="bg-gray-900 border-gray-800">
+              <motion.div
+                variants={itemVariants}
+                whileHover={{ scale: 1.01 }}
+                transition={{ duration: 0.2 }}
+              >
+              <Card className="bg-gray-900 border-gray-800 hover:border-primary/50 transition-all duration-200">
                 <CardHeader>
                   <div className="flex items-center justify-between">
                     <CardTitle>Generated Image</CardTitle>
@@ -827,31 +935,52 @@ export default function GeneratePage() {
                 </CardHeader>
                 <CardContent>
                   <div className="min-h-[400px] rounded-md border border-gray-700 bg-gray-800 p-4 flex items-center justify-center">
+                    <AnimatePresence mode="wait">
                     {imageLoading ? (
-                      <div className="flex flex-col items-center space-y-4">
+                        <motion.div
+                          key="loading"
+                          initial={{ opacity: 0 }}
+                          animate={{ opacity: 1 }}
+                          exit={{ opacity: 0 }}
+                          className="flex flex-col items-center space-y-4"
+                        >
                         <Loader2 className="h-8 w-8 animate-spin text-primary" />
                         <p className="text-sm text-muted-foreground">Generating your image...</p>
-                      </div>
+                        </motion.div>
                     ) : generatedImage ? (
-                      <img
+                        <motion.img
+                          key="image"
+                          initial={{ opacity: 0, scale: 0.9 }}
+                          animate={{ opacity: 1, scale: 1 }}
+                          exit={{ opacity: 0, scale: 0.9 }}
+                          transition={{ duration: 0.3 }}
                         src={generatedImage || "/placeholder.svg"}
                         alt="Generated image"
                         className="max-w-full max-h-full rounded-lg"
                       />
                     ) : (
-                      <div className="text-center text-muted-foreground">
+                        <motion.div
+                          key="empty"
+                          initial={{ opacity: 0 }}
+                          animate={{ opacity: 1 }}
+                          exit={{ opacity: 0 }}
+                          className="text-center text-muted-foreground"
+                        >
                         <ImageIcon className="h-12 w-12 mx-auto mb-4 opacity-50" />
                         <p>Generated image will appear here</p>
-                      </div>
+                        </motion.div>
                     )}
+                    </AnimatePresence>
                   </div>
                 </CardContent>
               </Card>
+              </motion.div>
             </div>
           </TabsContent>
 
           {/* Saved Content Tab */}
           <TabsContent value="saved" className="space-y-4">
+            <motion.div variants={itemVariants}>
             <Card className="bg-gray-900 border-gray-800">
               <CardHeader>
                 <CardTitle>Saved Content & Images</CardTitle>
@@ -863,11 +992,19 @@ export default function GeneratePage() {
                     <Loader2 className="h-8 w-8 animate-spin text-primary" />
                   </div>
                 ) : savedContent.length > 0 ? (
-                  <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-                    {savedContent.map((content) => (
-                      <Card
+                  <motion.div
+                    className="grid gap-4 md:grid-cols-2 lg:grid-cols-3"
+                    variants={containerVariants}
+                  >
+                    {savedContent.map((content, index) => (
+                      <motion.div
                         key={content.id}
-                        className="bg-gray-800 border-gray-700 hover:bg-gray-750 transition-colors"
+                        variants={itemVariants}
+                        whileHover={{ y: -4, scale: 1.02 }}
+                        transition={{ type: "spring", stiffness: 400, damping: 17 }}
+                      >
+                      <Card
+                        className="bg-gray-800 border-gray-700 hover:border-primary/50 transition-all cursor-pointer"
                       >
                         <CardContent className="p-4">
                           <div className="space-y-3">
@@ -934,8 +1071,9 @@ export default function GeneratePage() {
                           </div>
                         </CardContent>
                       </Card>
+                      </motion.div>
                     ))}
-                  </div>
+                  </motion.div>
                 ) : (
                   <div className="flex flex-col items-center justify-center py-12 text-center">
                     <FileText className="h-12 w-12 text-muted-foreground mb-4" />
@@ -945,9 +1083,11 @@ export default function GeneratePage() {
                 )}
               </CardContent>
             </Card>
+            </motion.div>
           </TabsContent>
-        </Tabs>
-      </div>
+          </Tabs>
+        </motion.div>
+      </motion.div>
     </DashboardLayout>
   )
 }

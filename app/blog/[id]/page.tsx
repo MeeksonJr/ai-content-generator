@@ -4,6 +4,10 @@ import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { ArrowLeft, Calendar, Clock, Eye, Tag, Sparkles } from "lucide-react"
 import { formatDate } from "@/lib/utils"
+import { ReadingProgress } from "@/components/blog/reading-progress"
+import { ShareButton } from "@/components/blog/share-button"
+import { TableOfContents } from "@/components/blog/table-of-contents"
+import { BlogMobileMenu } from "@/components/blog/blog-mobile-menu"
 import type { JSX } from "react/jsx-runtime"
 
 interface BlogPost {
@@ -48,6 +52,40 @@ async function getBlogPost(id: string): Promise<BlogPost | null> {
   }
 }
 
+async function getRelatedPosts(category: string, currentId: string, limit: number = 3): Promise<BlogPost[]> {
+  try {
+    const baseUrl = process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000"
+    const response = await fetch(`${baseUrl}/api/blog-posts`, {
+      cache: "no-store",
+    })
+
+    if (!response.ok) {
+      return []
+    }
+
+    const data = await response.json()
+    const posts = (data.results || []) as BlogPost[]
+    
+    // Filter out current post and get posts with same category
+    const related = posts
+      .filter((post) => post.id !== currentId && post.category === category)
+      .slice(0, limit)
+    
+    // If not enough with same category, fill with other posts
+    if (related.length < limit) {
+      const others = posts
+        .filter((post) => post.id !== currentId && post.category !== category)
+        .slice(0, limit - related.length)
+      return [...related, ...others]
+    }
+    
+    return related
+  } catch (error) {
+    console.error("Error fetching related posts:", error)
+    return []
+  }
+}
+
 function SimpleMarkdownRenderer({ content }: { content: string }) {
   const lines = content.split("\n")
   const elements: JSX.Element[] = []
@@ -62,15 +100,19 @@ function SimpleMarkdownRenderer({ content }: { content: string }) {
         </h1>,
       )
     } else if (line.startsWith("## ")) {
+      const text = line.substring(3).trim()
+      const id = `heading-${i}-${text.toLowerCase().replace(/\s+/g, "-").replace(/[^a-z0-9-]/g, "")}`
       elements.push(
-        <h2 key={i} className="text-2xl font-semibold text-gray-900 mb-4 mt-6">
-          {line.substring(3)}
+        <h2 key={i} id={id} className="text-2xl font-semibold text-gray-900 mb-4 mt-6 scroll-mt-20">
+          {text}
         </h2>,
       )
     } else if (line.startsWith("### ")) {
+      const text = line.substring(4).trim()
+      const id = `heading-${i}-${text.toLowerCase().replace(/\s+/g, "-").replace(/[^a-z0-9-]/g, "")}`
       elements.push(
-        <h3 key={i} className="text-xl font-semibold text-gray-900 mb-3 mt-4">
-          {line.substring(4)}
+        <h3 key={i} id={id} className="text-xl font-semibold text-gray-900 mb-3 mt-4 scroll-mt-20">
+          {text}
         </h3>,
       )
     } else if (line.startsWith("- ")) {
@@ -124,18 +166,23 @@ function SimpleMarkdownRenderer({ content }: { content: string }) {
   return <div className="prose prose-lg max-w-none">{elements}</div>
 }
 
-export default async function BlogPostPage({ params }: { params: { id: string } }) {
-  console.log("BlogPostPage called with ID:", params.id)
+export default async function BlogPostPage({ params }: { params: Promise<{ id: string }> }) {
+  const { id } = await params
+  console.log("BlogPostPage called with ID:", id)
 
-  const blogPost = await getBlogPost(params.id)
+  const blogPost = await getBlogPost(id)
 
   if (!blogPost) {
     console.log("Blog post not found, calling notFound()")
     notFound()
   }
 
+  const relatedPosts = await getRelatedPosts(blogPost.category, blogPost.id, 3)
+  const fullUrl = `${process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000"}/blog/${id}`
+
   return (
     <div className="flex flex-col min-h-screen bg-white">
+      <ReadingProgress />
       {/* Header */}
       <header className="sticky top-0 z-40 w-full border-b border-gray-200 bg-white/95 backdrop-blur supports-[backdrop-filter]:bg-white/60">
         <div className="container flex h-16 items-center space-x-4 sm:justify-between sm:space-x-0">
@@ -144,9 +191,29 @@ export default async function BlogPostPage({ params }: { params: { id: string } 
               <Sparkles className="h-6 w-6 text-blue-600" />
               <span className="inline-block font-bold text-gray-900">AI Content Generator</span>
             </Link>
+            <nav className="hidden md:flex gap-6">
+              <Link
+                href="/blog"
+                className="flex items-center text-sm font-medium text-gray-600 transition-colors hover:text-gray-900"
+              >
+                Blog
+              </Link>
+              <Link
+                href="/about"
+                className="flex items-center text-sm font-medium text-gray-600 transition-colors hover:text-gray-900"
+              >
+                About
+              </Link>
+              <Link
+                href="/careers"
+                className="flex items-center text-sm font-medium text-gray-600 transition-colors hover:text-gray-900"
+              >
+                Careers
+              </Link>
+            </nav>
           </div>
           <div className="flex flex-1 items-center justify-end space-x-4">
-            <nav className="flex items-center space-x-2">
+            <nav className="hidden md:flex items-center space-x-2">
               <Link href="/login">
                 <Button variant="ghost" size="sm" className="text-gray-700 hover:text-gray-900">
                   Login
@@ -158,6 +225,10 @@ export default async function BlogPostPage({ params }: { params: { id: string } 
                 </Button>
               </Link>
             </nav>
+            {/* Mobile Menu */}
+            <div className="md:hidden">
+              <BlogMobileMenu />
+            </div>
           </div>
         </div>
       </header>
@@ -165,7 +236,9 @@ export default async function BlogPostPage({ params }: { params: { id: string } 
       <main className="flex-1">
         <article className="w-full py-12 md:py-24 bg-gray-50">
           <div className="container px-4 md:px-6">
-            <div className="max-w-4xl mx-auto">
+            <div className="max-w-7xl mx-auto grid grid-cols-1 lg:grid-cols-12 gap-8">
+              {/* Main Content */}
+              <div className="lg:col-span-8">
               <Link href="/blog" className="inline-block mb-6">
                 <Button variant="ghost" size="sm" className="gap-1 text-gray-600 hover:text-gray-900">
                   <ArrowLeft className="h-4 w-4" />
@@ -251,20 +324,61 @@ export default async function BlogPostPage({ params }: { params: { id: string } 
 
                   {/* Actions */}
                   <div className="border-t border-gray-200 pt-6">
-                    <div className="flex gap-4 justify-center">
+                    <div className="flex gap-4 justify-center flex-wrap">
                       <Link href={`/blog-search?q=${encodeURIComponent(blogPost.search_query)}`}>
                         <Button variant="outline" className="border-gray-300">
                           <Sparkles className="h-4 w-4 mr-2" />
                           Regenerate Content
                         </Button>
                       </Link>
-                      <Button variant="outline" className="border-gray-300">
-                        Share Article
-                      </Button>
+                      <ShareButton title={blogPost.title} url={fullUrl} excerpt={blogPost.excerpt} />
                     </div>
                   </div>
                 </CardContent>
               </Card>
+
+              {/* Related Posts */}
+              {relatedPosts.length > 0 && (
+                <div className="mt-12">
+                  <h2 className="text-2xl font-bold text-gray-900 mb-6">Related Articles</h2>
+                  <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+                    {relatedPosts.map((post) => (
+                      <Link key={post.id} href={`/blog/${post.id}`} className="group">
+                        <Card className="h-full border border-gray-200 transition-all duration-200 shadow-sm hover:shadow-lg bg-white">
+                          <div className="h-40 overflow-hidden bg-gray-100">
+                            <img
+                              src={post.image_url || "/placeholder.svg?height=200&width=300"}
+                              alt={post.title}
+                              className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
+                            />
+                          </div>
+                          <CardHeader>
+                            <div className="inline-block px-2 py-1 text-xs font-medium bg-blue-50 text-blue-600 rounded-full mb-2">
+                              {post.category}
+                            </div>
+                            <CardTitle className="text-lg font-bold text-gray-900 group-hover:text-blue-600 transition-colors line-clamp-2">
+                              {post.title}
+                            </CardTitle>
+                            <p className="text-sm text-gray-600 line-clamp-2">{post.excerpt}</p>
+                          </CardHeader>
+                          <CardContent>
+                            <div className="flex items-center gap-2 text-xs text-gray-500">
+                              <Clock className="h-3 w-3" />
+                              <span>{post.read_time}</span>
+                            </div>
+                          </CardContent>
+                        </Card>
+                      </Link>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
+            {/* Sidebar with Table of Contents */}
+            <div className="lg:col-span-4">
+              <div className="sticky top-24">
+                <TableOfContents content={blogPost.content} />
+              </div>
             </div>
           </div>
         </article>

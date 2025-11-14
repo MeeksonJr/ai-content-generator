@@ -18,9 +18,13 @@ import {
   Globe,
 } from "lucide-react"
 import { motion, useScroll, useTransform } from "framer-motion"
+import { NewsletterForm } from "@/components/newsletter/newsletter-form"
+import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet"
+import { Menu, X } from "lucide-react"
 
 export default function Home() {
   const [mounted, setMounted] = useState(false)
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
   const { scrollYProgress } = useScroll()
   const opacity = useTransform(scrollYProgress, [0, 0.2], [1, 0])
   const y = useTransform(scrollYProgress, [0, 0.2], [0, -50])
@@ -214,7 +218,7 @@ export default function Home() {
             </nav>
           </div>
           <div className="flex flex-1 items-center justify-end space-x-4">
-            <nav className="flex items-center space-x-2">
+            <nav className="hidden md:flex items-center space-x-2">
               <Link href="/login">
                 <Button variant="ghost" size="sm">
                   Login
@@ -224,6 +228,75 @@ export default function Home() {
                 <Button size="sm">Sign Up</Button>
               </Link>
             </nav>
+            {/* Mobile Menu */}
+            <Sheet open={mobileMenuOpen} onOpenChange={setMobileMenuOpen}>
+              <SheetTrigger asChild className="md:hidden">
+                <Button variant="ghost" size="sm" className="md:hidden">
+                  <Menu className="h-5 w-5" />
+                  <span className="sr-only">Open menu</span>
+                </Button>
+              </SheetTrigger>
+              <SheetContent side="right" className="w-[300px] bg-gray-950 border-gray-800">
+                <div className="flex flex-col gap-6 mt-8">
+                  <div className="flex items-center justify-between">
+                    <Link href="/" className="flex items-center space-x-2" onClick={() => setMobileMenuOpen(false)}>
+                      <Sparkles className="h-6 w-6 text-primary" />
+                      <span className="font-bold">AI Content Generator</span>
+                    </Link>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => setMobileMenuOpen(false)}
+                      className="md:hidden"
+                    >
+                      <X className="h-5 w-5" />
+                    </Button>
+                  </div>
+                  <nav className="flex flex-col gap-4">
+                    <Link
+                      href="#features"
+                      className="text-sm font-medium text-muted-foreground transition-colors hover:text-foreground"
+                      onClick={() => setMobileMenuOpen(false)}
+                    >
+                      Features
+                    </Link>
+                    <Link
+                      href="#pricing"
+                      className="text-sm font-medium text-muted-foreground transition-colors hover:text-foreground"
+                      onClick={() => setMobileMenuOpen(false)}
+                    >
+                      Pricing
+                    </Link>
+                    <Link
+                      href="#testimonials"
+                      className="text-sm font-medium text-muted-foreground transition-colors hover:text-foreground"
+                      onClick={() => setMobileMenuOpen(false)}
+                    >
+                      Testimonials
+                    </Link>
+                    <Link
+                      href="/blog"
+                      className="text-sm font-medium text-muted-foreground transition-colors hover:text-foreground"
+                      onClick={() => setMobileMenuOpen(false)}
+                    >
+                      Blog
+                    </Link>
+                  </nav>
+                  <div className="flex flex-col gap-3 pt-4 border-t border-gray-800">
+                    <Link href="/login" onClick={() => setMobileMenuOpen(false)}>
+                      <Button variant="ghost" size="sm" className="w-full justify-start">
+                        Login
+                      </Button>
+                    </Link>
+                    <Link href="/login" onClick={() => setMobileMenuOpen(false)}>
+                      <Button size="sm" className="w-full bg-gradient-to-r from-primary to-indigo-600 hover:from-primary/90 hover:to-indigo-600/90 border-0">
+                        Sign Up
+                      </Button>
+                    </Link>
+                  </div>
+                </div>
+              </SheetContent>
+            </Sheet>
           </div>
         </div>
       </header>
@@ -707,7 +780,7 @@ export default function Home() {
       </main>
       <footer className="w-full py-6 bg-gray-950 border-t border-gray-800">
         <div className="container px-4 md:px-6">
-          <div className="grid gap-8 md:grid-cols-2 lg:grid-cols-4">
+          <div className="grid gap-8 md:grid-cols-2 lg:grid-cols-5">
             <div className="space-y-4">
               <Link href="/" className="flex items-center space-x-2">
                 <Sparkles className="h-6 w-6 text-primary" />
@@ -757,6 +830,13 @@ export default function Home() {
                   </Link>
                 </li>
               </ul>
+            </div>
+            <div className="space-y-4">
+              <h3 className="font-medium">Newsletter</h3>
+              <p className="text-sm text-muted-foreground mb-2">
+                Get the latest updates and exclusive content delivered to your inbox.
+              </p>
+              <NewsletterForm />
             </div>
             <div className="space-y-4">
               <h3 className="font-medium">Legal</h3>

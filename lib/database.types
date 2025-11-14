@@ -178,6 +178,32 @@ export interface Database {
           updated_at?: string
         }
       }
+      newsletter_subscribers: {
+        Row: {
+          id: string
+          email: string
+          subscribed_at: string
+          status: string
+          unsubscribed_at: string | null
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          email: string
+          subscribed_at?: string
+          status?: string
+          unsubscribed_at?: string | null
+          created_at?: string
+        }
+        Update: {
+          id?: string
+          email?: string
+          subscribed_at?: string
+          status?: string
+          unsubscribed_at?: string | null
+          created_at?: string
+        }
+      }
     }
   }
   auth: {

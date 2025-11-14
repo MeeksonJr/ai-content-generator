@@ -11,6 +11,7 @@ import { Badge } from "@/components/ui/badge"
 import { Loader2, FileText, FolderKanban, BarChart3, ArrowRight, Plus, CreditCard } from "lucide-react"
 import { createClient } from "@/lib/supabase/client"
 import { motion } from "framer-motion"
+import { SkeletonCard } from "@/components/dashboard/skeleton-card"
 
 export default function DashboardPage() {
   const [loading, setLoading] = useState(true)
@@ -79,11 +80,40 @@ export default function DashboardPage() {
     return Math.min(percentage, 100)
   }
 
+  const containerVariants = {
+    hidden: { opacity: 0 },
+    visible: {
+      opacity: 1,
+      transition: {
+        staggerChildren: 0.1,
+      },
+    },
+  }
+
+  const itemVariants = {
+    hidden: { opacity: 0, y: 20 },
+    visible: {
+      opacity: 1,
+      y: 0,
+      transition: {
+        duration: 0.4,
+      },
+    },
+  }
+
   if (loading) {
     return (
       <DashboardLayout>
-        <div className="flex items-center justify-center h-[60vh]">
-          <Loader2 className="h-8 w-8 animate-spin text-primary" />
+        <div className="space-y-6">
+          <div>
+            <div className="h-9 w-48 bg-gray-800 rounded mb-2 animate-pulse" />
+            <div className="h-5 w-64 bg-gray-800 rounded animate-pulse" />
+          </div>
+          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+            {[...Array(4)].map((_, i) => (
+              <SkeletonCard key={i} />
+            ))}
+          </div>
         </div>
       </DashboardLayout>
     )
@@ -91,22 +121,26 @@ export default function DashboardPage() {
 
   return (
     <DashboardLayout>
-      <div className="space-y-6">
-        <div>
+      <motion.div
+        className="space-y-6"
+        initial="hidden"
+        animate="visible"
+        variants={containerVariants}
+      >
+        <motion.div variants={itemVariants}>
           <h2 className="text-3xl font-bold tracking-tight">Dashboard</h2>
           <p className="text-muted-foreground">Welcome to your AI Content Generator dashboard</p>
-        </div>
+        </motion.div>
 
         <motion.div
           className="grid gap-4 md:grid-cols-2 lg:grid-cols-4"
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.5 }}
+          variants={containerVariants}
         >
-          <Card className="bg-gray-900 border-gray-800 hover:border-gray-700 transition-colors">
+          <motion.div variants={itemVariants}>
+            <Card className="bg-gray-900 border-gray-800 hover:border-primary/50 transition-all duration-200 group">
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
               <CardTitle className="text-sm font-medium">Subscription Plan</CardTitle>
-              <CreditCard className="h-4 w-4 text-muted-foreground" />
+              <CreditCard className="h-4 w-4 text-muted-foreground group-hover:text-primary transition-colors" />
             </CardHeader>
             <CardContent>
               <div className="text-2xl font-bold">
@@ -126,11 +160,13 @@ export default function DashboardPage() {
               </div>
             </CardContent>
           </Card>
+          </motion.div>
 
-          <Card className="bg-gray-900 border-gray-800 hover:border-gray-700 transition-colors">
+          <motion.div variants={itemVariants}>
+            <Card className="bg-gray-900 border-gray-800 hover:border-primary/50 transition-all duration-200 group">
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
               <CardTitle className="text-sm font-medium">Content Generated</CardTitle>
-              <FileText className="h-4 w-4 text-muted-foreground" />
+              <FileText className="h-4 w-4 text-muted-foreground group-hover:text-primary transition-colors" />
             </CardHeader>
             <CardContent>
               <div className="text-2xl font-bold">{usageStats?.content_generated || 0}</div>
@@ -143,11 +179,13 @@ export default function DashboardPage() {
               />
             </CardContent>
           </Card>
+          </motion.div>
 
-          <Card className="bg-gray-900 border-gray-800 hover:border-gray-700 transition-colors">
+          <motion.div variants={itemVariants}>
+            <Card className="bg-gray-900 border-gray-800 hover:border-primary/50 transition-all duration-200 group">
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
               <CardTitle className="text-sm font-medium">Projects</CardTitle>
-              <FolderKanban className="h-4 w-4 text-muted-foreground" />
+              <FolderKanban className="h-4 w-4 text-muted-foreground group-hover:text-primary transition-colors" />
             </CardHeader>
             <CardContent>
               <div className="text-2xl font-bold">{recentProjects.length}</div>
@@ -161,11 +199,13 @@ export default function DashboardPage() {
               </div>
             </CardContent>
           </Card>
+          </motion.div>
 
-          <Card className="bg-gray-900 border-gray-800 hover:border-gray-700 transition-colors">
+          <motion.div variants={itemVariants}>
+            <Card className="bg-gray-900 border-gray-800 hover:border-primary/50 transition-all duration-200 group">
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
               <CardTitle className="text-sm font-medium">Analytics</CardTitle>
-              <BarChart3 className="h-4 w-4 text-muted-foreground" />
+              <BarChart3 className="h-4 w-4 text-muted-foreground group-hover:text-primary transition-colors" />
             </CardHeader>
             <CardContent>
               <div className="text-2xl font-bold">
@@ -183,8 +223,10 @@ export default function DashboardPage() {
               </div>
             </CardContent>
           </Card>
+          </motion.div>
         </motion.div>
 
+        <motion.div variants={itemVariants}>
         <Tabs defaultValue="content" className="space-y-4">
           <TabsList className="bg-gray-900 border-gray-800">
             <TabsTrigger value="content">Recent Content</TabsTrigger>
@@ -203,12 +245,16 @@ export default function DashboardPage() {
             </div>
 
             {recentContent.length > 0 ? (
-              <div className="space-y-2">
-                {recentContent.map((content) => (
+              <motion.div
+                className="space-y-2"
+                variants={containerVariants}
+              >
+                {recentContent.map((content, index) => (
                   <motion.div
                     key={content.id}
-                    whileHover={{ y: -2 }}
-                    transition={{ type: "spring", stiffness: 400, damping: 10 }}
+                    variants={itemVariants}
+                    whileHover={{ y: -4, scale: 1.01 }}
+                    transition={{ type: "spring", stiffness: 400, damping: 17 }}
                   >
                     <Link href={`/dashboard/content/${content.id}`}>
                       <Card className="bg-gray-900 border-gray-800 hover:bg-gray-800 hover:border-gray-700 transition-all cursor-pointer">
@@ -248,7 +294,7 @@ export default function DashboardPage() {
                     </Link>
                   </motion.div>
                 ))}
-              </div>
+              </motion.div>
             ) : (
               <Card className="bg-gray-900 border-gray-800">
                 <CardContent className="flex flex-col items-center justify-center p-6">
@@ -284,12 +330,13 @@ export default function DashboardPage() {
             </div>
 
             {recentProjects.length > 0 ? (
-              <div className="space-y-2">
-                {recentProjects.map((project) => (
+              <motion.div className="space-y-2" variants={containerVariants}>
+                {recentProjects.map((project, index) => (
                   <motion.div
                     key={project.id}
-                    whileHover={{ y: -2 }}
-                    transition={{ type: "spring", stiffness: 400, damping: 10 }}
+                    variants={itemVariants}
+                    whileHover={{ y: -4, scale: 1.01 }}
+                    transition={{ type: "spring", stiffness: 400, damping: 17 }}
                   >
                     <Link href={`/dashboard/projects/${project.id}`}>
                       <Card className="bg-gray-900 border-gray-800 hover:bg-gray-800 hover:border-gray-700 transition-all cursor-pointer">
@@ -310,7 +357,7 @@ export default function DashboardPage() {
                     </Link>
                   </motion.div>
                 ))}
-              </div>
+              </motion.div>
             ) : (
               <Card className="bg-gray-900 border-gray-800">
                 <CardContent className="flex flex-col items-center justify-center p-6">
@@ -334,7 +381,8 @@ export default function DashboardPage() {
             )}
           </TabsContent>
         </Tabs>
-      </div>
+        </motion.div>
+      </motion.div>
     </DashboardLayout>
   )
 }

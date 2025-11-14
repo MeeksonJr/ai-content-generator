@@ -5,8 +5,9 @@ import { logger } from "@/lib/utils/logger"
 
 export async function POST(request: Request) {
   try {
-    const cookieStore = cookies()
-    const supabase = createRouteHandlerClient({ cookies: () => cookieStore })
+    const supabase = createRouteHandlerClient({ 
+      cookies: async () => await cookies() 
+    })
 
     // Check if user is authenticated
     const {
@@ -46,7 +47,7 @@ export async function POST(request: Request) {
           data: { prompt, model, width, height },
         })
 
-        const response = await fetch(`https://api-inference.huggingface.co/models/${model}`, {
+        const response = await fetch(`https://router.huggingface.co/hf-inference/models/${model}`, {
           method: "POST",
           headers: {
             Authorization: `Bearer ${apiKey}`,
@@ -145,7 +146,10 @@ export async function POST(request: Request) {
         })
       }
     } catch (error) {
-      logger.error("Error updating usage stats:", error)
+      logger.error("Error updating usage stats", {
+        context: "ImageGeneration",
+        data: { error: error instanceof Error ? error.message : "Unknown error" },
+      })
     }
 
     return NextResponse.json({
@@ -154,7 +158,10 @@ export async function POST(request: Request) {
       fallback: !usedModel,
     })
   } catch (error) {
-    logger.error("Error in image generation API:", error)
+    logger.error("Error in image generation API", {
+      context: "ImageGeneration",
+      data: { error: error instanceof Error ? error.message : "Unknown error" },
+    })
 
     // Return a placeholder image on error
     const placeholderSvg = `

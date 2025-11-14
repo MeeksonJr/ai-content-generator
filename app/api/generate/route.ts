@@ -50,7 +50,7 @@ async function generateContentWithFallback(prompt: string): Promise<{ content: s
       const { text: generatedContent } = await generateText({
         model: groq("llama-3.1-8b-instant"),
         prompt: prompt,
-        maxTokens: 4000,
+        maxTokens: 4000 as any, // AI SDK type issue
         temperature: 0.7,
       })
 
@@ -67,19 +67,13 @@ async function generateContentWithFallback(prompt: string): Promise<{ content: s
   if (process.env.GEMINI_API_KEY) {
     try {
       console.log("[SERVER] Trying Gemini...")
-      const { generateText } = await import("ai")
-      const { google } = await import("@ai-sdk/google")
-
-      const { text: generatedContent } = await generateText({
-        model: google("gemini-1.5-flash"),
-        prompt: prompt,
-        maxTokens: 4000,
-        temperature: 0.7,
-      })
+      // Use the existing Gemini client instead of @ai-sdk/google wrapper
+      const { generateContentWithGemini } = await import("@/lib/ai/gemini-client")
+      const generatedContent = await generateContentWithGemini(prompt)
 
       if (generatedContent && generatedContent.length > 500) {
         console.log("[SERVER] Gemini generation successful")
-        return { content: generatedContent, provider: "Gemini (gemini-1.5-flash)" }
+        return { content: generatedContent, provider: "Gemini (gemini-2.0-flash-exp)" }
       }
     } catch (error) {
       console.log("[SERVER] Gemini failed:", error)

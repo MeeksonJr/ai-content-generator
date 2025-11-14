@@ -1,8 +1,40 @@
+"use client"
+
+import { useState, useEffect } from "react"
 import Link from "next/link"
 import { Button } from "@/components/ui/button"
 import { ArrowLeft, Sparkles, ArrowRight, Building, MapPin, Clock } from "lucide-react"
+import { BlogMobileMenu } from "@/components/blog/blog-mobile-menu"
+import { motion } from "framer-motion"
 
 export default function CareersPage() {
+  const [mounted, setMounted] = useState(false)
+
+  useEffect(() => {
+    setMounted(true)
+  }, [])
+
+  const containerVariants = {
+    hidden: { opacity: 0 },
+    visible: {
+      opacity: 1,
+      transition: {
+        staggerChildren: 0.1,
+      },
+    },
+  }
+
+  const itemVariants = {
+    hidden: { opacity: 0, y: 20 },
+    visible: {
+      opacity: 1,
+      y: 0,
+      transition: {
+        duration: 0.5,
+      },
+    },
+  }
+
   const jobOpenings = [
     {
       title: "Senior AI Engineer",
@@ -62,9 +94,29 @@ export default function CareersPage() {
               <Sparkles className="h-6 w-6 text-primary" />
               <span className="inline-block font-bold">AI Content Generator</span>
             </Link>
+            <nav className="hidden md:flex gap-6">
+              <Link
+                href="/blog"
+                className="flex items-center text-sm font-medium text-muted-foreground transition-colors hover:text-foreground"
+              >
+                Blog
+              </Link>
+              <Link
+                href="/about"
+                className="flex items-center text-sm font-medium text-muted-foreground transition-colors hover:text-foreground"
+              >
+                About
+              </Link>
+              <Link
+                href="/careers"
+                className="flex items-center text-sm font-medium text-foreground transition-colors"
+              >
+                Careers
+              </Link>
+            </nav>
           </div>
           <div className="flex flex-1 items-center justify-end space-x-4">
-            <nav className="flex items-center space-x-2">
+            <nav className="hidden md:flex items-center space-x-2">
               <Link href="/login">
                 <Button variant="ghost" size="sm">
                   Login
@@ -74,13 +126,22 @@ export default function CareersPage() {
                 <Button size="sm">Sign Up</Button>
               </Link>
             </nav>
+            <div className="md:hidden">
+              <BlogMobileMenu />
+            </div>
           </div>
         </div>
       </header>
       <main className="flex-1">
-        <section className="w-full py-12 md:py-24 lg:py-32 bg-black">
+        {mounted && (
+          <motion.section
+            className="w-full py-12 md:py-24 lg:py-32 bg-black"
+            initial="hidden"
+            animate="visible"
+            variants={containerVariants}
+          >
           <div className="container px-4 md:px-6">
-            <div className="flex flex-col items-start gap-4">
+              <motion.div className="flex flex-col items-start gap-4" variants={itemVariants}>
               <Link href="/">
                 <Button variant="ghost" size="sm" className="gap-1">
                   <ArrowLeft className="h-4 w-4" />
@@ -91,14 +152,22 @@ export default function CareersPage() {
               <p className="max-w-[700px] text-muted-foreground md:text-xl">
                 Help us revolutionize content creation with the power of artificial intelligence.
               </p>
+              </motion.div>
             </div>
-          </div>
-        </section>
+          </motion.section>
+        )}
 
-        <section className="w-full py-12 md:py-24 bg-gray-950">
+        {mounted && (
+          <motion.section
+            className="w-full py-12 md:py-24 bg-gray-950"
+            initial="hidden"
+            whileInView="visible"
+            viewport={{ once: true, margin: "-100px" }}
+            variants={containerVariants}
+          >
           <div className="container px-4 md:px-6">
             <div className="mx-auto max-w-3xl space-y-8">
-              <div className="space-y-4">
+                <motion.div className="space-y-4" variants={itemVariants}>
                 <h2 className="text-2xl font-bold">Why Work With Us</h2>
                 <p className="text-muted-foreground">
                   At AI Content Generator, we're building the future of content creation. We're a team of passionate
@@ -106,32 +175,45 @@ export default function CareersPage() {
                   accessible to businesses of all sizes.
                 </p>
                 <div className="grid gap-4 md:grid-cols-3 mt-6">
-                  <div className="rounded-lg border border-gray-800 bg-black/50 p-4">
-                    <h3 className="font-bold mb-2">Innovative Technology</h3>
-                    <p className="text-sm text-muted-foreground">
-                      Work with cutting-edge AI models and technologies to solve real-world problems.
-                    </p>
+                    {[
+                      {
+                        title: "Innovative Technology",
+                        description: "Work with cutting-edge AI models and technologies to solve real-world problems.",
+                      },
+                      {
+                        title: "Remote-First",
+                        description: "Work from anywhere in the world with our distributed team.",
+                      },
+                      {
+                        title: "Competitive Benefits",
+                        description: "Enjoy competitive salary, equity, health insurance, and unlimited PTO.",
+                      },
+                    ].map((benefit, index) => (
+                      <motion.div
+                        key={index}
+                        className="rounded-lg border border-gray-800 bg-black/50 p-4 hover:border-primary/50 transition-colors"
+                        variants={itemVariants}
+                        whileHover={{ scale: 1.05, y: -5 }}
+                        transition={{ duration: 0.2 }}
+                      >
+                        <h3 className="font-bold mb-2">{benefit.title}</h3>
+                        <p className="text-sm text-muted-foreground">{benefit.description}</p>
+                      </motion.div>
+                    ))}
                   </div>
-                  <div className="rounded-lg border border-gray-800 bg-black/50 p-4">
-                    <h3 className="font-bold mb-2">Remote-First</h3>
-                    <p className="text-sm text-muted-foreground">
-                      Work from anywhere in the world with our distributed team.
-                    </p>
-                  </div>
-                  <div className="rounded-lg border border-gray-800 bg-black/50 p-4">
-                    <h3 className="font-bold mb-2">Competitive Benefits</h3>
-                    <p className="text-sm text-muted-foreground">
-                      Enjoy competitive salary, equity, health insurance, and unlimited PTO.
-                    </p>
-                  </div>
-                </div>
-              </div>
+                </motion.div>
 
-              <div className="space-y-4">
+                <motion.div className="space-y-4" variants={itemVariants}>
                 <h2 className="text-2xl font-bold">Open Positions</h2>
                 <div className="grid gap-4">
                   {jobOpenings.map((job, index) => (
-                    <div key={index} className="rounded-lg border border-gray-800 bg-black/50 p-6">
+                      <motion.div
+                        key={index}
+                        className="rounded-lg border border-gray-800 bg-black/50 p-6 hover:border-primary/50 transition-colors"
+                        variants={itemVariants}
+                        whileHover={{ scale: 1.02, x: 5 }}
+                        transition={{ duration: 0.2 }}
+                      >
                       <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
                         <div>
                           <h3 className="text-xl font-bold">{job.title}</h3>
@@ -160,51 +242,60 @@ export default function CareersPage() {
                           </Link>
                         </div>
                       </div>
-                    </div>
+                      </motion.div>
                   ))}
                 </div>
-              </div>
+                </motion.div>
 
-              <div className="space-y-4">
+                <motion.div className="space-y-4" variants={itemVariants}>
                 <h2 className="text-2xl font-bold">Our Hiring Process</h2>
                 <div className="space-y-4">
-                  <div className="rounded-lg border border-gray-800 bg-black/50 p-4">
-                    <h3 className="font-bold mb-2">1. Application Review</h3>
-                    <p className="text-sm text-muted-foreground">
-                      We review your application and resume to see if your skills and experience match the role.
-                    </p>
+                    {[
+                      {
+                        step: "1. Application Review",
+                        description:
+                          "We review your application and resume to see if your skills and experience match the role.",
+                      },
+                      {
+                        step: "2. Initial Interview",
+                        description:
+                          "A 30-minute video call with a member of our team to discuss your background, experience, and interest in the role.",
+                      },
+                      {
+                        step: "3. Technical Assessment",
+                        description:
+                          "Depending on the role, you may be asked to complete a technical assessment or case study to demonstrate your skills.",
+                      },
+                      {
+                        step: "4. Team Interviews",
+                        description:
+                          "Meet with several members of our team to discuss your experience in more depth and learn more about the role.",
+                      },
+                      {
+                        step: "5. Final Decision",
+                        description: "We'll make a decision and extend an offer to the successful candidate.",
+                      },
+                    ].map((process, index) => (
+                      <motion.div
+                        key={index}
+                        className="rounded-lg border border-gray-800 bg-black/50 p-4 hover:border-primary/50 transition-colors"
+                        variants={itemVariants}
+                        whileHover={{ scale: 1.02, x: 5 }}
+                        transition={{ duration: 0.2 }}
+                      >
+                        <h3 className="font-bold mb-2">{process.step}</h3>
+                        <p className="text-sm text-muted-foreground">{process.description}</p>
+                      </motion.div>
+                    ))}
                   </div>
-                  <div className="rounded-lg border border-gray-800 bg-black/50 p-4">
-                    <h3 className="font-bold mb-2">2. Initial Interview</h3>
-                    <p className="text-sm text-muted-foreground">
-                      A 30-minute video call with a member of our team to discuss your background, experience, and
-                      interest in the role.
-                    </p>
-                  </div>
-                  <div className="rounded-lg border border-gray-800 bg-black/50 p-4">
-                    <h3 className="font-bold mb-2">3. Technical Assessment</h3>
-                    <p className="text-sm text-muted-foreground">
-                      Depending on the role, you may be asked to complete a technical assessment or case study to
-                      demonstrate your skills.
-                    </p>
-                  </div>
-                  <div className="rounded-lg border border-gray-800 bg-black/50 p-4">
-                    <h3 className="font-bold mb-2">4. Team Interviews</h3>
-                    <p className="text-sm text-muted-foreground">
-                      Meet with several members of our team to discuss your experience in more depth and learn more
-                      about the role.
-                    </p>
-                  </div>
-                  <div className="rounded-lg border border-gray-800 bg-black/50 p-4">
-                    <h3 className="font-bold mb-2">5. Final Decision</h3>
-                    <p className="text-sm text-muted-foreground">
-                      We'll make a decision and extend an offer to the successful candidate.
-                    </p>
-                  </div>
-                </div>
-              </div>
+                </motion.div>
 
-              <div className="rounded-lg border border-gray-800 bg-black/50 p-6 text-center">
+                <motion.div
+                  className="rounded-lg border border-gray-800 bg-black/50 p-6 text-center hover:border-primary/50 transition-colors"
+                  variants={itemVariants}
+                  whileHover={{ scale: 1.02 }}
+                  transition={{ duration: 0.2 }}
+                >
                 <h2 className="text-2xl font-bold mb-4">Don't See a Role That Fits?</h2>
                 <p className="text-muted-foreground mb-6">
                   We're always looking for talented individuals to join our team. Send us your resume and we'll keep you
@@ -216,10 +307,11 @@ export default function CareersPage() {
                     <ArrowRight className="h-4 w-4" />
                   </Button>
                 </Link>
+                </motion.div>
               </div>
             </div>
-          </div>
-        </section>
+          </motion.section>
+        )}
       </main>
       <footer className="w-full py-6 bg-gray-950 border-t border-gray-800">
         <div className="container px-4 md:px-6">

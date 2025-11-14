@@ -1,0 +1,11 @@
+# Add directories or file patterns to ignore during indexing (e.g. foo/ or *.csv)
+!.env
+!.env.local
+!.env.development.local
+!.env.test.local
+!.env.production.local
+!.env.example
+!.env.example.local
+!.env.example.development.local
+!.env.example.test.local
+!.env.example.production.local

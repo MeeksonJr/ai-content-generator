@@ -228,7 +228,7 @@ export async function analyzeSentiment(text: string): Promise<SentimentResult> {
     for (const model of sentimentModels) {
       try {
         // Make API request to Hugging Face with retry logic
-        const response = await fetchWithRetry(`https://api-inference.huggingface.co/models/${model}`, {
+        const response = await fetchWithRetry(`https://router.huggingface.co/hf-inference/models/${model}`, {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
@@ -341,7 +341,7 @@ export async function extractKeywords(text: string): Promise<KeywordResult> {
     for (const model of keywordModels) {
       try {
         // Make API request to Hugging Face with retry logic
-        const response = await fetchWithRetry(`https://api-inference.huggingface.co/models/${model}`, {
+        const response = await fetchWithRetry(`https://router.huggingface.co/hf-inference/models/${model}`, {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
@@ -453,7 +453,7 @@ export async function summarizeText(text: string, maxLength = 150): Promise<Summ
     }
 
     // Try to use the API
-    const response = await fetchWithRetry(`https://api-inference.huggingface.co/models/${SUMMARIZATION_MODEL}`, {
+    const response = await fetchWithRetry(`https://router.huggingface.co/hf-inference/models/${SUMMARIZATION_MODEL}`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",

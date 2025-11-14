@@ -9,7 +9,7 @@ const TEST_MODE = process.env.NODE_ENV !== "production" && process.env.PAYPAL_TE
 export async function POST(request: NextRequest) {
   try {
     // Get the authenticated user
-    const supabase = createServerClient()
+    const supabase = await createServerClient()
     const {
       data: { user },
     } = await supabase.auth.getUser()

@@ -2,10 +2,11 @@ import { NextResponse } from "next/server"
 import { createRouteHandlerClient } from "@supabase/auth-helpers-nextjs"
 import { cookies } from "next/headers"
 import { logger } from "@/lib/utils/logger"
+import { getSubscription } from "@/lib/paypal/client"
 
 export async function POST(request: Request) {
   try {
-    const cookieStore = cookies()
+    const cookieStore = await cookies()
     const supabase = createRouteHandlerClient({ cookies: () => cookieStore })
 
     // Check if user is authenticated
@@ -34,62 +35,22 @@ export async function POST(request: Request) {
       })
       return NextResponse.json({ error: "Missing required parameters" }, { status: 400 })
     }
-
-    // Get PayPal credentials from environment variables
-    const clientId = process.env.PAYPAL_CLIENT_ID
-    const clientSecret = process.env.PAYPAL_CLIENT_SECRET
-
-    if (!clientId || !clientSecret) {
-      logger.error("Missing PayPal credentials", {
-        context: "API",
-        userId,
-      })
-      return NextResponse.json({ error: "PayPal configuration error" }, { status: 500 })
-    }
-
-    // Get access token from PayPal
-    const authResponse = await fetch("https://api-m.sandbox.paypal.com/v1/oauth2/token", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/x-www-form-urlencoded",
-        Authorization: `Basic ${Buffer.from(`${clientId}:${clientSecret}`).toString("base64")}`,
-      },
-      body: "grant_type=client_credentials",
-    })
-
-    if (!authResponse.ok) {
-      const errorText = await authResponse.text()
-      logger.error("Failed to get PayPal access token", {
-        context: "API",
-        userId,
-        data: { error: errorText },
-      })
-      return NextResponse.json({ error: "Failed to authenticate with PayPal" }, { status: 500 })
-    }
-
-    const authData = await authResponse.json()
-    const accessToken = authData.access_token
-
-    // Verify subscription with PayPal
-    const verifyResponse = await fetch(`https://api-m.sandbox.paypal.com/v1/billing/subscriptions/${subscriptionId}`, {
-      method: "GET",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${accessToken}`,
-      },
-    })
-
-    if (!verifyResponse.ok) {
-      const errorText = await verifyResponse.text()
-      logger.error("Failed to verify PayPal subscription", {
-        context: "API",
-        userId,
-        data: { error: errorText, subscriptionId },
-      })
+    // Verify subscription using centralized PayPal client (handles env + sandbox/prod)
+    let subscriptionData
+    try {
+      subscriptionData = await getSubscription(subscriptionId)
+    } catch (error) {
+      logger.error(
+        "Failed to verify PayPal subscription",
+        {
+          context: "API",
+          userId,
+          data: { subscriptionId },
+        },
+        error as Error,
+      )
       return NextResponse.json({ error: "Failed to verify subscription" }, { status: 500 })
     }
-
-    const subscriptionData = await verifyResponse.json()
 
     // Check if subscription is active
     if (subscriptionData.status !== "ACTIVE" && subscriptionData.status !== "APPROVED") {
