@@ -25,18 +25,20 @@ type UsageTableRow = {
 export default async function AdminUsersPage() {
   const supabase = await createClient()
 
+  // Try to get user first (more reliable than getSession in server components)
   const {
-    data: { session },
-  } = await supabase.auth.getSession()
+    data: { user },
+    error: userError,
+  } = await supabase.auth.getUser()
 
-  if (!session) {
+  if (userError || !user) {
     redirect("/login")
   }
 
   const { data: profile } = await supabase
     .from("user_profiles")
     .select("is_admin")
-    .eq("id", session.user.id)
+    .eq("id", user.id)
     .maybeSingle()
 
   if (!profile?.is_admin) {

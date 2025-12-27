@@ -5,7 +5,8 @@ import { DashboardLayout } from "@/components/dashboard/dashboard-layout"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
-import { Users, FileText, Clock, CheckCircle, XCircle, Loader2, Eye, Brain, AlertCircle } from "lucide-react"
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
+import { Users, FileText, Clock, CheckCircle, XCircle, Loader2, Eye, Brain, AlertCircle, Download } from "lucide-react"
 import { useToast } from "@/hooks/use-toast"
 import { createClient } from "@/lib/supabase/client"
 
@@ -57,9 +58,9 @@ export default function ApplicationsPage() {
       }
 
       // Ensure all applications have a status
-      const processedData = (data || []).map((app) => ({
+      const processedData = ((data || []) as Application[]).map((app) => ({
         ...app,
-        status: app.status || "pending", // Default to pending if status is missing
+        status: (app.status || "pending") as Application["status"], // Default to pending if status is missing
       }))
 
       setApplications(processedData)
@@ -142,7 +143,11 @@ export default function ApplicationsPage() {
 
   const updateApplicationStatus = async (id: string, status: Application["status"]) => {
     try {
-      const { error } = await supabase.from("applications").update({ status }).eq("id", id)
+      const { error } = await supabase
+        .from("applications")
+        // @ts-ignore - Known Supabase type inference issue with update operations
+        .update({ status })
+        .eq("id", id)
 
       if (error) {
         throw error
@@ -328,6 +333,61 @@ export default function ApplicationsPage() {
                           <p className="text-xs text-muted-foreground">
                             Applied: {new Date(application.created_at).toLocaleDateString()}
                           </p>
+                          {application.resume_url && (
+                            <div className="mt-2">
+                              <Dialog>
+                                <DialogTrigger asChild>
+                                  <Button size="sm" variant="outline" className="border-gray-700">
+                                    <FileText className="h-4 w-4 mr-2" />
+                                    View Resume
+                                  </Button>
+                                </DialogTrigger>
+                                <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+                                  <DialogHeader>
+                                    <DialogTitle>Resume - {application.full_name}</DialogTitle>
+                                    <DialogDescription>
+                                      Resume for {application.position_applied} position
+                                    </DialogDescription>
+                                  </DialogHeader>
+                                  <div className="mt-4">
+                                    {application.resume_url.endsWith(".pdf") || application.resume_url.includes(".pdf") ? (
+                                      <iframe
+                                        src={application.resume_url}
+                                        className="w-full h-[70vh] border border-gray-800 rounded-lg"
+                                        title="Resume PDF"
+                                      />
+                                    ) : (
+                                      <div className="space-y-4">
+                                        <div className="flex justify-end">
+                                          <Button
+                                            size="sm"
+                                            variant="outline"
+                                            onClick={() => window.open(application.resume_url, "_blank")}
+                                          >
+                                            <Download className="h-4 w-4 mr-2" />
+                                            Download Resume
+                                          </Button>
+                                        </div>
+                                        <div className="border border-gray-800 rounded-lg p-4 bg-gray-900">
+                                          <p className="text-sm text-muted-foreground">
+                                            Resume file:{" "}
+                                            <a
+                                              href={application.resume_url}
+                                              target="_blank"
+                                              rel="noopener noreferrer"
+                                              className="text-primary hover:underline"
+                                            >
+                                              {application.resume_url}
+                                            </a>
+                                          </p>
+                                        </div>
+                                      </div>
+                                    )}
+                                  </div>
+                                </DialogContent>
+                              </Dialog>
+                            </div>
+                          )}
 
                           {application.ai_analysis && (
                             <div className="mt-3 p-3 bg-gray-900 rounded-lg">

@@ -302,7 +302,56 @@ export default function GeneratePage() {
         throw new Error("You must be logged in to save images")
       }
 
-      // Instead of saving the full base64 image, save a reference
+      // Convert base64 image to blob
+      let imageBlob: Blob | null = null
+      let imageUrl: string | null = null
+
+      if (generatedImage.startsWith("data:image")) {
+        // Base64 data URL
+        const response = await fetch(generatedImage)
+        imageBlob = await response.blob()
+      } else if (generatedImage.startsWith("http")) {
+        // Already a URL, use it directly
+        imageUrl = generatedImage
+      } else {
+        // Assume it's base64 without data URL prefix
+        const base64Data = generatedImage.replace(/^data:image\/\w+;base64,/, "")
+        const byteCharacters = atob(base64Data)
+        const byteNumbers = new Array(byteCharacters.length)
+        for (let i = 0; i < byteCharacters.length; i++) {
+          byteNumbers[i] = byteCharacters.charCodeAt(i)
+        }
+        const byteArray = new Uint8Array(byteNumbers)
+        imageBlob = new Blob([byteArray], { type: "image/png" })
+      }
+
+      // Upload to Supabase Storage if we have a blob
+      if (!imageUrl && imageBlob) {
+        const fileExt = "png"
+        const fileName = `${user.id}/${Date.now()}-${Math.random().toString(36).substring(2)}.${fileExt}`
+        const filePath = `generated-images/${fileName}`
+
+        const { error: uploadError } = await supabase.storage.from("generated-images").upload(filePath, imageBlob, {
+          contentType: "image/png",
+          upsert: false,
+        })
+
+        if (uploadError) {
+          throw new Error(`Failed to upload image: ${uploadError.message}`)
+        }
+
+        // Get public URL
+        const {
+          data: { publicUrl },
+        } = supabase.storage.from("generated-images").getPublicUrl(filePath)
+        imageUrl = publicUrl
+      }
+
+      if (!imageUrl) {
+        throw new Error("Failed to get image URL")
+      }
+
+      // Save to database with the image URL
       const imageTitle = imagePrompt.substring(0, 50) || "Generated Image"
       const imageDescription = `Generated image: ${imagePrompt}`
 
@@ -312,7 +361,7 @@ export default function GeneratePage() {
           title: imageTitle,
           content_type: "image",
           content: imageDescription,
-          image_url: "generated", // Mark as generated image
+          image_url: imageUrl,
           image_prompt: imagePrompt,
           content_category: "image",
           user_id: user.id,
@@ -325,7 +374,7 @@ export default function GeneratePage() {
 
       toast({
         title: "Image Saved",
-        description: "Your image reference has been saved successfully",
+        description: "Your image has been saved successfully",
       })
 
       fetchSavedContent()
@@ -333,7 +382,7 @@ export default function GeneratePage() {
       console.error("Error saving image:", error)
       toast({
         title: "Error",
-        description: "Failed to save image reference",
+        description: error instanceof Error ? error.message : "Failed to save image",
         variant: "destructive",
       })
     }

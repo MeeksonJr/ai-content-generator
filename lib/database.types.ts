@@ -281,6 +281,65 @@ export interface Database {
           updated_at?: string
         }
       }
+      applications: {
+        Row: {
+          id: string
+          user_id: string
+          full_name: string
+          email: string
+          position_applied: string
+          cover_letter: string | null
+          resume_url: string | null
+          phone_number: string | null
+          linkedin_url: string | null
+          portfolio_url: string | null
+          years_experience: string | null
+          status: string
+          submitted_at: string
+          ai_analysis: Json | null
+          analyzed_at: string | null
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          user_id: string
+          full_name: string
+          email: string
+          position_applied: string
+          cover_letter?: string | null
+          resume_url?: string | null
+          phone_number?: string | null
+          linkedin_url?: string | null
+          portfolio_url?: string | null
+          years_experience?: string | null
+          status?: string
+          submitted_at?: string
+          ai_analysis?: Json | null
+          analyzed_at?: string | null
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          user_id?: string
+          full_name?: string
+          email?: string
+          position_applied?: string
+          cover_letter?: string | null
+          resume_url?: string | null
+          phone_number?: string | null
+          linkedin_url?: string | null
+          portfolio_url?: string | null
+          years_experience?: string | null
+          status?: string
+          submitted_at?: string
+          ai_analysis?: Json | null
+          analyzed_at?: string | null
+          created_at?: string
+          updated_at?: string
+        }
+      }
     }
   }
   auth: {

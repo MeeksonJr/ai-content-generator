@@ -3,7 +3,7 @@ import { createClient } from "@/lib/supabase/server"
 
 export async function POST(request: NextRequest) {
   try {
-    const supabase = createClient()
+    const supabase = await createClient()
 
     // Get the current user from Supabase
     const {
@@ -45,23 +45,34 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "Application not found" }, { status: 404 })
     }
 
+    // Type assertion for application data
+    const appData = application as {
+      cover_letter?: string
+      full_name?: string
+      position_applied?: string
+      years_experience?: string
+      email?: string
+      [key: string]: any
+    }
+
     // Generate analysis based on available data
     const textToAnalyze =
       resumeText ||
-      application.cover_letter ||
+      appData.cover_letter ||
       `
-      Name: ${application.full_name}
-      Position: ${application.position_applied}
-      Experience: ${application.years_experience || "Not specified"}
-      Email: ${application.email}
+      Name: ${appData.full_name || "N/A"}
+      Position: ${appData.position_applied || "N/A"}
+      Experience: ${appData.years_experience || "Not specified"}
+      Email: ${appData.email || "N/A"}
     `
 
     // Simple but comprehensive analysis
-    const analysis = generateAnalysis(textToAnalyze, application)
+    const analysis = generateAnalysis(textToAnalyze, appData)
 
     // Update the application with analysis
     const { error: updateError } = await supabase
       .from("applications")
+      // @ts-ignore - Known Supabase type inference issue with update operations
       .update({
         ai_analysis: analysis,
         analyzed_at: new Date().toISOString(),
