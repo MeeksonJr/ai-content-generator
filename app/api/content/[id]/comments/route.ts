@@ -52,7 +52,8 @@ export async function GET(
       .maybeSingle()
 
     if (!content) {
-      return NextResponse.json({ error: "Content not found" }, { status: 404 })
+      const { statusCode, error } = handleApiError(new NotFoundError("Content not found"), "Comments GET")
+      return createSecureResponse(error, statusCode)
     }
 
     const contentData = content as { user_id: string; project_id: string | null }
@@ -67,7 +68,11 @@ export async function GET(
           .maybeSingle()).data)
 
     if (!hasAccess) {
-      return NextResponse.json({ error: "Forbidden - You don't have access to this content" }, { status: 403 })
+      const { statusCode, error } = handleApiError(
+        new AuthorizationError("You don't have access to this content"),
+        "Comments GET"
+      )
+      return createSecureResponse(error, statusCode)
     }
 
     // Get comments

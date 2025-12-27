@@ -1,19 +1,38 @@
 import { NextResponse } from "next/server"
+import type { NextRequest } from "next/server"
 import { createSupabaseRouteClient } from "@/lib/supabase/route-client"
 import { createServerSupabaseClient } from "@/lib/supabase/server-client"
 import { logger } from "@/lib/utils/logger"
-import { handleApiError } from "@/lib/utils/error-handler"
+import { handleApiError, AuthenticationError, ValidationError, NotFoundError, AuthorizationError } from "@/lib/utils/error-handler"
+import { validateUuid, validateText } from "@/lib/utils/validation"
+import { createSecureResponse, handlePreflight } from "@/lib/utils/security"
+import { API_CONFIG } from "@/lib/constants/app.constants"
 
 /**
  * GET /api/content/[id]/versions
  * Get version history for content
  */
 export async function GET(
-  request: Request,
+  request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    // Handle preflight OPTIONS request
+    const preflightResponse = handlePreflight(request)
+    if (preflightResponse) return preflightResponse
+
     const { id } = await params
+
+    // Validate UUID
+    const uuidValidation = validateUuid(id)
+    if (!uuidValidation.isValid) {
+      const { statusCode, error } = handleApiError(
+        new ValidationError(uuidValidation.error || "Invalid content ID format"),
+        "Versions GET"
+      )
+      return createSecureResponse(error, statusCode)
+    }
+
     const supabase = await createSupabaseRouteClient()
 
     const {
@@ -21,7 +40,8 @@ export async function GET(
     } = await supabase.auth.getSession()
 
     if (!session) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
+      const { statusCode, error } = handleApiError(new AuthenticationError(), "Versions GET")
+      return createSecureResponse(error, statusCode)
     }
 
     // Check if user has access to content
@@ -32,7 +52,8 @@ export async function GET(
       .maybeSingle()
 
     if (!content) {
-      return NextResponse.json({ error: "Content not found" }, { status: 404 })
+      const { statusCode, error } = handleApiError(new NotFoundError("Content not found"), "Versions GET")
+      return createSecureResponse(error, statusCode)
     }
 
     const contentData = content as { user_id: string; project_id: string | null }
@@ -47,7 +68,11 @@ export async function GET(
           .maybeSingle()).data)
 
     if (!hasAccess) {
-      return NextResponse.json({ error: "Forbidden - You don't have access to this content" }, { status: 403 })
+      const { statusCode, error } = handleApiError(
+        new AuthorizationError("You don't have access to this content"),
+        "Versions GET"
+      )
+      return createSecureResponse(error, statusCode)
     }
 
     // Get versions
@@ -67,16 +92,16 @@ export async function GET(
 
     if (error) {
       const { statusCode, error: apiError } = handleApiError(error, "Versions")
-      return NextResponse.json(apiError, { status: statusCode })
+      return createSecureResponse(apiError, statusCode)
     }
 
-    return NextResponse.json({ versions: versions || [] })
+    return createSecureResponse({ versions: versions || [] })
   } catch (error) {
     logger.error("Error fetching versions", {
       context: "Collaboration",
     }, error as Error)
     const { statusCode, error: apiError } = handleApiError(error, "Versions")
-    return NextResponse.json(apiError, { status: statusCode })
+    return createSecureResponse(apiError, statusCode)
   }
 }
 
@@ -85,11 +110,26 @@ export async function GET(
  * Create a new version (snapshot) of content
  */
 export async function POST(
-  request: Request,
+  request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    // Handle preflight OPTIONS request
+    const preflightResponse = handlePreflight(request)
+    if (preflightResponse) return preflightResponse
+
     const { id } = await params
+
+    // Validate UUID
+    const uuidValidation = validateUuid(id)
+    if (!uuidValidation.isValid) {
+      const { statusCode, error } = handleApiError(
+        new ValidationError(uuidValidation.error || "Invalid content ID format"),
+        "Versions POST"
+      )
+      return createSecureResponse(error, statusCode)
+    }
+
     const supabase = await createSupabaseRouteClient()
 
     const {
@@ -97,7 +137,8 @@ export async function POST(
     } = await supabase.auth.getSession()
 
     if (!session) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
+      const { statusCode, error } = handleApiError(new AuthenticationError(), "Versions POST")
+      return createSecureResponse(error, statusCode)
     }
 
     // Get current content
@@ -108,7 +149,8 @@ export async function POST(
       .maybeSingle()
 
     if (contentError || !content) {
-      return NextResponse.json({ error: "Content not found" }, { status: 404 })
+      const { statusCode, error } = handleApiError(new NotFoundError("Content not found"), "Versions POST")
+      return createSecureResponse(error, statusCode)
     }
 
     const contentData = content as {
@@ -131,10 +173,11 @@ export async function POST(
           .maybeSingle()).data)
 
     if (!hasEditAccess) {
-      return NextResponse.json(
-        { error: "Forbidden - You don't have edit access to this content" },
-        { status: 403 }
+      const { statusCode, error } = handleApiError(
+        new AuthorizationError("You don't have edit access to this content"),
+        "Versions POST"
       )
+      return createSecureResponse(error, statusCode)
     }
 
     // Get the highest version number
@@ -152,6 +195,20 @@ export async function POST(
     const body = await request.json()
     const { change_summary } = body
 
+    // Validate change_summary if provided
+    let sanitizedChangeSummary: string | null = null
+    if (change_summary) {
+      const summaryValidation = validateText(change_summary, { maxLength: 500 })
+      if (!summaryValidation.isValid) {
+        const { statusCode, error } = handleApiError(
+          new ValidationError(`Change summary: ${summaryValidation.error}`),
+          "Versions POST"
+        )
+        return createSecureResponse(error, statusCode)
+      }
+      sanitizedChangeSummary = summaryValidation.sanitized || null
+    }
+
     // Create new version
     const { data: version, error: versionError } = await (serverSupabase as any)
       .from("content_versions")
@@ -161,7 +218,7 @@ export async function POST(
         version_number: nextVersion,
         title: contentData.title,
         content: contentData.content,
-        change_summary: change_summary || null,
+        change_summary: sanitizedChangeSummary,
       } as any)
       .select(`
         *,
@@ -175,7 +232,7 @@ export async function POST(
 
     if (versionError) {
       const { statusCode, error: apiError } = handleApiError(versionError, "Versions")
-      return NextResponse.json(apiError, { status: statusCode })
+      return createSecureResponse(apiError, statusCode)
     }
 
     logger.info("Content version created", {
@@ -184,13 +241,13 @@ export async function POST(
       data: { contentId: id, versionNumber: nextVersion },
     })
 
-    return NextResponse.json({ success: true, version })
+    return createSecureResponse({ success: true, version })
   } catch (error) {
     logger.error("Error creating version", {
       context: "Collaboration",
     }, error as Error)
     const { statusCode, error: apiError } = handleApiError(error, "Versions")
-    return NextResponse.json(apiError, { status: statusCode })
+    return createSecureResponse(apiError, statusCode)
   }
 }
 

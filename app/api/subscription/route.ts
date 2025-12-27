@@ -1,7 +1,10 @@
 import { NextResponse } from "next/server"
+import type { NextRequest } from "next/server"
 import { logger } from "@/lib/utils/logger"
 import { createSupabaseRouteClient } from "@/lib/supabase/route-client"
 import type { Database } from "@/lib/database.types"
+import { AuthenticationError, ValidationError, handleApiError } from "@/lib/utils/error-handler"
+import { createSecureResponse, handlePreflight } from "@/lib/utils/security"
 
 type SubscriptionRow = Database["public"]["Tables"]["subscriptions"]["Row"]
 type SubscriptionInsert = Database["public"]["Tables"]["subscriptions"]["Insert"]
@@ -43,8 +46,12 @@ const DEFAULT_USAGE_LIMITS = {
   },
 }
 
-export async function GET(request: Request) {
+export async function GET(request: NextRequest) {
   try {
+    // Handle preflight OPTIONS request
+    const preflightResponse = handlePreflight(request)
+    if (preflightResponse) return preflightResponse
+
     const supabase = await createSupabaseRouteClient()
 
     // Check if user is authenticated
@@ -57,7 +64,8 @@ export async function GET(request: Request) {
         context: "API",
         data: { path: "/api/subscription" },
       })
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
+      const { statusCode, error } = handleApiError(new AuthenticationError(), "Subscription GET")
+      return createSecureResponse(error, statusCode)
     }
 
     const userId = session.user.id
@@ -78,7 +86,7 @@ export async function GET(request: Request) {
         userId,
         data: { error: subscriptionError },
       })
-      return NextResponse.json({ error: "Failed to fetch subscription" }, { status: 500 })
+      return createSecureResponse({ error: "Failed to fetch subscription" }, 500)
     }
 
     // Default to free plan if no subscription exists
@@ -145,7 +153,7 @@ export async function GET(request: Request) {
       },
     })
 
-    return NextResponse.json({
+    return createSecureResponse({
       subscription: subscriptionData || {
         plan_type: "free",
         status: "active",
@@ -156,12 +164,16 @@ export async function GET(request: Request) {
     })
   } catch (error) {
     logger.error("Error in subscription API", { context: "API" }, error as Error)
-    return NextResponse.json({ error: "Internal server error" }, { status: 500 })
+    return createSecureResponse({ error: "Internal server error" }, 500)
   }
 }
 
-export async function POST(request: Request) {
+export async function POST(request: NextRequest) {
   try {
+    // Handle preflight OPTIONS request
+    const preflightResponse = handlePreflight(request)
+    if (preflightResponse) return preflightResponse
+
     const supabase = await createSupabaseRouteClient()
 
     // Check if user is authenticated
@@ -174,7 +186,8 @@ export async function POST(request: Request) {
         context: "API",
         data: { path: "/api/subscription" },
       })
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
+      const { statusCode, error } = handleApiError(new AuthenticationError(), "Subscription POST")
+      return createSecureResponse(error, statusCode)
     }
 
     const userId = session.user.id
@@ -183,12 +196,18 @@ export async function POST(request: Request) {
     const body = await request.json()
     const { planType } = body
 
-    if (!planType) {
-      logger.warn("Missing planType in subscription API", {
+    // Validate planType
+    const validPlanTypes = ["free", "basic", "professional", "enterprise"]
+    if (!planType || !validPlanTypes.includes(planType)) {
+      logger.warn("Invalid planType in subscription API", {
         context: "API",
         userId,
       })
-      return NextResponse.json({ error: "Missing required planType parameter" }, { status: 400 })
+      const { statusCode, error } = handleApiError(
+        new ValidationError(`Plan type must be one of: ${validPlanTypes.join(", ")}`),
+        "Subscription POST"
+      )
+      return createSecureResponse(error, statusCode)
     }
 
     // Check if user already has a subscription
@@ -206,7 +225,7 @@ export async function POST(request: Request) {
         userId,
         data: { error: subscriptionError },
       })
-      return NextResponse.json({ error: "Failed to check existing subscription" }, { status: 500 })
+      return createSecureResponse({ error: "Failed to check existing subscription" }, 500)
     }
 
     // If user has an active subscription, update it
@@ -229,7 +248,7 @@ export async function POST(request: Request) {
           userId,
           data: { error: updateError, subscriptionId: existingSubscriptionData.id },
         })
-        return NextResponse.json({ error: "Failed to update subscription" }, { status: 500 })
+        return createSecureResponse({ error: "Failed to update subscription" }, 500)
       }
 
       logger.info("Successfully updated subscription", {
@@ -246,7 +265,7 @@ export async function POST(request: Request) {
         .single()
 
       const updatedSubscriptionData = updatedSubscription as SubscriptionRow | null
-      return NextResponse.json({
+      return createSecureResponse({
         success: true,
         message: "Subscription updated successfully",
         subscription: updatedSubscriptionData || {
@@ -277,7 +296,7 @@ export async function POST(request: Request) {
         userId,
         data: { error: createError, planType },
       })
-      return NextResponse.json({ error: "Failed to create subscription" }, { status: 500 })
+      return createSecureResponse({ error: "Failed to create subscription" }, 500)
     }
 
     const newSubscriptionData = newSubscription as SubscriptionRow
@@ -287,13 +306,13 @@ export async function POST(request: Request) {
       data: { planType, subscriptionId: newSubscriptionData.id },
     })
 
-    return NextResponse.json({
+    return createSecureResponse({
       success: true,
       message: "Subscription created successfully",
       subscription: newSubscriptionData,
     })
   } catch (error) {
     logger.error("Error in subscription API", { context: "API" }, error as Error)
-    return NextResponse.json({ error: "Internal server error" }, { status: 500 })
+    return createSecureResponse({ error: "Internal server error" }, 500)
   }
 }

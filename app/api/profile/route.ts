@@ -1,13 +1,21 @@
 import { NextResponse } from "next/server"
+import type { NextRequest } from "next/server"
 import { logger } from "@/lib/utils/logger"
 import { createSupabaseRouteClient } from "@/lib/supabase/route-client"
-import { AuthenticationError, handleApiError, NotFoundError } from "@/lib/utils/error-handler"
+import { AuthenticationError, handleApiError, NotFoundError, ValidationError } from "@/lib/utils/error-handler"
 import type { Database } from "@/lib/database.types"
+import { validateText, validateUrl } from "@/lib/utils/validation"
+import { createSecureResponse, handlePreflight } from "@/lib/utils/security"
+import { API_CONFIG } from "@/lib/constants/app.constants"
 
 type UserProfileUpdate = Database["public"]["Tables"]["user_profiles"]["Update"]
 
-export async function GET() {
+export async function GET(request: NextRequest) {
   try {
+    // Handle preflight OPTIONS request
+    const preflightResponse = handlePreflight(request)
+    if (preflightResponse) return preflightResponse
+
     const supabase = await createSupabaseRouteClient()
 
     // Check if user is authenticated
@@ -16,7 +24,8 @@ export async function GET() {
     } = await supabase.auth.getSession()
 
     if (!session) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
+      const { statusCode, error } = handleApiError(new AuthenticationError(), "Profile GET")
+      return createSecureResponse(error, statusCode)
     }
 
     // Get user profile
@@ -45,21 +54,25 @@ export async function GET() {
 
       if (insertError) {
         logger.error("Error creating user profile", { context: "Profile", userId: session.user.id }, insertError)
-        return NextResponse.json({ error: "Failed to create profile" }, { status: 500 })
+        return createSecureResponse({ error: "Failed to create profile" }, 500)
       }
 
-      return NextResponse.json({ profile: newProfile })
+      return createSecureResponse({ profile: newProfile })
     }
 
-    return NextResponse.json({ profile })
+    return createSecureResponse({ profile })
   } catch (error) {
     const { statusCode, error: apiError } = handleApiError(error, "Profile GET")
-    return NextResponse.json(apiError, { status: statusCode })
+    return createSecureResponse(apiError, statusCode)
   }
 }
 
-export async function PATCH(request: Request) {
+export async function PATCH(request: NextRequest) {
   try {
+    // Handle preflight OPTIONS request
+    const preflightResponse = handlePreflight(request)
+    if (preflightResponse) return preflightResponse
+
     const supabase = await createSupabaseRouteClient()
 
     // Check if user is authenticated
@@ -68,7 +81,8 @@ export async function PATCH(request: Request) {
     } = await supabase.auth.getSession()
 
     if (!session) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
+      const { statusCode, error } = handleApiError(new AuthenticationError(), "Profile PATCH")
+      return createSecureResponse(error, statusCode)
     }
 
     // Get request body
@@ -85,19 +99,108 @@ export async function PATCH(request: Request) {
       notification_preferences,
     } = body
 
-    // Build update object
+    // Build update object with validation
     const updateData: UserProfileUpdate = {
       updated_at: new Date().toISOString(),
     }
 
-    if (bio !== undefined) updateData.bio = bio
-    if (avatar_url !== undefined) updateData.avatar_url = avatar_url
-    if (twitter_url !== undefined) updateData.twitter_url = twitter_url
-    if (linkedin_url !== undefined) updateData.linkedin_url = linkedin_url
-    if (github_url !== undefined) updateData.github_url = github_url
-    if (website_url !== undefined) updateData.website_url = website_url
-    if (location !== undefined) updateData.location = location
-    if (display_name !== undefined) updateData.display_name = display_name
+    // Validate and sanitize bio
+    if (bio !== undefined) {
+      const bioValidation = validateText(bio, { maxLength: 1000 })
+      if (!bioValidation.isValid) {
+        const { statusCode, error } = handleApiError(
+          new ValidationError(`Bio: ${bioValidation.error}`),
+          "Profile PATCH"
+        )
+        return createSecureResponse(error, statusCode)
+      }
+      updateData.bio = bioValidation.sanitized
+    }
+
+    // Validate URLs
+    if (avatar_url !== undefined && avatar_url) {
+      const urlValidation = validateUrl(avatar_url)
+      if (!urlValidation.isValid) {
+        const { statusCode, error } = handleApiError(
+          new ValidationError(`Avatar URL: ${urlValidation.error}`),
+          "Profile PATCH"
+        )
+        return createSecureResponse(error, statusCode)
+      }
+      updateData.avatar_url = urlValidation.sanitized
+    }
+
+    if (twitter_url !== undefined && twitter_url) {
+      const urlValidation = validateUrl(twitter_url)
+      if (!urlValidation.isValid) {
+        const { statusCode, error } = handleApiError(
+          new ValidationError(`Twitter URL: ${urlValidation.error}`),
+          "Profile PATCH"
+        )
+        return createSecureResponse(error, statusCode)
+      }
+      updateData.twitter_url = urlValidation.sanitized
+    }
+
+    if (linkedin_url !== undefined && linkedin_url) {
+      const urlValidation = validateUrl(linkedin_url)
+      if (!urlValidation.isValid) {
+        const { statusCode, error } = handleApiError(
+          new ValidationError(`LinkedIn URL: ${urlValidation.error}`),
+          "Profile PATCH"
+        )
+        return createSecureResponse(error, statusCode)
+      }
+      updateData.linkedin_url = urlValidation.sanitized
+    }
+
+    if (github_url !== undefined && github_url) {
+      const urlValidation = validateUrl(github_url)
+      if (!urlValidation.isValid) {
+        const { statusCode, error } = handleApiError(
+          new ValidationError(`GitHub URL: ${urlValidation.error}`),
+          "Profile PATCH"
+        )
+        return createSecureResponse(error, statusCode)
+      }
+      updateData.github_url = urlValidation.sanitized
+    }
+
+    if (website_url !== undefined && website_url) {
+      const urlValidation = validateUrl(website_url)
+      if (!urlValidation.isValid) {
+        const { statusCode, error } = handleApiError(
+          new ValidationError(`Website URL: ${urlValidation.error}`),
+          "Profile PATCH"
+        )
+        return createSecureResponse(error, statusCode)
+      }
+      updateData.website_url = urlValidation.sanitized
+    }
+
+    if (location !== undefined) {
+      const locationValidation = validateText(location, { maxLength: 100 })
+      if (!locationValidation.isValid) {
+        const { statusCode, error } = handleApiError(
+          new ValidationError(`Location: ${locationValidation.error}`),
+          "Profile PATCH"
+        )
+        return createSecureResponse(error, statusCode)
+      }
+      updateData.location = locationValidation.sanitized
+    }
+
+    if (display_name !== undefined) {
+      const nameValidation = validateText(display_name, { maxLength: 100 })
+      if (!nameValidation.isValid) {
+        const { statusCode, error } = handleApiError(
+          new ValidationError(`Display name: ${nameValidation.error}`),
+          "Profile PATCH"
+        )
+        return createSecureResponse(error, statusCode)
+      }
+      updateData.display_name = nameValidation.sanitized
+    }
     if (notification_preferences !== undefined) {
       // @ts-ignore - notification_preferences is a JSONB column
       updateData.notification_preferences = notification_preferences
@@ -120,7 +223,7 @@ export async function PATCH(request: Request) {
 
       if (insertError) {
         logger.error("Error creating user profile", { context: "Profile", userId: session.user.id }, insertError)
-        return NextResponse.json({ error: "Failed to create profile" }, { status: 500 })
+        return createSecureResponse({ error: "Failed to create profile" }, 500)
       }
     } else {
       // Update existing profile
@@ -134,7 +237,7 @@ export async function PATCH(request: Request) {
 
       if (updateError) {
         const { statusCode, error: apiError } = handleApiError(updateError, "Profile PATCH")
-        return NextResponse.json(apiError, { status: statusCode })
+        return createSecureResponse(apiError, statusCode)
       }
 
       logger.info("User profile updated", {
@@ -143,7 +246,7 @@ export async function PATCH(request: Request) {
         data: { fields: Object.keys(updateData) },
       })
 
-      return NextResponse.json({ profile: updatedProfile })
+      return createSecureResponse({ profile: updatedProfile })
     }
 
     // Fetch the newly created profile
@@ -153,10 +256,10 @@ export async function PATCH(request: Request) {
       .eq("id", session.user.id)
       .single()
 
-    return NextResponse.json({ profile: newProfile })
+    return createSecureResponse({ profile: newProfile })
   } catch (error) {
     const { statusCode, error: apiError } = handleApiError(error, "Profile PATCH")
-    return NextResponse.json(apiError, { status: statusCode })
+    return createSecureResponse(apiError, statusCode)
   }
 }
 

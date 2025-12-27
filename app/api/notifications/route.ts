@@ -1,14 +1,22 @@
 import { NextResponse } from "next/server"
+import type { NextRequest } from "next/server"
 import { createSupabaseRouteClient } from "@/lib/supabase/route-client"
 import { logger } from "@/lib/utils/logger"
-import { handleApiError } from "@/lib/utils/error-handler"
+import { handleApiError, AuthenticationError, ValidationError } from "@/lib/utils/error-handler"
+import { validateText, validateUrl } from "@/lib/utils/validation"
+import { createSecureResponse, handlePreflight } from "@/lib/utils/security"
+import { PAGINATION, API_CONFIG } from "@/lib/constants/app.constants"
 
 /**
  * GET /api/notifications
  * Fetch user's notifications
  */
-export async function GET(request: Request) {
+export async function GET(request: NextRequest) {
   try {
+    // Handle preflight OPTIONS request
+    const preflightResponse = handlePreflight(request)
+    if (preflightResponse) return preflightResponse
+
     const supabase = await createSupabaseRouteClient()
 
     const {
@@ -16,13 +24,19 @@ export async function GET(request: Request) {
     } = await supabase.auth.getSession()
 
     if (!session) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
+      const { statusCode, error } = handleApiError(new AuthenticationError(), "Notifications GET")
+      return createSecureResponse(error, statusCode)
     }
 
     const { searchParams } = new URL(request.url)
     const unreadOnly = searchParams.get("unread") === "true"
-    const limit = Number.parseInt(searchParams.get("limit") || "50")
-    const offset = Number.parseInt(searchParams.get("offset") || "0")
+    
+    // Validate and sanitize pagination parameters
+    const limit = Math.min(
+      PAGINATION.MAX_LIMIT,
+      Math.max(1, Number.parseInt(searchParams.get("limit") || String(PAGINATION.DEFAULT_LIMIT)))
+    )
+    const offset = Math.max(0, Number.parseInt(searchParams.get("offset") || "0"))
 
     let query = supabase
       .from("notifications")
@@ -42,7 +56,7 @@ export async function GET(request: Request) {
 
     if (error) {
       const { statusCode, error: apiError } = handleApiError(error, "Notifications")
-      return NextResponse.json(apiError, { status: statusCode })
+      return createSecureResponse(apiError, statusCode)
     }
 
     // Get unread count
@@ -62,7 +76,7 @@ export async function GET(request: Request) {
       },
     })
 
-    return NextResponse.json({
+    return createSecureResponse({
       notifications: notifications || [],
       unreadCount: unreadCount || 0,
     })
@@ -71,7 +85,7 @@ export async function GET(request: Request) {
       context: "Notifications",
     }, error as Error)
     const { statusCode, error: apiError } = handleApiError(error, "Notifications")
-    return NextResponse.json(apiError, { status: statusCode })
+    return createSecureResponse(apiError, statusCode)
   }
 }
 
@@ -79,8 +93,12 @@ export async function GET(request: Request) {
  * POST /api/notifications
  * Create a new notification (for system/admin use)
  */
-export async function POST(request: Request) {
+export async function POST(request: NextRequest) {
   try {
+    // Handle preflight OPTIONS request
+    const preflightResponse = handlePreflight(request)
+    if (preflightResponse) return preflightResponse
+
     const supabase = await createSupabaseRouteClient()
 
     const {
@@ -88,26 +106,60 @@ export async function POST(request: Request) {
     } = await supabase.auth.getSession()
 
     if (!session) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
+      const { statusCode, error } = handleApiError(new AuthenticationError(), "Notifications POST")
+      return createSecureResponse(error, statusCode)
     }
 
     const body = await request.json()
     const { type, title, message, action_url, metadata, expires_at } = body
 
+    // Validate required fields
     if (!type || !title || !message) {
-      return NextResponse.json(
-        { error: "Type, title, and message are required" },
-        { status: 400 }
+      const { statusCode, error } = handleApiError(
+        new ValidationError("Type, title, and message are required"),
+        "Notifications POST"
       )
+      return createSecureResponse(error, statusCode)
     }
 
     // Validate notification type
     const validTypes = ["info", "success", "warning", "error", "payment", "subscription", "content", "system"]
     if (!validTypes.includes(type)) {
-      return NextResponse.json(
-        { error: `Invalid notification type. Must be one of: ${validTypes.join(", ")}` },
-        { status: 400 }
+      const { statusCode, error } = handleApiError(
+        new ValidationError(`Invalid notification type. Must be one of: ${validTypes.join(", ")}`),
+        "Notifications POST"
       )
+      return createSecureResponse(error, statusCode)
+    }
+
+    // Validate and sanitize title and message
+    const titleValidation = validateText(title, { minLength: 1, maxLength: 200, required: true })
+    const messageValidation = validateText(message, { minLength: 1, maxLength: 1000, required: true })
+
+    if (!titleValidation.isValid || !messageValidation.isValid) {
+      const errors = []
+      if (!titleValidation.isValid) errors.push(`Title: ${titleValidation.error}`)
+      if (!messageValidation.isValid) errors.push(`Message: ${messageValidation.error}`)
+
+      const { statusCode, error } = handleApiError(
+        new ValidationError(errors.join(", ")),
+        "Notifications POST"
+      )
+      return createSecureResponse(error, statusCode)
+    }
+
+    // Validate action_url if provided
+    let sanitizedActionUrl: string | null = null
+    if (action_url) {
+      const urlValidation = validateUrl(action_url)
+      if (!urlValidation.isValid) {
+        const { statusCode, error } = handleApiError(
+          new ValidationError(`Action URL: ${urlValidation.error}`),
+          "Notifications POST"
+        )
+        return createSecureResponse(error, statusCode)
+      }
+      sanitizedActionUrl = urlValidation.sanitized || null
     }
 
     const { data: notification, error } = await (supabase as any)
@@ -115,9 +167,9 @@ export async function POST(request: Request) {
       .insert({
         user_id: session.user.id,
         type,
-        title,
-        message,
-        action_url: action_url || null,
+        title: titleValidation.sanitized!,
+        message: messageValidation.sanitized!,
+        action_url: sanitizedActionUrl,
         metadata: metadata || null,
         expires_at: expires_at || null,
       } as any)
@@ -126,7 +178,7 @@ export async function POST(request: Request) {
 
     if (error) {
       const { statusCode, error: apiError } = handleApiError(error, "Notifications")
-      return NextResponse.json(apiError, { status: statusCode })
+      return createSecureResponse(apiError, statusCode)
     }
 
     logger.info("Created notification", {
@@ -138,13 +190,13 @@ export async function POST(request: Request) {
       },
     })
 
-    return NextResponse.json({ notification }, { status: 201 })
+    return createSecureResponse({ notification }, 201)
   } catch (error) {
     logger.error("Error creating notification", {
       context: "Notifications",
     }, error as Error)
     const { statusCode, error: apiError } = handleApiError(error, "Notifications")
-    return NextResponse.json(apiError, { status: statusCode })
+    return createSecureResponse(apiError, statusCode)
   }
 }
 
