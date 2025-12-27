@@ -2,6 +2,10 @@ import { NextRequest, NextResponse } from "next/server"
 import { logger } from "@/lib/utils/logger"
 import { createServerSupabaseClient } from "@/lib/supabase/server-client"
 import { getSubscription } from "@/lib/paypal/client"
+import type { Database } from "@/lib/database.types"
+
+type SubscriptionRow = Database["public"]["Tables"]["subscriptions"]["Row"]
+type SubscriptionUpdate = Database["public"]["Tables"]["subscriptions"]["Update"]
 
 /**
  * PayPal Webhook Handler
@@ -146,7 +150,17 @@ async function handleSubscriptionActivated(resource: any) {
       return
     }
 
-    const updateData: any = {
+    if (!existingSubscription) {
+      logger.warn("Subscription not found in database during activation", {
+        context: "PayPalWebhook",
+        data: { subscriptionId },
+      })
+      return
+    }
+
+    const subscription = existingSubscription as SubscriptionRow
+
+    const updateData: SubscriptionUpdate = {
       status: "active",
       updated_at: new Date().toISOString(),
     }
@@ -156,28 +170,21 @@ async function handleSubscriptionActivated(resource: any) {
       updateData.expires_at = subscriptionData.billing_info.next_billing_time
     }
 
-    if (existingSubscription) {
-      // Update existing subscription
-      const { error: updateError } = await supabase
-        .from("subscriptions")
-        .update(updateData)
-        .eq("id", existingSubscription.id)
+    // Update existing subscription
+    const { error: updateError } = await supabase
+      .from("subscriptions")
+      .update(updateData)
+      .eq("id", subscription.id)
 
-      if (updateError) {
-        logger.error("Error updating subscription during activation", {
-          context: "PayPalWebhook",
-          data: { subscriptionId, error: updateError },
-        })
-      } else {
-        logger.info("Subscription activated successfully", {
-          context: "PayPalWebhook",
-          data: { subscriptionId, userId: existingSubscription.user_id },
-        })
-      }
-    } else {
-      logger.warn("Subscription not found in database during activation", {
+    if (updateError) {
+      logger.error("Error updating subscription during activation", {
         context: "PayPalWebhook",
-        data: { subscriptionId },
+        data: { subscriptionId, error: updateError },
+      })
+    } else {
+      logger.info("Subscription activated successfully", {
+        context: "PayPalWebhook",
+        data: { subscriptionId, userId: subscription.user_id },
       })
     }
   } catch (error) {
@@ -218,31 +225,36 @@ async function handleSubscriptionCancelled(resource: any) {
       return
     }
 
-    if (subscription) {
-      const { error: updateError } = await supabase
-        .from("subscriptions")
-        .update({
-          status: "cancelled",
-          updated_at: new Date().toISOString(),
-          expires_at: new Date().toISOString(),
-        })
-        .eq("id", subscription.id)
-
-      if (updateError) {
-        logger.error("Error updating subscription during cancellation", {
-          context: "PayPalWebhook",
-          data: { subscriptionId, error: updateError },
-        })
-      } else {
-        logger.info("Subscription cancelled successfully", {
-          context: "PayPalWebhook",
-          data: { subscriptionId, userId: subscription.user_id },
-        })
-      }
-    } else {
+    if (!subscription) {
       logger.warn("Subscription not found in database during cancellation", {
         context: "PayPalWebhook",
         data: { subscriptionId },
+      })
+      return
+    }
+
+    const sub = subscription as SubscriptionRow
+
+    const updateData: SubscriptionUpdate = {
+      status: "cancelled",
+      updated_at: new Date().toISOString(),
+      expires_at: new Date().toISOString(),
+    }
+
+    const { error: updateError } = await supabase
+      .from("subscriptions")
+      .update(updateData)
+      .eq("id", sub.id)
+
+    if (updateError) {
+      logger.error("Error updating subscription during cancellation", {
+        context: "PayPalWebhook",
+        data: { subscriptionId, error: updateError },
+      })
+    } else {
+      logger.info("Subscription cancelled successfully", {
+        context: "PayPalWebhook",
+        data: { subscriptionId, userId: sub.user_id },
       })
     }
   } catch (error) {
@@ -271,17 +283,33 @@ async function handleSubscriptionExpired(resource: any) {
       .or(`paypal_subscription_id.eq.${subscriptionId},payment_id.eq.${subscriptionId}`)
       .maybeSingle()
 
-    if (fetchError || !subscription) {
+    if (fetchError) {
+      logger.error("Error fetching subscription during expiration", {
+        context: "PayPalWebhook",
+        data: { subscriptionId, error: fetchError },
+      })
       return
+    }
+
+    if (!subscription) {
+      logger.warn("Subscription not found in database during expiration", {
+        context: "PayPalWebhook",
+        data: { subscriptionId },
+      })
+      return
+    }
+
+    const sub = subscription as SubscriptionRow
+
+    const updateData: SubscriptionUpdate = {
+      status: "expired",
+      updated_at: new Date().toISOString(),
     }
 
     const { error: updateError } = await supabase
       .from("subscriptions")
-      .update({
-        status: "expired",
-        updated_at: new Date().toISOString(),
-      })
-      .eq("id", subscription.id)
+      .update(updateData)
+      .eq("id", sub.id)
 
     if (updateError) {
       logger.error("Error updating subscription during expiration", {
@@ -291,7 +319,7 @@ async function handleSubscriptionExpired(resource: any) {
     } else {
       logger.info("Subscription expired successfully", {
         context: "PayPalWebhook",
-        data: { subscriptionId, userId: subscription.user_id },
+        data: { subscriptionId, userId: sub.user_id },
       })
     }
   } catch (error) {
@@ -320,17 +348,33 @@ async function handleSubscriptionSuspended(resource: any) {
       .or(`paypal_subscription_id.eq.${subscriptionId},payment_id.eq.${subscriptionId}`)
       .maybeSingle()
 
-    if (fetchError || !subscription) {
+    if (fetchError) {
+      logger.error("Error fetching subscription during suspension", {
+        context: "PayPalWebhook",
+        data: { subscriptionId, error: fetchError },
+      })
       return
+    }
+
+    if (!subscription) {
+      logger.warn("Subscription not found in database during suspension", {
+        context: "PayPalWebhook",
+        data: { subscriptionId },
+      })
+      return
+    }
+
+    const sub = subscription as SubscriptionRow
+
+    const updateData: SubscriptionUpdate = {
+      status: "suspended",
+      updated_at: new Date().toISOString(),
     }
 
     const { error: updateError } = await supabase
       .from("subscriptions")
-      .update({
-        status: "suspended",
-        updated_at: new Date().toISOString(),
-      })
-      .eq("id", subscription.id)
+      .update(updateData)
+      .eq("id", sub.id)
 
     if (updateError) {
       logger.error("Error updating subscription during suspension", {
@@ -340,7 +384,7 @@ async function handleSubscriptionSuspended(resource: any) {
     } else {
       logger.info("Subscription suspended successfully", {
         context: "PayPalWebhook",
-        data: { subscriptionId, userId: subscription.user_id },
+        data: { subscriptionId, userId: sub.user_id },
       })
     }
   } catch (error) {
@@ -369,17 +413,33 @@ async function handlePaymentFailed(resource: any) {
       .or(`paypal_subscription_id.eq.${subscriptionId},payment_id.eq.${subscriptionId}`)
       .maybeSingle()
 
-    if (fetchError || !subscription) {
+    if (fetchError) {
+      logger.error("Error fetching subscription during payment failure", {
+        context: "PayPalWebhook",
+        data: { subscriptionId, error: fetchError },
+      })
       return
+    }
+
+    if (!subscription) {
+      logger.warn("Subscription not found in database during payment failure", {
+        context: "PayPalWebhook",
+        data: { subscriptionId },
+      })
+      return
+    }
+
+    const sub = subscription as SubscriptionRow
+
+    const updateData: SubscriptionUpdate = {
+      status: "past_due",
+      updated_at: new Date().toISOString(),
     }
 
     const { error: updateError } = await supabase
       .from("subscriptions")
-      .update({
-        status: "past_due",
-        updated_at: new Date().toISOString(),
-      })
-      .eq("id", subscription.id)
+      .update(updateData)
+      .eq("id", sub.id)
 
     if (updateError) {
       logger.error("Error updating subscription during payment failure", {
@@ -389,7 +449,7 @@ async function handlePaymentFailed(resource: any) {
     } else {
       logger.info("Subscription marked as past_due due to payment failure", {
         context: "PayPalWebhook",
-        data: { subscriptionId, userId: subscription.user_id },
+        data: { subscriptionId, userId: sub.user_id },
       })
     }
   } catch (error) {
@@ -421,11 +481,25 @@ async function handleSubscriptionUpdated(resource: any) {
       .or(`paypal_subscription_id.eq.${subscriptionId},payment_id.eq.${subscriptionId}`)
       .maybeSingle()
 
-    if (fetchError || !subscription) {
+    if (fetchError) {
+      logger.error("Error fetching subscription during update", {
+        context: "PayPalWebhook",
+        data: { subscriptionId, error: fetchError },
+      })
       return
     }
 
-    const updateData: any = {
+    if (!subscription) {
+      logger.warn("Subscription not found in database during update", {
+        context: "PayPalWebhook",
+        data: { subscriptionId },
+      })
+      return
+    }
+
+    const sub = subscription as SubscriptionRow
+
+    const updateData: SubscriptionUpdate = {
       updated_at: new Date().toISOString(),
     }
 
@@ -447,10 +521,11 @@ async function handleSubscriptionUpdated(resource: any) {
       updateData.expires_at = subscriptionData.billing_info.next_billing_time
     }
 
+    // @ts-ignore - Supabase type inference issue with maybeSingle()
     const { error: updateError } = await supabase
       .from("subscriptions")
       .update(updateData)
-      .eq("id", subscription.id)
+      .eq("id", sub.id)
 
     if (updateError) {
       logger.error("Error updating subscription during update", {
@@ -460,7 +535,7 @@ async function handleSubscriptionUpdated(resource: any) {
     } else {
       logger.info("Subscription updated successfully", {
         context: "PayPalWebhook",
-        data: { subscriptionId, userId: subscription.user_id, status: updateData.status },
+        data: { subscriptionId, userId: sub.user_id, status: updateData.status },
       })
     }
   } catch (error) {

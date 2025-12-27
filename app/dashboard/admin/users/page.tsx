@@ -1,6 +1,5 @@
-import { cookies } from "next/headers"
 import { redirect } from "next/navigation"
-import { createServerComponentClient } from "@supabase/auth-helpers-nextjs"
+import { createClient } from "@/lib/supabase/server"
 import { DashboardLayout } from "@/components/dashboard/dashboard-layout"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { AdminUsersClient, AdminUserRecord } from "@/components/admin/admin-users-client"
@@ -24,7 +23,7 @@ type UsageTableRow = {
 }
 
 export default async function AdminUsersPage() {
-  const supabase = createServerComponentClient({ cookies })
+  const supabase = await createClient()
 
   const {
     data: { session },
