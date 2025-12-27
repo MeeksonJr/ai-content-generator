@@ -184,13 +184,13 @@ export default function Home() {
   return (
     <div className="flex flex-col min-h-screen bg-black text-white">
       <header className="sticky top-0 z-40 w-full border-b border-gray-800 bg-black/95 backdrop-blur supports-[backdrop-filter]:bg-black/60">
-        <div className="container flex h-16 items-center space-x-4 sm:justify-between sm:space-x-0">
-          <div className="flex gap-6 md:gap-10">
+        <div className="container flex h-14 sm:h-16 items-center space-x-2 sm:justify-between sm:space-x-0 px-4 sm:px-6">
+          <div className="flex gap-4 sm:gap-6 md:gap-10">
             <Link href="/" className="flex items-center space-x-2">
-              <Sparkles className="h-6 w-6 text-primary" />
-              <span className="inline-block font-bold">AI Content Generator</span>
+              <Sparkles className="h-5 w-5 sm:h-6 sm:w-6 text-primary" />
+              <span className="inline-block font-bold text-sm sm:text-base">AI Content Generator</span>
             </Link>
-            <nav className="hidden md:flex gap-6">
+            <nav className="hidden md:flex gap-4 lg:gap-6">
               <Link
                 href="#features"
                 className="flex items-center text-sm font-medium text-muted-foreground transition-colors hover:text-foreground"
@@ -217,21 +217,21 @@ export default function Home() {
               </Link>
             </nav>
           </div>
-          <div className="flex flex-1 items-center justify-end space-x-4">
+          <div className="flex flex-1 items-center justify-end space-x-2 sm:space-x-4">
             <nav className="hidden md:flex items-center space-x-2">
               <Link href="/login">
-                <Button variant="ghost" size="sm">
+                <Button variant="ghost" size="sm" className="h-9 px-3 sm:px-4">
                   Login
                 </Button>
               </Link>
               <Link href="/login">
-                <Button size="sm">Sign Up</Button>
+                <Button size="sm" className="h-9 px-3 sm:px-4">Sign Up</Button>
               </Link>
             </nav>
             {/* Mobile Menu */}
             <Sheet open={mobileMenuOpen} onOpenChange={setMobileMenuOpen}>
               <SheetTrigger asChild className="md:hidden">
-                <Button variant="ghost" size="sm" className="md:hidden">
+                <Button variant="ghost" size="sm" className="md:hidden h-9 w-9 p-0" aria-label="Open menu">
                   <Menu className="h-5 w-5" />
                   <span className="sr-only">Open menu</span>
                 </Button>
@@ -318,7 +318,7 @@ export default function Home() {
             <motion.div style={{ opacity, y }} className="absolute top-[-10%] right-[-10%] z-0">
               <div className="w-[500px] h-[500px] rounded-full bg-gradient-to-br from-primary/20 to-indigo-500/20 blur-3xl" />
             </motion.div>
-            <div className="container relative z-10 px-4 md:px-6">
+            <div className="container relative z-10 px-4 sm:px-6">
               <div className="grid gap-6 lg:grid-cols-[1fr_400px] lg:gap-12 xl:grid-cols-[1fr_600px]">
                 <motion.div
                   className="flex flex-col justify-center space-y-4"
@@ -327,18 +327,18 @@ export default function Home() {
                   variants={fadeIn}
                   transition={{ duration: 0.5 }}
                 >
-                  <div className="space-y-2">
+                  <div className="space-y-3 sm:space-y-4">
                     <motion.div
                       initial={{ opacity: 0, x: -20 }}
                       animate={{ opacity: 1, x: 0 }}
                       transition={{ delay: 0.2, duration: 0.5 }}
                     >
-                      <h1 className="text-3xl font-bold tracking-tighter sm:text-5xl xl:text-6xl/none bg-clip-text text-transparent bg-gradient-to-r from-primary to-indigo-500">
+                      <h1 className="text-2xl sm:text-3xl md:text-4xl lg:text-5xl xl:text-6xl font-bold tracking-tighter bg-clip-text text-transparent bg-gradient-to-r from-primary to-indigo-500 leading-tight">
                         AI-Powered Content Generation for Modern Businesses
                       </h1>
                     </motion.div>
                     <motion.p
-                      className="max-w-[600px] text-muted-foreground md:text-xl"
+                      className="max-w-[600px] text-muted-foreground text-base sm:text-lg md:text-xl"
                       initial={{ opacity: 0 }}
                       animate={{ opacity: 1 }}
                       transition={{ delay: 0.4, duration: 0.5 }}
@@ -348,28 +348,28 @@ export default function Home() {
                     </motion.p>
                   </div>
                   <motion.div
-                    className="flex flex-col gap-2 min-[400px]:flex-row"
+                    className="flex flex-col gap-3 sm:gap-2 min-[400px]:flex-row pt-2"
                     initial={{ opacity: 0, y: 20 }}
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ delay: 0.6, duration: 0.5 }}
                   >
-                    <Link href="/login">
+                    <Link href="/login" className="w-full min-[400px]:w-auto">
                       <Button
                         size="lg"
-                        className="gap-1 bg-gradient-to-r from-primary to-indigo-600 hover:from-primary/90 hover:to-indigo-600/90 border-0"
+                        className="w-full min-[400px]:w-auto gap-1 bg-gradient-to-r from-primary to-indigo-600 hover:from-primary/90 hover:to-indigo-600/90 border-0 h-11 sm:h-12 text-base"
                       >
                         Get Started
                         <ArrowRight className="h-4 w-4" />
                       </Button>
                     </Link>
-                    <Link href="#features">
-                      <Button size="lg" variant="outline" className="border-gray-800">
+                    <Link href="#features" className="w-full min-[400px]:w-auto">
+                      <Button size="lg" variant="outline" className="w-full min-[400px]:w-auto border-gray-800 h-11 sm:h-12 text-base">
                         Learn More
                       </Button>
                     </Link>
                   </motion.div>
                   <motion.div
-                    className="pt-8 grid grid-cols-2 md:grid-cols-4 gap-4"
+                    className="pt-6 sm:pt-8 grid grid-cols-2 sm:grid-cols-4 gap-3 sm:gap-4"
                     variants={staggerContainer}
                     initial="hidden"
                     animate="visible"
@@ -377,11 +377,11 @@ export default function Home() {
                     {stats.map((stat, i) => (
                       <motion.div
                         key={i}
-                        className="flex flex-col items-center p-4 rounded-lg bg-gray-900/50 border border-gray-800"
+                        className="flex flex-col items-center p-3 sm:p-4 rounded-lg bg-gray-900/50 border border-gray-800"
                         variants={fadeIn}
                       >
-                        <span className="text-2xl md:text-3xl font-bold text-primary">{stat.value}</span>
-                        <span className="text-sm text-muted-foreground">{stat.label}</span>
+                        <span className="text-xl sm:text-2xl md:text-3xl font-bold text-primary">{stat.value}</span>
+                        <span className="text-xs sm:text-sm text-muted-foreground text-center">{stat.label}</span>
                       </motion.div>
                     ))}
                   </motion.div>
@@ -392,7 +392,7 @@ export default function Home() {
                   animate="visible"
                   variants={scaleUp}
                 >
-                  <div className="relative w-full h-[350px] md:h-[420px] overflow-hidden rounded-lg border border-gray-800 bg-gradient-to-br from-gray-950 to-gray-900 p-4">
+                  <div className="relative w-full h-[250px] sm:h-[300px] md:h-[350px] lg:h-[420px] overflow-hidden rounded-lg border border-gray-800 bg-gradient-to-br from-gray-950 to-gray-900 p-3 sm:p-4">
                     <div className="absolute top-4 left-4 right-4 flex items-center justify-between">
                       <div className="flex items-center gap-2">
                         <div className="h-3 w-3 rounded-full bg-red-500" />
@@ -426,22 +426,22 @@ export default function Home() {
           </motion.section>
         )}
 
-        <section className="relative py-16 bg-gradient-to-b from-black to-gray-950">
-          <div className="container px-4 md:px-6">
+        <section className="relative py-12 sm:py-16 md:py-24 bg-gradient-to-b from-black to-gray-950">
+          <div className="container px-4 sm:px-6">
             <motion.div
-              className="max-w-3xl mx-auto text-center mb-12"
+              className="max-w-3xl mx-auto text-center mb-8 sm:mb-12"
               initial={{ opacity: 0, y: 20 }}
               whileInView={{ opacity: 1, y: 0 }}
               viewport={{ once: true }}
               transition={{ duration: 0.5 }}
             >
-              <h2 className="text-3xl font-bold mb-4">How It Works</h2>
-              <p className="text-muted-foreground">
+              <h2 className="text-2xl sm:text-3xl md:text-4xl font-bold mb-3 sm:mb-4">How It Works</h2>
+              <p className="text-muted-foreground text-sm sm:text-base">
                 Our AI-powered platform simplifies content creation with an intuitive three-step process
               </p>
             </motion.div>
 
-            <div className="grid md:grid-cols-3 gap-8">
+            <div className="grid sm:grid-cols-2 md:grid-cols-3 gap-6 sm:gap-8">
               {[
                 {
                   step: "1",
@@ -466,48 +466,48 @@ export default function Home() {
               ].map((item, i) => (
                 <motion.div
                   key={i}
-                  className="flex flex-col items-center text-center p-6 rounded-lg bg-gray-900/50 border border-gray-800"
+                  className="flex flex-col items-center text-center p-4 sm:p-6 rounded-lg bg-gray-900/50 border border-gray-800"
                   initial={{ opacity: 0, y: 20 }}
                   whileInView={{ opacity: 1, y: 0 }}
                   viewport={{ once: true }}
                   transition={{ delay: i * 0.1, duration: 0.5 }}
                 >
-                  <div className="w-12 h-12 rounded-full bg-primary/20 flex items-center justify-center mb-4">
+                  <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-full bg-primary/20 flex items-center justify-center mb-3 sm:mb-4">
                     {item.icon}
                   </div>
-                  <div className="bg-primary/20 text-primary font-bold rounded-full w-8 h-8 flex items-center justify-center mb-4">
+                  <div className="bg-primary/20 text-primary font-bold rounded-full w-7 h-7 sm:w-8 sm:h-8 flex items-center justify-center mb-3 sm:mb-4 text-sm sm:text-base">
                     {item.step}
                   </div>
-                  <h3 className="text-xl font-bold mb-2">{item.title}</h3>
-                  <p className="text-muted-foreground">{item.description}</p>
+                  <h3 className="text-lg sm:text-xl font-bold mb-2">{item.title}</h3>
+                  <p className="text-muted-foreground text-sm sm:text-base">{item.description}</p>
                 </motion.div>
               ))}
             </div>
           </div>
         </section>
 
-        <section id="features" className="w-full py-12 md:py-24 lg:py-32 bg-gray-950">
-          <div className="container px-4 md:px-6">
+        <section id="features" className="w-full py-12 sm:py-16 md:py-24 lg:py-32 bg-gray-950">
+          <div className="container px-4 sm:px-6">
             <motion.div
-              className="flex flex-col items-center justify-center space-y-4 text-center"
+              className="flex flex-col items-center justify-center space-y-3 sm:space-y-4 text-center"
               initial={{ opacity: 0, y: 20 }}
               whileInView={{ opacity: 1, y: 0 }}
               viewport={{ once: true }}
               transition={{ duration: 0.5 }}
             >
               <div className="space-y-2">
-                <div className="inline-block rounded-lg bg-gray-900 px-3 py-1 text-sm">Features</div>
-                <h2 className="text-3xl font-bold tracking-tighter sm:text-5xl">
+                <div className="inline-block rounded-lg bg-gray-900 px-3 py-1 text-xs sm:text-sm">Features</div>
+                <h2 className="text-2xl sm:text-3xl md:text-4xl lg:text-5xl font-bold tracking-tighter">
                   Everything You Need for Content Creation
                 </h2>
-                <p className="max-w-[900px] text-muted-foreground md:text-xl/relaxed lg:text-base/relaxed xl:text-xl/relaxed">
+                <p className="max-w-[900px] text-muted-foreground text-sm sm:text-base md:text-lg lg:text-xl px-4">
                   Our platform combines the power of AI with intuitive tools to help you create, analyze, and optimize
                   content for your business.
                 </p>
               </div>
             </motion.div>
             <motion.div
-              className="mx-auto grid max-w-5xl grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3 mt-12"
+              className="mx-auto grid max-w-5xl grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-6 lg:grid-cols-3 mt-8 sm:mt-12"
               initial="hidden"
               whileInView="visible"
               viewport={{ once: true }}
@@ -516,42 +516,42 @@ export default function Home() {
               {features.map((feature, index) => (
                 <motion.div
                   key={index}
-                  className="flex flex-col items-center space-y-2 rounded-lg border border-gray-800 p-6 bg-black/50 hover:bg-black/80 transition-colors"
+                  className="flex flex-col items-center space-y-2 sm:space-y-3 rounded-lg border border-gray-800 p-4 sm:p-6 bg-black/50 hover:bg-black/80 transition-colors"
                   variants={featureVariants}
                   whileHover={{ y: -5 }}
                   transition={{ type: "spring", stiffness: 300, damping: 10 }}
                 >
-                  <div className="flex h-12 w-12 items-center justify-center rounded-full border border-gray-800 bg-gray-950">
+                  <div className="flex h-10 w-10 sm:h-12 sm:w-12 items-center justify-center rounded-full border border-gray-800 bg-gray-950">
                     {feature.icon}
                   </div>
-                  <h3 className="text-xl font-bold">{feature.title}</h3>
-                  <p className="text-sm text-muted-foreground text-center">{feature.description}</p>
+                  <h3 className="text-lg sm:text-xl font-bold text-center">{feature.title}</h3>
+                  <p className="text-xs sm:text-sm text-muted-foreground text-center">{feature.description}</p>
                 </motion.div>
               ))}
             </motion.div>
           </div>
         </section>
 
-        <section className="w-full py-12 md:py-24 bg-black relative overflow-hidden">
+        <section className="w-full py-12 sm:py-16 md:py-24 bg-black relative overflow-hidden">
           <div className="absolute inset-0 z-0 opacity-30">
             <div className="absolute top-0 left-0 w-full h-full bg-gradient-to-br from-primary/5 to-indigo-500/5" />
           </div>
-          <div className="container relative z-10 px-4 md:px-6">
+          <div className="container relative z-10 px-4 sm:px-6">
             <motion.div
-              className="max-w-3xl mx-auto text-center mb-12"
+              className="max-w-3xl mx-auto text-center mb-8 sm:mb-12"
               initial={{ opacity: 0, y: 20 }}
               whileInView={{ opacity: 1, y: 0 }}
               viewport={{ once: true }}
               transition={{ duration: 0.5 }}
             >
-              <div className="inline-block rounded-lg bg-gray-900 px-3 py-1 text-sm mb-4">Use Cases</div>
-              <h2 className="text-3xl font-bold mb-4">Perfect for Various Industries</h2>
-              <p className="text-muted-foreground">
+              <div className="inline-block rounded-lg bg-gray-900 px-3 py-1 text-xs sm:text-sm mb-3 sm:mb-4">Use Cases</div>
+              <h2 className="text-2xl sm:text-3xl md:text-4xl font-bold mb-3 sm:mb-4">Perfect for Various Industries</h2>
+              <p className="text-muted-foreground text-sm sm:text-base px-4">
                 Our AI content generation platform serves diverse business needs across multiple sectors
               </p>
             </motion.div>
 
-            <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6">
+            <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6">
               {[
                 {
                   icon: <Laptop className="h-8 w-8 text-primary" />,
@@ -576,42 +576,42 @@ export default function Home() {
               ].map((item, i) => (
                 <motion.div
                   key={i}
-                  className="flex flex-col p-6 rounded-lg bg-gray-900/50 border border-gray-800"
+                  className="flex flex-col p-4 sm:p-6 rounded-lg bg-gray-900/50 border border-gray-800"
                   initial={{ opacity: 0, y: 20 }}
                   whileInView={{ opacity: 1, y: 0 }}
                   viewport={{ once: true }}
                   transition={{ delay: i * 0.1, duration: 0.5 }}
                 >
-                  <div className="w-12 h-12 rounded-full bg-primary/20 flex items-center justify-center mb-4">
+                  <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-full bg-primary/20 flex items-center justify-center mb-3 sm:mb-4">
                     {item.icon}
                   </div>
-                  <h3 className="text-xl font-bold mb-2">{item.title}</h3>
-                  <p className="text-muted-foreground">{item.description}</p>
+                  <h3 className="text-lg sm:text-xl font-bold mb-2">{item.title}</h3>
+                  <p className="text-muted-foreground text-sm sm:text-base">{item.description}</p>
                 </motion.div>
               ))}
             </div>
           </div>
         </section>
 
-        <section id="pricing" className="w-full py-12 md:py-24 lg:py-32 bg-black">
-          <div className="container px-4 md:px-6">
+        <section id="pricing" className="w-full py-12 sm:py-16 md:py-24 lg:py-32 bg-black">
+          <div className="container px-4 sm:px-6">
             <motion.div
-              className="flex flex-col items-center justify-center space-y-4 text-center"
+              className="flex flex-col items-center justify-center space-y-3 sm:space-y-4 text-center"
               initial={{ opacity: 0, y: 20 }}
               whileInView={{ opacity: 1, y: 0 }}
               viewport={{ once: true }}
               transition={{ duration: 0.5 }}
             >
               <div className="space-y-2">
-                <div className="inline-block rounded-lg bg-gray-900 px-3 py-1 text-sm">Pricing</div>
-                <h2 className="text-3xl font-bold tracking-tighter sm:text-5xl">Choose Your Plan</h2>
-                <p className="max-w-[900px] text-muted-foreground md:text-xl/relaxed lg:text-base/relaxed xl:text-xl/relaxed">
+                <div className="inline-block rounded-lg bg-gray-900 px-3 py-1 text-xs sm:text-sm">Pricing</div>
+                <h2 className="text-2xl sm:text-3xl md:text-4xl lg:text-5xl font-bold tracking-tighter">Choose Your Plan</h2>
+                <p className="max-w-[900px] text-muted-foreground text-sm sm:text-base md:text-lg lg:text-xl px-4">
                   Flexible pricing options to meet the needs of businesses of all sizes.
                 </p>
               </div>
             </motion.div>
             <motion.div
-              className="mx-auto grid max-w-5xl grid-cols-1 gap-6 md:grid-cols-3 mt-12"
+              className="mx-auto grid max-w-5xl grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6 mt-8 sm:mt-12"
               initial="hidden"
               whileInView="visible"
               viewport={{ once: true }}
@@ -622,23 +622,23 @@ export default function Home() {
                   key={index}
                   className={`flex flex-col rounded-lg border ${
                     plan.popular ? "border-primary" : "border-gray-800"
-                  } bg-gray-950 p-6 relative`}
+                  } bg-gray-950 p-4 sm:p-6 relative`}
                   variants={featureVariants}
                   whileHover={{ y: -5 }}
                   transition={{ type: "spring", stiffness: 300, damping: 10 }}
                 >
                   {plan.popular && (
-                    <div className="absolute -top-3 left-1/2 transform -translate-x-1/2 bg-primary text-black text-xs font-bold px-3 py-1 rounded-full">
+                    <div className="absolute -top-2.5 sm:-top-3 left-1/2 transform -translate-x-1/2 bg-primary text-black text-xs font-bold px-2.5 sm:px-3 py-0.5 sm:py-1 rounded-full">
                       POPULAR
                     </div>
                   )}
                   <div className="space-y-2">
-                    <h3 className="text-2xl font-bold">{plan.name}</h3>
-                    <p className="text-sm text-muted-foreground">{plan.description}</p>
+                    <h3 className="text-xl sm:text-2xl font-bold">{plan.name}</h3>
+                    <p className="text-xs sm:text-sm text-muted-foreground">{plan.description}</p>
                   </div>
-                  <div className="mt-4 text-4xl font-bold">{plan.price}</div>
-                  <p className="text-sm text-muted-foreground mt-1">{plan.period}</p>
-                  <ul className="mt-6 space-y-2 text-sm">
+                  <div className="mt-4 text-3xl sm:text-4xl font-bold">{plan.price}</div>
+                  <p className="text-xs sm:text-sm text-muted-foreground mt-1">{plan.period}</p>
+                  <ul className="mt-4 sm:mt-6 space-y-2 text-xs sm:text-sm">
                     {plan.features.map((feature, featureIndex) => (
                       <li key={featureIndex} className="flex items-center">
                         {feature.included ? (
@@ -664,10 +664,10 @@ export default function Home() {
                       </li>
                     ))}
                   </ul>
-                  <div className="mt-6">
-                    <Link href="/login">
+                  <div className="mt-4 sm:mt-6">
+                    <Link href="/login" className="block">
                       <Button
-                        className={`w-full ${
+                        className={`w-full h-10 sm:h-11 ${
                           plan.popular
                             ? "bg-gradient-to-r from-primary to-indigo-600 hover:from-primary/90 hover:to-indigo-600/90 border-0"
                             : ""
@@ -683,25 +683,25 @@ export default function Home() {
           </div>
         </section>
 
-        <section id="testimonials" className="w-full py-12 md:py-24 lg:py-32 bg-gray-950">
-          <div className="container px-4 md:px-6">
+        <section id="testimonials" className="w-full py-12 sm:py-16 md:py-24 lg:py-32 bg-gray-950">
+          <div className="container px-4 sm:px-6">
             <motion.div
-              className="flex flex-col items-center justify-center space-y-4 text-center"
+              className="flex flex-col items-center justify-center space-y-3 sm:space-y-4 text-center"
               initial={{ opacity: 0, y: 20 }}
               whileInView={{ opacity: 1, y: 0 }}
               viewport={{ once: true }}
               transition={{ duration: 0.5 }}
             >
               <div className="space-y-2">
-                <div className="inline-block rounded-lg bg-gray-900 px-3 py-1 text-sm">Testimonials</div>
-                <h2 className="text-3xl font-bold tracking-tighter sm:text-5xl">What Our Customers Say</h2>
-                <p className="max-w-[900px] text-muted-foreground md:text-xl/relaxed lg:text-base/relaxed xl:text-xl/relaxed">
+                <div className="inline-block rounded-lg bg-gray-900 px-3 py-1 text-xs sm:text-sm">Testimonials</div>
+                <h2 className="text-2xl sm:text-3xl md:text-4xl lg:text-5xl font-bold tracking-tighter">What Our Customers Say</h2>
+                <p className="max-w-[900px] text-muted-foreground text-sm sm:text-base md:text-lg lg:text-xl px-4">
                   Don't just take our word for it. See what our customers have to say about our platform.
                 </p>
               </div>
             </motion.div>
             <motion.div
-              className="mx-auto grid max-w-5xl grid-cols-1 gap-6 md:grid-cols-3 mt-12"
+              className="mx-auto grid max-w-5xl grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6 mt-8 sm:mt-12"
               initial="hidden"
               whileInView="visible"
               viewport={{ once: true }}
@@ -710,27 +710,27 @@ export default function Home() {
               {testimonials.map((testimonial, index) => (
                 <motion.div
                   key={index}
-                  className="flex flex-col rounded-lg border border-gray-800 bg-black/50 p-6 hover:bg-black/80 transition-colors"
+                  className="flex flex-col rounded-lg border border-gray-800 bg-black/50 p-4 sm:p-6 hover:bg-black/80 transition-colors"
                   variants={featureVariants}
                   whileHover={{ y: -5 }}
                   transition={{ type: "spring", stiffness: 300, damping: 10 }}
                 >
-                  <div className="flex items-center space-x-2">
-                    <div className="h-10 w-10 rounded-full bg-gray-800 flex items-center justify-center text-lg font-bold">
+                  <div className="flex items-center space-x-2 mb-3 sm:mb-4">
+                    <div className="h-9 w-9 sm:h-10 sm:w-10 rounded-full bg-gray-800 flex items-center justify-center text-base sm:text-lg font-bold flex-shrink-0">
                       {testimonial.initial}
                     </div>
-                    <div>
-                      <h3 className="font-bold">{testimonial.name}</h3>
-                      <p className="text-sm text-muted-foreground">{testimonial.role}</p>
+                    <div className="min-w-0">
+                      <h3 className="font-bold text-sm sm:text-base truncate">{testimonial.name}</h3>
+                      <p className="text-xs sm:text-sm text-muted-foreground truncate">{testimonial.role}</p>
                     </div>
                   </div>
-                  <div className="mt-4">
-                    <p className="text-sm text-muted-foreground">{testimonial.text}</p>
+                  <div className="mt-2 sm:mt-4">
+                    <p className="text-xs sm:text-sm text-muted-foreground line-clamp-4">{testimonial.text}</p>
                   </div>
-                  <div className="mt-2 text-xs text-muted-foreground">{testimonial.company}</div>
-                  <div className="mt-4 flex">
+                  <div className="mt-2 text-xs text-muted-foreground truncate">{testimonial.company}</div>
+                  <div className="mt-3 sm:mt-4 flex">
                     {[...Array(testimonial.rating)].map((_, starIndex) => (
-                      <Star key={starIndex} className="h-4 w-4 text-yellow-500 fill-yellow-500" />
+                      <Star key={starIndex} className="h-3 w-3 sm:h-4 sm:w-4 text-yellow-500 fill-yellow-500" />
                     ))}
                   </div>
                 </motion.div>
@@ -740,36 +740,36 @@ export default function Home() {
         </section>
 
         <motion.section
-          className="w-full py-12 md:py-24 lg:py-32 bg-black"
+          className="w-full py-12 sm:py-16 md:py-24 lg:py-32 bg-black"
           initial={{ opacity: 0 }}
           whileInView={{ opacity: 1 }}
           viewport={{ once: true }}
           transition={{ duration: 0.5 }}
         >
-          <div className="container px-4 md:px-6">
-            <div className="flex flex-col items-center justify-center space-y-4 text-center">
-              <div className="space-y-2">
-                <h2 className="text-3xl font-bold tracking-tighter sm:text-5xl">Ready to Get Started?</h2>
-                <p className="max-w-[900px] text-muted-foreground md:text-xl/relaxed lg:text-base/relaxed xl:text-xl/relaxed">
+          <div className="container px-4 sm:px-6">
+            <div className="flex flex-col items-center justify-center space-y-4 sm:space-y-6 text-center">
+              <div className="space-y-2 sm:space-y-3">
+                <h2 className="text-2xl sm:text-3xl md:text-4xl lg:text-5xl font-bold tracking-tighter">Ready to Get Started?</h2>
+                <p className="max-w-[900px] text-muted-foreground text-sm sm:text-base md:text-lg lg:text-xl px-4">
                   Join thousands of businesses already using our AI-powered content generation platform.
                 </p>
               </div>
               <motion.div
-                className="flex flex-col gap-2 min-[400px]:flex-row"
+                className="flex flex-col gap-3 sm:gap-2 w-full sm:w-auto min-[400px]:flex-row"
                 whileHover={{ scale: 1.05 }}
                 transition={{ type: "spring", stiffness: 400, damping: 10 }}
               >
-                <Link href="/login">
+                <Link href="/login" className="w-full min-[400px]:w-auto">
                   <Button
                     size="lg"
-                    className="gap-1 bg-gradient-to-r from-primary to-indigo-600 hover:from-primary/90 hover:to-indigo-600/90 border-0"
+                    className="w-full min-[400px]:w-auto gap-1 bg-gradient-to-r from-primary to-indigo-600 hover:from-primary/90 hover:to-indigo-600/90 border-0 h-11 sm:h-12 text-base"
                   >
                     Sign Up Now
                     <ArrowRight className="h-4 w-4" />
                   </Button>
                 </Link>
-                <Link href="/login">
-                  <Button size="lg" variant="outline" className="border-gray-800">
+                <Link href="/login" className="w-full min-[400px]:w-auto">
+                  <Button size="lg" variant="outline" className="w-full min-[400px]:w-auto border-gray-800 h-11 sm:h-12 text-base">
                     Login
                   </Button>
                 </Link>
@@ -778,9 +778,9 @@ export default function Home() {
           </div>
         </motion.section>
       </main>
-      <footer className="w-full py-6 bg-gray-950 border-t border-gray-800">
-        <div className="container px-4 md:px-6">
-          <div className="grid gap-8 md:grid-cols-2 lg:grid-cols-5">
+      <footer className="w-full py-6 sm:py-8 bg-gray-950 border-t border-gray-800">
+        <div className="container px-4 sm:px-6">
+          <div className="grid gap-6 sm:gap-8 grid-cols-1 sm:grid-cols-2 lg:grid-cols-5">
             <div className="space-y-4">
               <Link href="/" className="flex items-center space-x-2">
                 <Sparkles className="h-6 w-6 text-primary" />

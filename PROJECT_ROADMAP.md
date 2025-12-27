@@ -618,10 +618,27 @@
     - User suspensions
     - Usage history export
 
-- [ ] **System Settings**
-  - Configure subscription plans
-  - Manage usage limits
-  - System-wide settings
+- [x] **System Settings** ✅
+  - **Status:** Implemented
+  - **Implementation:**
+    - ✅ Admin-only access control
+    - ✅ Usage limits management for all subscription plans (free, basic, professional, enterprise)
+    - ✅ Feature toggles per plan (sentiment analysis, keyword extraction, text summarization, API access)
+    - ✅ Monthly content limits configuration
+    - ✅ Max content length configuration
+    - ✅ Subscription plan information display
+    - ✅ Real-time updates and save functionality
+  - **Files Created:**
+    - `app/dashboard/admin/settings/page.tsx` - System Settings admin page
+    - `app/api/admin/usage-limits/route.ts` - Usage limits API (GET, PUT)
+  - **Files Modified:**
+    - `components/dashboard/dashboard-layout.tsx` - Added System Settings to admin navigation
+  - **Next Steps (Optional):**
+    - Additional system-wide settings (feature flags, maintenance mode, email templates)
+    - Plan pricing configuration UI (currently managed via PayPal)
+    - Audit log for settings changes
+    - Settings export/import
+    - Environment variable management UI
 
 - [x] **Content Moderation** ✅
   - **Status:** Implemented
