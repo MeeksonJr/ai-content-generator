@@ -47,3 +47,4 @@ export const DEFAULT_USAGE_LIMITS: Record<string, UsageLimitsRow> = {
 
 export const getDefaultUsageLimits = (planType: string) => DEFAULT_USAGE_LIMITS[planType] || DEFAULT_USAGE_LIMITS.free
 
+
