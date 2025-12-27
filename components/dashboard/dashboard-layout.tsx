@@ -134,6 +134,7 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
   const navigation = [
     { name: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
     { name: "Content Generator", href: "/dashboard/generate", icon: FileText },
+    { name: "Templates", href: "/dashboard/templates", icon: FileText },
     { name: "Projects", href: "/dashboard/projects", icon: FolderKanban },
     { name: "Sentiment Analysis", href: "/dashboard/sentiment-analysis", icon: MessageSquare },
     { name: "Text Summarization", href: "/dashboard/summarize", icon: FileDigit },
