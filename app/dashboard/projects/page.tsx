@@ -23,10 +23,11 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import type { ProjectRow, ProjectWithCount } from "@/lib/types/dashboard.types"
 
 export default function ProjectsPage() {
-  const [projects, setProjects] = useState<any[]>([])
-  const [filteredProjects, setFilteredProjects] = useState<any[]>([])
+  const [projects, setProjects] = useState<ProjectWithCount[]>([])
+  const [filteredProjects, setFilteredProjects] = useState<ProjectWithCount[]>([])
   const [loading, setLoading] = useState(true)
   const [searchQuery, setSearchQuery] = useState("")
   const [openNewProjectDialog, setOpenNewProjectDialog] = useState(false)
@@ -152,11 +153,12 @@ export default function ProjectsPage() {
 
       const { data: projectData, error } = await supabase
         .from("projects")
+        // @ts-ignore - Known Supabase type inference issue with insert operations
         .insert({
           name: newProject.name,
           description: newProject.description,
           user_id: userData.user.id,
-        } as any)
+        })
         .select()
         .single()
 
@@ -225,6 +227,7 @@ export default function ProjectsPage() {
       // Save the generated content to the database
       const { data: savedContent, error } = await supabase
         .from("content")
+        // @ts-ignore - Known Supabase type inference issue with insert operations
         .insert({
           title: newContent.title,
           content_type: newContent.contentType,
@@ -234,7 +237,7 @@ export default function ProjectsPage() {
           project_id: newContent.projectId,
           user_id: userData.user.id,
           content_category: getCategoryFromContentType(newContent.contentType),
-        } as any)
+        })
         .select()
         .single()
 

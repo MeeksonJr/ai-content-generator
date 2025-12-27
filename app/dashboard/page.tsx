@@ -13,14 +13,15 @@ import { Skeleton } from "@/components/ui/skeleton"
 import { createClient } from "@/lib/supabase/client"
 import { motion } from "framer-motion"
 import { SkeletonCard } from "@/components/dashboard/skeleton-card"
+import type { SubscriptionRow, UsageLimitRow, UsageStatsRow, ContentRow, ProjectRow } from "@/lib/types/dashboard.types"
 
 export default function DashboardPage() {
   const [loading, setLoading] = useState(true)
-  const [subscription, setSubscription] = useState<any>(null)
-  const [usageLimits, setUsageLimits] = useState<any>(null)
-  const [usageStats, setUsageStats] = useState<any>(null)
-  const [recentContent, setRecentContent] = useState<any[]>([])
-  const [recentProjects, setRecentProjects] = useState<any[]>([])
+  const [subscription, setSubscription] = useState<SubscriptionRow | null>(null)
+  const [usageLimits, setUsageLimits] = useState<UsageLimitRow | null>(null)
+  const [usageStats, setUsageStats] = useState<UsageStatsRow | null>(null)
+  const [recentContent, setRecentContent] = useState<ContentRow[]>([])
+  const [recentProjects, setRecentProjects] = useState<ProjectRow[]>([])
   const supabase = createClient()
 
   useEffect(() => {

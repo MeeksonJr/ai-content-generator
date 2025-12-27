@@ -30,6 +30,7 @@ import {
 import { useToast } from "@/hooks/use-toast"
 import { createClient } from "@/lib/supabase/client"
 import { motion, AnimatePresence } from "framer-motion"
+import type { ContentRow } from "@/lib/types/dashboard.types"
 
 export default function GeneratePage() {
   // Content Generation State
@@ -54,7 +55,7 @@ export default function GeneratePage() {
   const [inferenceSteps, setInferenceSteps] = useState(50)
 
   // Saved Content State
-  const [savedContent, setSavedContent] = useState<any[]>([])
+  const [savedContent, setSavedContent] = useState<ContentRow[]>([])
   const [loadingSaved, setLoadingSaved] = useState(true)
   const [deletingId, setDeletingId] = useState<string | null>(null)
 
@@ -356,8 +357,9 @@ export default function GeneratePage() {
       const imageTitle = imagePrompt.substring(0, 50) || "Generated Image"
       const imageDescription = `Generated image: ${imagePrompt}`
 
-      const { data, error } = await (supabase as any)
+      const { data, error } = await supabase
         .from("content")
+        // @ts-ignore - Known Supabase type inference issue with insert operations
         .insert({
           title: imageTitle,
           content_type: "image",
@@ -366,7 +368,7 @@ export default function GeneratePage() {
           image_prompt: imagePrompt,
           content_category: "image",
           user_id: user.id,
-        } as any)
+        })
         .select()
 
       if (error) {
@@ -413,8 +415,9 @@ export default function GeneratePage() {
       const imageRef = generatedImage ? "generated" : null
       const imagePromptRef = generatedImage ? imagePrompt : null
 
-      const { data, error } = await (supabase as any)
+      const { data, error } = await supabase
         .from("content")
+        // @ts-ignore - Known Supabase type inference issue with insert operations
         .insert({
           title: title || "Untitled",
           content_type: contentType,
@@ -425,7 +428,7 @@ export default function GeneratePage() {
           image_prompt: imagePromptRef,
           content_category: getCategoryFromType(contentType),
           user_id: user.id,
-        } as any)
+        })
         .select()
 
       if (error) {
@@ -439,7 +442,7 @@ export default function GeneratePage() {
 
       fetchSavedContent()
 
-      const dataArray = (data as any) || []
+      const dataArray = (data as ContentRow[]) || []
       if (dataArray && dataArray.length > 0 && dataArray[0]?.id) {
         router.push(`/dashboard/content/${dataArray[0].id}`)
       }
