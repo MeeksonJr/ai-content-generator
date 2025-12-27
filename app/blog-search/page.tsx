@@ -172,25 +172,25 @@ function SearchContent() {
   }
 
   return (
-    <div className="flex flex-col min-h-screen bg-white">
+    <div className="flex flex-col min-h-screen bg-background">
       {/* Header */}
-      <header className="sticky top-0 z-40 w-full border-b border-gray-200 bg-white/95 backdrop-blur supports-[backdrop-filter]:bg-white/60 shadow-sm">
+      <header className="sticky top-0 z-40 w-full border-b border-border bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 shadow-sm">
         <div className="container flex h-14 sm:h-16 items-center space-x-2 sm:justify-between sm:space-x-0 px-4 sm:px-6">
           <div className="flex gap-4 sm:gap-6 md:gap-10">
             <Link href="/" className="flex items-center space-x-2 group">
-              <Sparkles className="h-5 w-5 sm:h-6 sm:w-6 text-blue-600 group-hover:scale-110 transition-transform" />
-              <span className="inline-block font-bold text-gray-900 text-sm sm:text-base">AI Content Generator</span>
+              <Sparkles className="h-5 w-5 sm:h-6 sm:w-6 text-primary group-hover:scale-110 transition-transform" />
+              <span className="inline-block font-bold text-foreground text-sm sm:text-base">AI Content Generator</span>
             </Link>
           </div>
           <div className="flex flex-1 items-center justify-end space-x-2 sm:space-x-4">
             <nav className="flex items-center space-x-2">
               <Link href="/login">
-                <Button variant="ghost" size="sm" className="text-gray-700 hover:text-gray-900 h-9 px-3 sm:px-4">
+                <Button variant="ghost" size="sm" className="h-9 px-3 sm:px-4">
                   Login
                 </Button>
               </Link>
               <Link href="/login">
-                <Button size="sm" className="bg-blue-600 hover:bg-blue-700 text-white h-9 px-3 sm:px-4">
+                <Button size="sm" className="h-9 px-3 sm:px-4">
                   Sign Up
                 </Button>
               </Link>
@@ -201,18 +201,18 @@ function SearchContent() {
 
       <main className="flex-1">
         {/* Hero Section */}
-        <section className="w-full py-12 sm:py-16 md:py-20 lg:py-24 bg-gradient-to-b from-blue-50 via-white to-gray-50 relative overflow-hidden">
+        <section className="w-full py-12 sm:py-16 md:py-20 lg:py-24 bg-gradient-to-b from-muted/50 via-background to-muted/30 relative overflow-hidden">
           {/* Decorative background elements */}
-          <div className="absolute inset-0 opacity-5">
-            <div className="absolute top-0 right-0 w-96 h-96 bg-blue-400 rounded-full blur-3xl"></div>
-            <div className="absolute bottom-0 left-0 w-96 h-96 bg-indigo-400 rounded-full blur-3xl"></div>
+          <div className="absolute inset-0 opacity-5 dark:opacity-10">
+            <div className="absolute top-0 right-0 w-96 h-96 bg-primary rounded-full blur-3xl"></div>
+            <div className="absolute bottom-0 left-0 w-96 h-96 bg-primary/60 rounded-full blur-3xl"></div>
           </div>
           
           <div className="container relative z-10 px-4 sm:px-6">
             <div className="max-w-4xl mx-auto">
               <div className="text-center mb-8 sm:mb-12">
                 <Link href="/blog" className="inline-block mb-4 sm:mb-6">
-                  <Button variant="ghost" size="sm" className="gap-1 text-gray-600 hover:text-gray-900 h-9 group">
+                  <Button variant="ghost" size="sm" className="gap-1 h-9 group">
                     <ArrowLeft className="h-4 w-4 group-hover:-translate-x-1 transition-transform" />
                     <span className="hidden sm:inline">Back to Blog</span>
                     <span className="sm:hidden">Back</span>
@@ -220,43 +220,43 @@ function SearchContent() {
                 </Link>
 
                 <div className="flex items-center justify-center gap-2 mb-4">
-                  <div className="flex items-center gap-2 px-3 py-1 bg-blue-100 text-blue-700 rounded-full text-xs sm:text-sm font-medium">
+                  <div className="flex items-center gap-2 px-3 py-1 bg-primary/10 text-primary rounded-full text-xs sm:text-sm font-medium border border-primary/20">
                     <Zap className="h-3 w-3 sm:h-4 sm:w-4" />
                     AI-Powered
                   </div>
-                  <div className="flex items-center gap-2 px-3 py-1 bg-indigo-100 text-indigo-700 rounded-full text-xs sm:text-sm font-medium">
+                  <div className="flex items-center gap-2 px-3 py-1 bg-primary/10 text-primary rounded-full text-xs sm:text-sm font-medium border border-primary/20">
                     <BookOpen className="h-3 w-3 sm:h-4 sm:w-4" />
                     Instant Generation
                   </div>
                 </div>
 
-                <h1 className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-bold tracking-tight text-gray-900 mb-4 sm:mb-6 leading-tight">
+                <h1 className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-bold tracking-tight text-foreground mb-4 sm:mb-6 leading-tight">
                   AI Content Generator
                 </h1>
-                <p className="text-base sm:text-lg md:text-xl text-gray-600 mb-6 sm:mb-8 max-w-2xl mx-auto leading-relaxed px-4">
+                <p className="text-base sm:text-lg md:text-xl text-muted-foreground mb-6 sm:mb-8 max-w-2xl mx-auto leading-relaxed px-4">
                   Generate comprehensive, well-researched blog posts on any topic using advanced AI. Simply enter your
                   topic and let our AI create engaging content for you in seconds.
                 </p>
 
                 {/* Search Form */}
-                <Card className="max-w-2xl mx-auto bg-white shadow-xl border-gray-200">
+                <Card className="max-w-2xl mx-auto bg-card shadow-xl border-border">
                   <CardContent className="p-4 sm:p-6">
                     <form onSubmit={handleSearchSubmit} className="space-y-4">
                       <div className="relative">
-                        <Search className="absolute left-3 sm:left-4 top-1/2 transform -translate-y-1/2 h-4 w-4 sm:h-5 sm:w-5 text-gray-400" />
+                        <Search className="absolute left-3 sm:left-4 top-1/2 transform -translate-y-1/2 h-4 w-4 sm:h-5 sm:w-5 text-muted-foreground" />
                         <Input
                           type="text"
                           placeholder="Enter any topic (e.g., 'AI in healthcare', 'sustainable energy')"
                           value={searchQuery}
                           onChange={(e) => setSearchQuery(e.target.value)}
-                          className="pl-10 sm:pl-12 h-12 sm:h-14 text-sm sm:text-base bg-white border-gray-300 focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 text-gray-900 shadow-sm"
+                          className="pl-10 sm:pl-12 h-12 sm:h-14 text-sm sm:text-base shadow-sm"
                           disabled={loading}
                         />
                       </div>
                       <Button
                         type="submit"
                         size="lg"
-                        className="w-full h-11 sm:h-12 bg-blue-600 hover:bg-blue-700 text-white font-medium shadow-md hover:shadow-lg transition-all"
+                        className="w-full h-11 sm:h-12 font-medium shadow-md hover:shadow-lg transition-all"
                         disabled={loading || !searchQuery.trim()}
                       >
                         {loading ? (
@@ -273,8 +273,8 @@ function SearchContent() {
                         )}
                       </Button>
                     </form>
-                    <div className="mt-4 flex items-start gap-2 text-xs sm:text-sm text-gray-500">
-                      <CheckCircle2 className="h-4 w-4 text-green-500 mt-0.5 flex-shrink-0" />
+                    <div className="mt-4 flex items-start gap-2 text-xs sm:text-sm text-muted-foreground">
+                      <CheckCircle2 className="h-4 w-4 text-green-500 dark:text-green-400 mt-0.5 flex-shrink-0" />
                       <span>Generated in 30-60 seconds • SEO-optimized • Comprehensive coverage</span>
                     </div>
                   </CardContent>
@@ -285,50 +285,50 @@ function SearchContent() {
         </section>
 
         {/* Results Section */}
-        <section className="w-full py-12 sm:py-16 bg-gray-50">
+        <section className="w-full py-12 sm:py-16 bg-muted/30">
           <div className="container px-4 sm:px-6">
             {loading ? (
               <div className="text-center py-12 sm:py-16">
                 <div className="max-w-lg mx-auto">
                   <div className="relative mb-6">
-                    <div className="mx-auto flex h-20 w-20 sm:h-24 sm:w-24 items-center justify-center rounded-full bg-blue-100">
-                      <Loader2 className="h-10 w-10 sm:h-12 sm:w-12 animate-spin text-blue-600" />
+                    <div className="mx-auto flex h-20 w-20 sm:h-24 sm:w-24 items-center justify-center rounded-full bg-primary/10">
+                      <Loader2 className="h-10 w-10 sm:h-12 sm:w-12 animate-spin text-primary" />
                     </div>
                     <div className="absolute inset-0 flex items-center justify-center">
-                      <Sparkles className="h-6 w-6 sm:h-8 sm:w-8 text-blue-500 animate-pulse" />
+                      <Sparkles className="h-6 w-6 sm:h-8 sm:w-8 text-primary animate-pulse" />
                     </div>
                   </div>
-                  <h3 className="text-xl sm:text-2xl md:text-3xl font-bold mb-3 sm:mb-4 text-gray-900">
+                  <h3 className="text-xl sm:text-2xl md:text-3xl font-bold mb-3 sm:mb-4 text-foreground">
                     Creating Your Content
                   </h3>
-                  <p className="text-gray-600 text-sm sm:text-base md:text-lg mb-4 sm:mb-6 leading-relaxed">
-                    Our AI is researching and writing a comprehensive guide about <span className="font-semibold text-gray-900">"{searchQuery}"</span>. 
+                  <p className="text-muted-foreground text-sm sm:text-base md:text-lg mb-4 sm:mb-6 leading-relaxed">
+                    Our AI is researching and writing a comprehensive guide about <span className="font-semibold text-foreground">"{searchQuery}"</span>. 
                     This usually takes 30-60 seconds.
                   </p>
-                  <div className="mt-6 bg-gradient-to-r from-blue-50 to-indigo-50 rounded-xl p-4 sm:p-6 border border-blue-100">
+                  <div className="mt-6 bg-gradient-to-r from-primary/10 to-primary/5 rounded-xl p-4 sm:p-6 border border-primary/20">
                     <div className="flex items-start gap-3">
-                      <Zap className="h-5 w-5 text-blue-600 mt-0.5 flex-shrink-0" />
+                      <Zap className="h-5 w-5 text-primary mt-0.5 flex-shrink-0" />
                       <div className="text-left">
-                        <p className="text-blue-900 font-medium text-sm sm:text-base mb-1">
+                        <p className="text-primary font-medium text-sm sm:text-base mb-1">
                           Pro Tip
                         </p>
-                        <p className="text-blue-800 text-xs sm:text-sm">
+                        <p className="text-primary/80 text-xs sm:text-sm">
                           The longer and more specific your topic, the better the content will be! Include context and key points you want covered.
                         </p>
                       </div>
                     </div>
                   </div>
-                  <div className="mt-6 flex items-center justify-center gap-4 text-xs sm:text-sm text-gray-500">
+                  <div className="mt-6 flex items-center justify-center gap-4 text-xs sm:text-sm text-muted-foreground">
                     <div className="flex items-center gap-1.5">
-                      <div className="h-2 w-2 rounded-full bg-blue-500 animate-pulse"></div>
+                      <div className="h-2 w-2 rounded-full bg-primary animate-pulse"></div>
                       <span>Researching topic</span>
                     </div>
                     <div className="flex items-center gap-1.5">
-                      <div className="h-2 w-2 rounded-full bg-blue-400 animate-pulse delay-75"></div>
+                      <div className="h-2 w-2 rounded-full bg-primary/80 animate-pulse delay-75"></div>
                       <span>Writing content</span>
                     </div>
                     <div className="flex items-center gap-1.5">
-                      <div className="h-2 w-2 rounded-full bg-blue-300 animate-pulse delay-150"></div>
+                      <div className="h-2 w-2 rounded-full bg-primary/60 animate-pulse delay-150"></div>
                       <span>Optimizing SEO</span>
                     </div>
                   </div>
@@ -337,21 +337,20 @@ function SearchContent() {
             ) : error ? (
               <div className="text-center py-16">
                 <div className="max-w-md mx-auto">
-                  <div className="mx-auto mb-6 flex h-16 w-16 items-center justify-center rounded-full bg-red-50">
-                    <FileText className="h-8 w-8 text-red-600" />
+                  <div className="mx-auto mb-6 flex h-16 w-16 items-center justify-center rounded-full bg-destructive/10">
+                    <FileText className="h-8 w-8 text-destructive" />
                   </div>
-                  <h3 className="text-2xl font-bold mb-4 text-gray-900">Generation Failed</h3>
-                  <p className="text-gray-600 mb-6">{error}</p>
+                  <h3 className="text-2xl font-bold mb-4 text-foreground">Generation Failed</h3>
+                  <p className="text-muted-foreground mb-6">{error}</p>
                   <div className="space-y-3">
                     <Button
                       onClick={() => handleSearch(searchQuery)}
-                      className="bg-blue-600 hover:bg-blue-700 text-white"
                       disabled={loading || !searchQuery.trim()}
                     >
                       <RefreshCw className="h-4 w-4 mr-2" />
                       Try Again
                     </Button>
-                    <p className="text-sm text-gray-500">Or try a different topic in the search box above</p>
+                    <p className="text-sm text-muted-foreground">Or try a different topic in the search box above</p>
                   </div>
                 </div>
               </div>
@@ -360,19 +359,19 @@ function SearchContent() {
                 <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-6 sm:mb-8">
                   <div>
                     <div className="flex items-center gap-2 mb-2">
-                      <div className="flex items-center gap-2 px-3 py-1 bg-green-100 text-green-700 rounded-full text-xs sm:text-sm font-medium">
+                      <div className="flex items-center gap-2 px-3 py-1 bg-green-500/10 text-green-600 dark:text-green-400 rounded-full text-xs sm:text-sm font-medium border border-green-500/20">
                         <CheckCircle2 className="h-3 w-3 sm:h-4 sm:w-4" />
                         Content Generated
                       </div>
-                      <div className="flex items-center gap-2 px-3 py-1 bg-blue-100 text-blue-700 rounded-full text-xs sm:text-sm font-medium">
+                      <div className="flex items-center gap-2 px-3 py-1 bg-primary/10 text-primary rounded-full text-xs sm:text-sm font-medium border border-primary/20">
                         <Zap className="h-3 w-3 sm:h-4 sm:w-4" />
                         {blogPost.ai_provider}
                       </div>
                     </div>
-                    <h2 className="text-2xl sm:text-3xl md:text-4xl font-bold text-gray-900 mb-2">
+                    <h2 className="text-2xl sm:text-3xl md:text-4xl font-bold text-foreground mb-2">
                       Your Generated Content
                     </h2>
-                    <p className="text-gray-600 text-sm sm:text-base">
+                    <p className="text-muted-foreground text-sm sm:text-base">
                       Created using advanced AI technology • Ready to publish
                     </p>
                   </div>
@@ -380,7 +379,7 @@ function SearchContent() {
                     onClick={handleRegenerate}
                     variant="outline"
                     disabled={loading}
-                    className="border-gray-300 hover:bg-gray-50 h-10 sm:h-11 w-full sm:w-auto"
+                    className="h-10 sm:h-11 w-full sm:w-auto"
                   >
                     {loading ? (
                       <>
@@ -396,9 +395,9 @@ function SearchContent() {
                   </Button>
                 </div>
 
-                <Card className="bg-white border-gray-200 shadow-xl overflow-hidden">
+                <Card className="bg-card border-border shadow-xl hover:shadow-2xl hover:border-primary/50 transition-all duration-300 overflow-hidden">
                   {/* Header Image */}
-                  <div className="h-64 sm:h-80 bg-gradient-to-r from-blue-600 via-purple-600 to-indigo-600 flex items-center justify-center relative overflow-hidden">
+                  <div className="h-64 sm:h-80 bg-gradient-to-r from-primary via-primary/90 to-primary/80 flex items-center justify-center relative overflow-hidden">
                     {blogPost.image_url && !blogPost.image_url.includes("placeholder") ? (
                       <img
                         src={blogPost.image_url || "/placeholder.svg"}
@@ -408,10 +407,10 @@ function SearchContent() {
                     ) : (
                       <>
                         <div className="absolute inset-0 bg-black/20"></div>
-                        <div className="relative text-center text-white z-10 px-4">
+                        <div className="relative text-center text-primary-foreground z-10 px-4">
                           <Sparkles className="h-12 w-12 sm:h-16 sm:w-16 mx-auto mb-3 sm:mb-4 opacity-90" />
                           <h3 className="text-xl sm:text-2xl font-bold mb-2">AI Generated Content</h3>
-                          <p className="text-blue-100 text-sm sm:text-base">Powered by {blogPost.ai_provider}</p>
+                          <p className="text-primary-foreground/80 text-sm sm:text-base">Powered by {blogPost.ai_provider}</p>
                         </div>
                         <div className="absolute inset-0 bg-gradient-to-t from-black/30 to-transparent"></div>
                       </>
@@ -420,32 +419,32 @@ function SearchContent() {
 
                   <CardHeader className="p-6 sm:p-8">
                     <div className="flex flex-wrap items-center justify-between gap-3 mb-4 sm:mb-6">
-                      <div className="inline-flex items-center gap-2 px-3 sm:px-4 py-1.5 sm:py-2 text-xs sm:text-sm font-medium bg-blue-50 text-blue-700 rounded-full border border-blue-100">
+                      <div className="inline-flex items-center gap-2 px-3 sm:px-4 py-1.5 sm:py-2 text-xs sm:text-sm font-medium bg-primary/10 text-primary rounded-full border border-primary/20">
                         <BookOpen className="h-3 w-3 sm:h-4 sm:w-4" />
                         {blogPost.category}
                       </div>
-                      <div className="text-xs sm:text-sm text-gray-500 bg-gray-50 px-3 py-1 rounded-full">
+                      <div className="text-xs sm:text-sm text-muted-foreground bg-muted px-3 py-1 rounded-full">
                         Generated using {blogPost.ai_provider}
                       </div>
                     </div>
 
-                    <CardTitle className="text-2xl sm:text-3xl md:text-4xl font-bold text-gray-900 mb-4 sm:mb-6 leading-tight">
+                    <CardTitle className="text-2xl sm:text-3xl md:text-4xl font-bold text-foreground mb-4 sm:mb-6 leading-tight">
                       {blogPost.title}
                     </CardTitle>
 
-                    <CardDescription className="text-base sm:text-lg md:text-xl text-gray-600 mb-6 sm:mb-8 leading-relaxed">
+                    <CardDescription className="text-base sm:text-lg md:text-xl mb-6 sm:mb-8 leading-relaxed">
                       {blogPost.excerpt}
                     </CardDescription>
 
                     {/* Metadata */}
-                    <div className="flex flex-wrap items-center gap-4 sm:gap-6 md:gap-8 text-gray-600 mb-6 sm:mb-8">
+                    <div className="flex flex-wrap items-center gap-4 sm:gap-6 md:gap-8 text-muted-foreground mb-6 sm:mb-8">
                       <div className="flex items-center gap-2 sm:gap-3">
-                        <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-full bg-gradient-to-r from-blue-500 to-purple-500 flex items-center justify-center text-xs sm:text-sm font-bold text-white border-2 border-white shadow-sm">
+                        <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-full bg-primary flex items-center justify-center text-xs sm:text-sm font-bold text-primary-foreground border-2 border-background shadow-sm">
                           {blogPost.author.charAt(0)}
                         </div>
                         <div>
-                          <p className="font-medium text-gray-900 text-sm sm:text-base">{blogPost.author}</p>
-                          <p className="text-xs sm:text-sm text-gray-500">AI Content Creator</p>
+                          <p className="font-medium text-foreground text-sm sm:text-base">{blogPost.author}</p>
+                          <p className="text-xs sm:text-sm text-muted-foreground">AI Content Creator</p>
                         </div>
                       </div>
                       <div className="flex items-center gap-1.5 sm:gap-2">
@@ -468,14 +467,14 @@ function SearchContent() {
                         {blogPost.tags.slice(0, 6).map((tag, index) => (
                           <span
                             key={index}
-                            className="inline-flex items-center gap-1 px-3 sm:px-4 py-1.5 text-xs sm:text-sm bg-gray-100 text-gray-700 rounded-full hover:bg-gray-200 transition-colors border border-gray-200"
+                            className="inline-flex items-center gap-1 px-3 sm:px-4 py-1.5 text-xs sm:text-sm bg-muted text-foreground rounded-full hover:bg-muted/80 transition-colors border border-border"
                           >
                             <Tag className="h-3 w-3" />
                             {tag}
                           </span>
                         ))}
                         {blogPost.tags.length > 6 && (
-                          <span className="inline-flex items-center px-3 py-1.5 text-xs sm:text-sm text-gray-500">
+                          <span className="inline-flex items-center px-3 py-1.5 text-xs sm:text-sm text-muted-foreground">
                             +{blogPost.tags.length - 6} more
                           </span>
                         )}
@@ -486,27 +485,27 @@ function SearchContent() {
                   <CardContent className="p-6 sm:p-8 pt-0">
                     <div className="flex flex-col sm:flex-row gap-3 sm:gap-4 mb-6 sm:mb-8">
                       <Link href={`/blog/${blogPost.id}`} className="flex-1">
-                        <Button className="w-full bg-blue-600 hover:bg-blue-700 text-white h-11 sm:h-12 text-base sm:text-lg font-medium shadow-md hover:shadow-lg transition-all">
+                        <Button className="w-full h-11 sm:h-12 text-base sm:text-lg font-medium shadow-md hover:shadow-lg transition-all">
                           <FileText className="h-4 w-4 sm:h-5 sm:w-5 mr-2" />
                           Read Full Article
                         </Button>
                       </Link>
-                      <Button variant="outline" className="border-gray-300 hover:bg-gray-50 h-11 sm:h-12 px-6 sm:px-8">
+                      <Button variant="outline" className="h-11 sm:h-12 px-6 sm:px-8">
                         Share
                       </Button>
                     </div>
 
                     {/* Content Preview */}
-                    <div className="bg-gradient-to-br from-gray-50 to-blue-50 rounded-xl p-4 sm:p-6 border border-gray-200">
+                    <div className="bg-gradient-to-br from-muted/50 to-muted/30 rounded-xl p-4 sm:p-6 border border-border">
                       <div className="flex items-center gap-2 mb-3 sm:mb-4">
-                        <FileText className="h-4 w-4 sm:h-5 sm:w-5 text-blue-600" />
-                        <h4 className="font-semibold text-gray-900 text-sm sm:text-base">Content Preview</h4>
+                        <FileText className="h-4 w-4 sm:h-5 sm:w-5 text-primary" />
+                        <h4 className="font-semibold text-foreground text-sm sm:text-base">Content Preview</h4>
                       </div>
-                      <div className="text-gray-700 leading-relaxed text-sm sm:text-base mb-4 line-clamp-4 sm:line-clamp-5">
+                      <div className="text-foreground leading-relaxed text-sm sm:text-base mb-4 line-clamp-4 sm:line-clamp-5">
                         {blogPost.content.substring(0, 500)}...
                       </div>
                       <Link href={`/blog/${blogPost.id}`}>
-                        <Button variant="link" className="p-0 h-auto text-blue-600 hover:text-blue-700 font-medium text-sm sm:text-base">
+                        <Button variant="link" className="p-0 h-auto font-medium text-sm sm:text-base">
                           Continue reading →
                         </Button>
                       </Link>

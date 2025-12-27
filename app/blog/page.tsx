@@ -89,31 +89,31 @@ export default function BlogPage() {
   }
 
   return (
-    <div className="flex flex-col min-h-screen bg-white">
+    <div className="flex flex-col min-h-screen bg-background">
       {/* Header */}
-      <header className="sticky top-0 z-40 w-full border-b border-gray-200 bg-white/95 backdrop-blur supports-[backdrop-filter]:bg-white/60 shadow-sm">
+      <header className="sticky top-0 z-40 w-full border-b border-border bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 shadow-sm">
         <div className="container flex h-14 sm:h-16 items-center space-x-2 sm:justify-between sm:space-x-0 px-4 sm:px-6">
           <div className="flex gap-4 sm:gap-6 md:gap-10">
             <Link href="/" className="flex items-center space-x-2 group">
-              <Sparkles className="h-5 w-5 sm:h-6 sm:w-6 text-blue-600 group-hover:scale-110 transition-transform" />
-              <span className="inline-block font-bold text-gray-900 text-sm sm:text-base">AI Content Generator</span>
+              <Sparkles className="h-5 w-5 sm:h-6 sm:w-6 text-primary group-hover:scale-110 transition-transform" />
+              <span className="inline-block font-bold text-foreground text-sm sm:text-base">AI Content Generator</span>
             </Link>
             <nav className="hidden md:flex gap-4 lg:gap-6">
               <Link
                 href="/blog"
-                className="flex items-center text-sm font-medium text-gray-600 transition-colors hover:text-gray-900"
+                className="flex items-center text-sm font-medium text-muted-foreground transition-colors hover:text-foreground"
               >
                 Blog
               </Link>
               <Link
                 href="/about"
-                className="flex items-center text-sm font-medium text-gray-600 transition-colors hover:text-gray-900"
+                className="flex items-center text-sm font-medium text-muted-foreground transition-colors hover:text-foreground"
               >
                 About
               </Link>
               <Link
                 href="/careers"
-                className="flex items-center text-sm font-medium text-gray-600 transition-colors hover:text-gray-900"
+                className="flex items-center text-sm font-medium text-muted-foreground transition-colors hover:text-foreground"
               >
                 Careers
               </Link>
@@ -122,12 +122,12 @@ export default function BlogPage() {
           <div className="flex flex-1 items-center justify-end space-x-2 sm:space-x-4">
             <nav className="hidden md:flex items-center space-x-2">
               <Link href="/login">
-                <Button variant="ghost" size="sm" className="text-gray-700 hover:text-gray-900 h-9 px-3 sm:px-4">
+                <Button variant="ghost" size="sm" className="h-9 px-3 sm:px-4">
                   Login
                 </Button>
               </Link>
               <Link href="/login">
-                <Button size="sm" className="bg-blue-600 hover:bg-blue-700 text-white h-9 px-3 sm:px-4">
+                <Button size="sm" className="h-9 px-3 sm:px-4">
                   Sign Up
                 </Button>
               </Link>
@@ -141,17 +141,17 @@ export default function BlogPage() {
 
       <main className="flex-1">
         {/* Hero Section */}
-        <section className="w-full py-8 sm:py-12 md:py-16 lg:py-24 bg-gradient-to-b from-blue-50 via-white to-gray-50 relative overflow-hidden">
+        <section className="w-full py-8 sm:py-12 md:py-16 lg:py-24 bg-gradient-to-b from-muted/50 via-background to-muted/30 relative overflow-hidden">
           {/* Decorative background elements */}
-          <div className="absolute inset-0 opacity-5">
-            <div className="absolute top-0 right-0 w-96 h-96 bg-blue-400 rounded-full blur-3xl"></div>
-            <div className="absolute bottom-0 left-0 w-96 h-96 bg-indigo-400 rounded-full blur-3xl"></div>
+          <div className="absolute inset-0 opacity-5 dark:opacity-10">
+            <div className="absolute top-0 right-0 w-96 h-96 bg-primary rounded-full blur-3xl"></div>
+            <div className="absolute bottom-0 left-0 w-96 h-96 bg-primary/60 rounded-full blur-3xl"></div>
           </div>
           
           <div className="container relative z-10 px-4 sm:px-6">
             <div className="flex flex-col items-start gap-4 sm:gap-6">
               <Link href="/">
-                <Button variant="ghost" size="sm" className="gap-1 text-gray-600 hover:text-gray-900 h-9 group">
+                <Button variant="ghost" size="sm" className="gap-1 h-9 group">
                   <ArrowLeft className="h-4 w-4 group-hover:-translate-x-1 transition-transform" />
                   <span className="hidden sm:inline">Back to Home</span>
                   <span className="sm:hidden">Back</span>
@@ -160,20 +160,20 @@ export default function BlogPage() {
               
               <div className="w-full max-w-4xl">
                 <div className="flex items-center gap-2 mb-3">
-                  <div className="flex items-center gap-2 px-3 py-1 bg-blue-100 text-blue-700 rounded-full text-xs sm:text-sm font-medium">
+                  <div className="flex items-center gap-2 px-3 py-1 bg-primary/10 text-primary rounded-full text-xs sm:text-sm font-medium border border-primary/20">
                     <Zap className="h-3 w-3 sm:h-4 sm:w-4" />
                     AI-Powered Content
                   </div>
-                  <div className="flex items-center gap-2 px-3 py-1 bg-indigo-100 text-indigo-700 rounded-full text-xs sm:text-sm font-medium">
+                  <div className="flex items-center gap-2 px-3 py-1 bg-primary/10 text-primary rounded-full text-xs sm:text-sm font-medium border border-primary/20">
                     <BookOpen className="h-3 w-3 sm:h-4 sm:w-4" />
                     {blogPosts.length > 0 ? `${blogPosts.length} Articles` : "Discover Articles"}
                   </div>
                 </div>
                 
-                <h1 className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-bold tracking-tight text-gray-900 mb-4 sm:mb-6 leading-tight">
+                <h1 className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-bold tracking-tight text-foreground mb-4 sm:mb-6 leading-tight">
                   AI-Generated Blog
                 </h1>
-                <p className="max-w-[700px] text-gray-600 text-base sm:text-lg md:text-xl mb-6 sm:mb-8 leading-relaxed">
+                <p className="max-w-[700px] text-muted-foreground text-base sm:text-lg md:text-xl mb-6 sm:mb-8 leading-relaxed">
                   Discover insights, tips, and comprehensive guides on any topic, all powered by advanced AI technology. 
                   Explore our collection or generate new content tailored to your needs.
                 </p>
@@ -182,19 +182,19 @@ export default function BlogPage() {
                 <div className="w-full max-w-3xl">
                   <form onSubmit={handleSearch} className="flex flex-col sm:flex-row gap-3">
                     <div className="relative flex-1">
-                      <Search className="absolute left-3 sm:left-4 top-1/2 transform -translate-y-1/2 h-4 w-4 sm:h-5 sm:w-5 text-gray-400" />
+                      <Search className="absolute left-3 sm:left-4 top-1/2 transform -translate-y-1/2 h-4 w-4 sm:h-5 sm:w-5 text-muted-foreground" />
                       <Input
                         type="text"
                         placeholder="Search for any topic or generate new content..."
                         value={searchQuery}
                         onChange={(e) => setSearchQuery(e.target.value)}
-                        className="pl-10 sm:pl-12 h-11 sm:h-12 text-sm sm:text-base bg-white border-gray-300 focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 text-gray-900 shadow-sm"
+                        className="pl-10 sm:pl-12 h-11 sm:h-12 text-sm sm:text-base shadow-sm"
                       />
                     </div>
                     <Button 
                       type="submit" 
                       size="lg" 
-                      className="h-11 sm:h-12 px-6 sm:px-8 bg-blue-600 hover:bg-blue-700 text-white font-medium shadow-md hover:shadow-lg transition-all"
+                      className="h-11 sm:h-12 px-6 sm:px-8 font-medium shadow-md hover:shadow-lg transition-all"
                     >
                       <Search className="h-4 w-4 sm:h-5 sm:w-5 mr-2" />
                       <span className="hidden sm:inline">Search & Generate</span>
@@ -202,8 +202,8 @@ export default function BlogPage() {
                     </Button>
                   </form>
                   <div className="flex items-start gap-2 mt-3">
-                    <Sparkles className="h-4 w-4 text-blue-500 mt-0.5 flex-shrink-0" />
-                    <p className="text-xs sm:text-sm text-gray-500 leading-relaxed">
+                    <Sparkles className="h-4 w-4 text-primary mt-0.5 flex-shrink-0" />
+                    <p className="text-xs sm:text-sm text-muted-foreground leading-relaxed">
                       Can't find what you're looking for? We'll generate a comprehensive guide for you using AI in seconds!
                     </p>
                   </div>
@@ -214,23 +214,23 @@ export default function BlogPage() {
         </section>
 
         {/* Blog Posts Section */}
-        <section className="w-full py-12 sm:py-16 md:py-24 bg-gray-50">
+        <section className="w-full py-12 sm:py-16 md:py-24 bg-muted/30">
           <div className="container px-4 sm:px-6">
             {!loading && blogPosts.length > 0 && (
               <div className="mb-8 sm:mb-12">
                 <div className="flex items-center justify-between mb-4">
                   <div>
-                    <h2 className="text-2xl sm:text-3xl md:text-4xl font-bold text-gray-900 mb-2 sm:mb-3">
+                    <h2 className="text-2xl sm:text-3xl md:text-4xl font-bold text-foreground mb-2 sm:mb-3">
                       Latest Articles
                     </h2>
-                    <p className="text-gray-600 text-sm sm:text-base md:text-lg">
+                    <p className="text-muted-foreground text-sm sm:text-base md:text-lg">
                       Explore our collection of AI-generated content covering a wide range of topics.
                     </p>
                   </div>
                   {blogPosts.length > 0 && (
-                    <div className="hidden sm:flex items-center gap-2 px-4 py-2 bg-white rounded-lg border border-gray-200 shadow-sm">
-                      <TrendingUp className="h-4 w-4 text-blue-600" />
-                      <span className="text-sm font-medium text-gray-700">{blogPosts.length} Articles</span>
+                    <div className="hidden sm:flex items-center gap-2 px-4 py-2 bg-card rounded-lg border border-border shadow-sm">
+                      <TrendingUp className="h-4 w-4 text-primary" />
+                      <span className="text-sm font-medium text-foreground">{blogPosts.length} Articles</span>
                     </div>
                   )}
                 </div>
@@ -240,15 +240,15 @@ export default function BlogPage() {
             {loading ? (
               <div className="space-y-8 sm:space-y-12">
                 {/* Featured Post Skeleton */}
-                <div className="relative rounded-2xl overflow-hidden shadow-xl bg-white border border-gray-200 animate-pulse">
+                <div className="relative rounded-2xl overflow-hidden shadow-xl bg-card border border-border animate-pulse">
                   <div className="grid md:grid-cols-2">
-                    <div className="bg-gradient-to-r from-blue-600 to-indigo-600 p-8 md:p-12">
+                    <div className="bg-gradient-to-r from-primary to-primary/80 p-8 md:p-12">
                       <Skeleton className="h-6 w-24 mb-4 bg-white/20" />
                       <Skeleton className="h-8 w-full mb-4 bg-white/20" />
                       <Skeleton className="h-6 w-3/4 mb-6 bg-white/20" />
                       <Skeleton className="h-10 w-32 bg-white/20" />
                     </div>
-                    <Skeleton className="h-64 md:h-auto bg-gray-200" />
+                    <Skeleton className="h-64 md:h-auto bg-muted" />
                   </div>
                 </div>
                 {/* Grid Skeleton */}
@@ -257,14 +257,14 @@ export default function BlogPage() {
             ) : error ? (
               <div className="text-center py-12 sm:py-16">
                 <div className="max-w-md mx-auto">
-                  <div className="mx-auto mb-6 flex h-16 w-16 items-center justify-center rounded-full bg-red-50">
-                    <Sparkles className="h-8 w-8 text-red-600" />
+                  <div className="mx-auto mb-6 flex h-16 w-16 items-center justify-center rounded-full bg-destructive/10">
+                    <Sparkles className="h-8 w-8 text-destructive" />
                   </div>
-                  <h3 className="text-xl sm:text-2xl font-semibold mb-2 text-red-600">Error Loading Blog Posts</h3>
-                  <p className="text-gray-600 mb-6 text-sm sm:text-base">{error}</p>
+                  <h3 className="text-xl sm:text-2xl font-semibold mb-2 text-destructive">Error Loading Blog Posts</h3>
+                  <p className="text-muted-foreground mb-6 text-sm sm:text-base">{error}</p>
                   <Button 
                     onClick={fetchBlogPosts} 
-                    className="bg-blue-600 hover:bg-blue-700 text-white h-10 sm:h-11 px-6"
+                    className="h-10 sm:h-11 px-6"
                   >
                     Try Again
                   </Button>
@@ -275,9 +275,9 @@ export default function BlogPage() {
                 {/* Featured Post */}
                 {blogPosts[0] && (
                   <div className="mb-12 sm:mb-16">
-                    <div className="relative rounded-2xl overflow-hidden shadow-xl bg-white border border-gray-200 hover:shadow-2xl transition-shadow duration-300">
+                    <div className="relative rounded-2xl overflow-hidden shadow-xl bg-card border border-border hover:shadow-2xl hover:border-primary/50 transition-all duration-300">
                       <div className="grid md:grid-cols-2">
-                        <div className="bg-gradient-to-r from-blue-600 via-blue-700 to-indigo-600 p-6 sm:p-8 md:p-12 flex items-center relative overflow-hidden">
+                        <div className="bg-gradient-to-r from-primary via-primary/90 to-primary/80 p-6 sm:p-8 md:p-12 flex items-center relative overflow-hidden">
                           {/* Decorative pattern */}
                           <div className="absolute inset-0 opacity-10">
                             <div className="absolute top-0 right-0 w-64 h-64 bg-white rounded-full blur-3xl"></div>
@@ -318,14 +318,14 @@ export default function BlogPage() {
                               </div>
                             </div>
                             <Link href={`/blog/${blogPosts[0].id}`}>
-                              <Button className="bg-white text-blue-600 hover:bg-gray-100 font-medium h-10 sm:h-11 px-6 shadow-lg hover:shadow-xl transition-all">
+                              <Button className="bg-background text-primary hover:bg-background/90 font-medium h-10 sm:h-11 px-6 shadow-lg hover:shadow-xl transition-all">
                                 Read Article
                                 <ArrowLeft className="h-4 w-4 ml-2 rotate-180" />
                               </Button>
                             </Link>
                           </div>
                         </div>
-                        <div className="h-64 sm:h-80 md:h-auto bg-gray-100 relative overflow-hidden group">
+                        <div className="h-64 sm:h-80 md:h-auto bg-muted relative overflow-hidden group">
                           <img
                             src={blogPosts[0].image_url || "/placeholder.svg?height=400&width=600"}
                             alt={blogPosts[0].title}
@@ -342,8 +342,8 @@ export default function BlogPage() {
                 <div className="grid gap-6 sm:gap-8 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3">
                   {blogPosts.slice(1).map((post) => (
                     <Link key={post.id} href={`/blog/${post.id}`} className="group">
-                      <Card className="h-full border border-gray-200 transition-all duration-300 shadow-sm hover:shadow-xl bg-white overflow-hidden">
-                        <div className="h-48 sm:h-56 overflow-hidden bg-gray-100 relative">
+                      <Card className="h-full border border-border transition-all duration-300 shadow-sm hover:shadow-xl hover:border-primary/50 hover:-translate-y-1 bg-card overflow-hidden">
+                        <div className="h-48 sm:h-56 overflow-hidden bg-muted relative">
                           <img
                             src={post.image_url || "/placeholder.svg?height=300&width=400"}
                             alt={post.title}
@@ -351,33 +351,33 @@ export default function BlogPage() {
                           />
                           <div className="absolute inset-0 bg-gradient-to-t from-black/40 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity"></div>
                           <div className="absolute top-3 left-3">
-                            <div className="inline-block px-2.5 py-1 text-xs font-medium bg-white/90 backdrop-blur-sm text-blue-600 rounded-full shadow-sm">
+                            <div className="inline-block px-2.5 py-1 text-xs font-medium bg-background/90 backdrop-blur-sm text-primary rounded-full shadow-sm border border-border/50">
                               {post.category}
                             </div>
                           </div>
                         </div>
                         <CardHeader className="pb-3">
                           <div className="flex items-center justify-between mb-2">
-                            <div className="flex items-center gap-1.5 text-xs text-gray-500">
+                            <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
                               <Calendar className="h-3 w-3" />
                               <span>{formatDate(post.created_at)}</span>
                             </div>
-                            <div className="flex items-center gap-1 text-xs text-gray-500">
+                            <div className="flex items-center gap-1 text-xs text-muted-foreground">
                               <Eye className="h-3 w-3" />
                               <span>{post.view_count}</span>
                             </div>
                           </div>
-                          <CardTitle className="text-lg sm:text-xl font-bold text-gray-900 group-hover:text-blue-600 transition-colors line-clamp-2 mb-2">
+                          <CardTitle className="text-lg sm:text-xl font-bold group-hover:text-primary transition-colors line-clamp-2 mb-2">
                             {post.title}
                           </CardTitle>
-                          <CardDescription className="text-sm text-gray-600 line-clamp-2 sm:line-clamp-3">
+                          <CardDescription className="text-sm line-clamp-2 sm:line-clamp-3">
                             {post.excerpt}
                           </CardDescription>
                         </CardHeader>
                         <CardContent className="pt-0">
-                          <div className="flex items-center justify-between text-xs sm:text-sm text-gray-500 mb-3 pb-3 border-b border-gray-100">
+                          <div className="flex items-center justify-between text-xs sm:text-sm text-muted-foreground mb-3 pb-3 border-b border-border">
                             <div className="flex items-center gap-2">
-                              <div className="w-6 h-6 sm:w-7 sm:h-7 rounded-full bg-gradient-to-br from-blue-100 to-indigo-100 flex items-center justify-center text-xs font-medium text-blue-700 border border-blue-200">
+                              <div className="w-6 h-6 sm:w-7 sm:h-7 rounded-full bg-primary/10 flex items-center justify-center text-xs font-medium text-primary border border-primary/20">
                                 {post.author.charAt(0)}
                               </div>
                               <span className="font-medium">{post.author}</span>
@@ -392,14 +392,14 @@ export default function BlogPage() {
                               {post.tags.slice(0, 3).map((tag, index) => (
                                 <span
                                   key={index}
-                                  className="inline-flex items-center gap-1 px-2 py-1 text-xs bg-gray-50 text-gray-600 rounded-md border border-gray-200 hover:bg-gray-100 transition-colors"
+                                  className="inline-flex items-center gap-1 px-2 py-1 text-xs bg-muted text-foreground rounded-md border border-border hover:bg-muted/80 transition-colors"
                                 >
                                   <Tag className="h-3 w-3" />
                                   {tag}
                                 </span>
                               ))}
                               {post.tags.length > 3 && (
-                                <span className="inline-flex items-center px-2 py-1 text-xs text-gray-500">
+                                <span className="inline-flex items-center px-2 py-1 text-xs text-muted-foreground">
                                   +{post.tags.length - 3} more
                                 </span>
                               )}
@@ -416,7 +416,7 @@ export default function BlogPage() {
                     <Button
                       variant="outline"
                       size="lg"
-                      className="border-gray-300 text-gray-700 hover:bg-gray-50 hover:border-gray-400 h-11 sm:h-12 px-6 sm:px-8"
+                      className="h-11 sm:h-12 px-6 sm:px-8"
                       onClick={fetchBlogPosts}
                     >
                       Load More Articles
@@ -427,15 +427,15 @@ export default function BlogPage() {
             ) : (
               <div className="text-center py-12 sm:py-16">
                 <div className="max-w-lg mx-auto">
-                  <div className="mx-auto mb-6 flex h-20 w-20 items-center justify-center rounded-full bg-blue-50">
-                    <Sparkles className="h-10 w-10 text-blue-600" />
+                  <div className="mx-auto mb-6 flex h-20 w-20 items-center justify-center rounded-full bg-primary/10">
+                    <Sparkles className="h-10 w-10 text-primary" />
                   </div>
-                  <h3 className="text-xl sm:text-2xl font-semibold mb-3 text-gray-900">No blog posts yet</h3>
-                  <p className="text-gray-600 mb-6 text-sm sm:text-base leading-relaxed">
+                  <h3 className="text-xl sm:text-2xl font-semibold mb-3 text-foreground">No blog posts yet</h3>
+                  <p className="text-muted-foreground mb-6 text-sm sm:text-base leading-relaxed">
                     Be the first to generate content! Search for any topic above to create a comprehensive guide using our AI technology.
                   </p>
                   <Link href="/blog-search">
-                    <Button className="bg-blue-600 hover:bg-blue-700 text-white h-10 sm:h-11 px-6 shadow-md hover:shadow-lg transition-all">
+                    <Button className="h-10 sm:h-11 px-6 shadow-md hover:shadow-lg transition-all">
                       <Sparkles className="h-4 w-4 mr-2" />
                       Generate First Post
                     </Button>
@@ -447,22 +447,22 @@ export default function BlogPage() {
         </section>
 
         {/* Newsletter Section */}
-        <section className="w-full py-12 sm:py-16 md:py-24 bg-gradient-to-b from-white to-blue-50">
+        <section className="w-full py-12 sm:py-16 md:py-24 bg-gradient-to-b from-background to-muted/30">
           <div className="container px-4 sm:px-6">
-            <div className="mx-auto max-w-3xl rounded-2xl border border-gray-200 bg-gradient-to-br from-blue-50 to-indigo-50 p-6 sm:p-8 md:p-10 shadow-lg relative overflow-hidden">
+            <div className="mx-auto max-w-3xl rounded-2xl border border-border bg-gradient-to-br from-muted/50 to-muted/30 p-6 sm:p-8 md:p-10 shadow-lg relative overflow-hidden">
               {/* Decorative elements */}
-              <div className="absolute top-0 right-0 w-32 h-32 bg-blue-200 rounded-full blur-3xl opacity-20"></div>
-              <div className="absolute bottom-0 left-0 w-24 h-24 bg-indigo-200 rounded-full blur-3xl opacity-20"></div>
+              <div className="absolute top-0 right-0 w-32 h-32 bg-primary/20 rounded-full blur-3xl opacity-20"></div>
+              <div className="absolute bottom-0 left-0 w-24 h-24 bg-primary/20 rounded-full blur-3xl opacity-20"></div>
               
               <div className="relative z-10">
                 <div className="text-center mb-6 sm:mb-8">
-                  <div className="inline-flex items-center justify-center w-12 h-12 sm:w-16 sm:h-16 rounded-full bg-blue-600 mb-4 mx-auto">
-                    <Sparkles className="h-6 w-6 sm:h-8 sm:w-8 text-white" />
+                  <div className="inline-flex items-center justify-center w-12 h-12 sm:w-16 sm:h-16 rounded-full bg-primary mb-4 mx-auto">
+                    <Sparkles className="h-6 w-6 sm:h-8 sm:w-8 text-primary-foreground" />
                   </div>
-                  <h2 className="text-xl sm:text-2xl md:text-3xl font-bold mb-3 text-gray-900">
+                  <h2 className="text-xl sm:text-2xl md:text-3xl font-bold mb-3 text-foreground">
                     Stay Updated with AI Content
                   </h2>
-                  <p className="text-gray-600 text-sm sm:text-base leading-relaxed">
+                  <p className="text-muted-foreground text-sm sm:text-base leading-relaxed">
                     Get the latest AI-generated insights and comprehensive guides delivered to your inbox. 
                     Never miss a new article!
                   </p>
@@ -471,13 +471,13 @@ export default function BlogPage() {
                   <input
                     type="email"
                     placeholder="Enter your email address"
-                    className="flex h-11 sm:h-12 w-full rounded-lg border border-gray-300 bg-white px-4 py-2 text-sm sm:text-base text-gray-900 placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 shadow-sm"
+                    className="flex h-11 sm:h-12 w-full rounded-lg border border-input bg-background px-4 py-2 text-sm sm:text-base text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:border-ring shadow-sm"
                   />
-                  <Button className="bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 border-0 text-white h-11 sm:h-12 px-6 sm:px-8 font-medium shadow-md hover:shadow-lg transition-all">
+                  <Button className="h-11 sm:h-12 px-6 sm:px-8 font-medium shadow-md hover:shadow-lg transition-all">
                     Subscribe
                   </Button>
                 </div>
-                <p className="text-xs text-gray-500 text-center mt-3">
+                <p className="text-xs text-muted-foreground text-center mt-3">
                   We respect your privacy. Unsubscribe at any time.
                 </p>
               </div>
@@ -487,24 +487,24 @@ export default function BlogPage() {
       </main>
 
       {/* Footer */}
-      <footer className="w-full py-8 sm:py-10 bg-gray-100 border-t border-gray-200">
+      <footer className="w-full py-8 sm:py-10 bg-muted/50 border-t border-border">
         <div className="container px-4 sm:px-6">
           <div className="flex flex-col items-center justify-center space-y-4 sm:space-y-5 text-center">
             <Link href="/" className="flex items-center space-x-2 group">
-              <Sparkles className="h-5 w-5 sm:h-6 sm:w-6 text-blue-600 group-hover:scale-110 transition-transform" />
-              <span className="font-bold text-gray-900 text-sm sm:text-base">AI Content Generator</span>
+              <Sparkles className="h-5 w-5 sm:h-6 sm:w-6 text-primary group-hover:scale-110 transition-transform" />
+              <span className="font-bold text-foreground text-sm sm:text-base">AI Content Generator</span>
             </Link>
-            <p className="text-xs sm:text-sm text-gray-600">
+            <p className="text-xs sm:text-sm text-muted-foreground">
               © {new Date().getFullYear()} AI Content Generator. All rights reserved.
             </p>
             <div className="flex flex-wrap justify-center gap-4 sm:gap-6">
-              <Link href="/privacy" className="text-xs sm:text-sm text-gray-600 hover:text-gray-900 transition-colors">
+              <Link href="/privacy" className="text-xs sm:text-sm text-muted-foreground hover:text-foreground transition-colors">
                 Privacy Policy
               </Link>
-              <Link href="/terms" className="text-xs sm:text-sm text-gray-600 hover:text-gray-900 transition-colors">
+              <Link href="/terms" className="text-xs sm:text-sm text-muted-foreground hover:text-foreground transition-colors">
                 Terms of Service
               </Link>
-              <Link href="/cookies" className="text-xs sm:text-sm text-gray-600 hover:text-gray-900 transition-colors">
+              <Link href="/cookies" className="text-xs sm:text-sm text-muted-foreground hover:text-foreground transition-colors">
                 Cookie Policy
               </Link>
             </div>
