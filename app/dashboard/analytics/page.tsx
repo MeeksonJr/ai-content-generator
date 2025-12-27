@@ -41,6 +41,7 @@ export default function AnalyticsPage() {
   const [contentTypeStats, setContentTypeStats] = useState<any>(null)
   const [contentHistory, setContentHistory] = useState<any>(null)
   const [timeRange, setTimeRange] = useState("all")
+  const [comparisonData, setComparisonData] = useState<any>(null)
   const { toast } = useToast()
   const supabase = createClient()
 
@@ -150,6 +151,41 @@ export default function AnalyticsPage() {
         types: Object.keys(contentTypeCount).length,
         withSentiment: Object.values(sentimentCount).reduce((a, b) => a + b, 0),
         withKeywords: contentData.filter((item: any) => item.keywords && item.keywords.length > 0).length,
+      })
+
+      // Calculate period comparison (this month vs last month)
+      const now = new Date()
+      const thisMonth = new Date(now.getFullYear(), now.getMonth(), 1)
+      const lastMonth = new Date(now.getFullYear(), now.getMonth() - 1, 1)
+      const lastMonthEnd = new Date(now.getFullYear(), now.getMonth(), 0)
+
+      const thisMonthContent = contentData.filter((item: any) => {
+        const itemDate = new Date(item.created_at)
+        return itemDate >= thisMonth
+      }).length
+
+      const lastMonthContent = contentData.filter((item: any) => {
+        const itemDate = new Date(item.created_at)
+        return itemDate >= lastMonth && itemDate < thisMonth
+      }).length
+
+      const contentChange = lastMonthContent > 0 
+        ? ((thisMonthContent - lastMonthContent) / lastMonthContent * 100).toFixed(1)
+        : thisMonthContent > 0 ? "100" : "0"
+
+      setComparisonData({
+        thisMonth: {
+          content: thisMonthContent,
+          date: thisMonth.toLocaleDateString("default", { month: "long", year: "numeric" }),
+        },
+        lastMonth: {
+          content: lastMonthContent,
+          date: lastMonth.toLocaleDateString("default", { month: "long", year: "numeric" }),
+        },
+        change: {
+          content: Number.parseFloat(contentChange),
+          isPositive: Number.parseFloat(contentChange) >= 0,
+        },
       })
     } catch (error) {
       console.error("Error fetching analytics data:", error)
@@ -326,6 +362,38 @@ export default function AnalyticsPage() {
             )}
           </Button>
         </motion.div>
+
+        {/* Period Comparison Card */}
+        {comparisonData && (
+          <motion.div variants={itemVariants}>
+            <Card className="bg-gray-900 border-gray-800">
+              <CardHeader>
+                <CardTitle>Period Comparison</CardTitle>
+                <CardDescription>This month vs last month</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="text-center p-4 bg-gray-800 rounded-lg">
+                    <p className="text-sm text-muted-foreground mb-1">{comparisonData.thisMonth.date}</p>
+                    <p className="text-2xl font-bold">{comparisonData.thisMonth.content}</p>
+                    <p className="text-xs text-muted-foreground">Content pieces</p>
+                  </div>
+                  <div className="text-center p-4 bg-gray-800 rounded-lg">
+                    <p className="text-sm text-muted-foreground mb-1">{comparisonData.lastMonth.date}</p>
+                    <p className="text-2xl font-bold">{comparisonData.lastMonth.content}</p>
+                    <p className="text-xs text-muted-foreground">Content pieces</p>
+                  </div>
+                </div>
+                <div className="mt-4 pt-4 border-t border-gray-800 text-center">
+                  <p className="text-sm text-muted-foreground mb-1">Change</p>
+                  <p className={`text-xl font-bold ${comparisonData.change.isPositive ? "text-green-400" : "text-red-400"}`}>
+                    {comparisonData.change.isPositive ? "+" : ""}{comparisonData.change.content}%
+                  </p>
+                </div>
+              </CardContent>
+            </Card>
+          </motion.div>
+        )}
 
         <motion.div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4" variants={containerVariants}>
           <motion.div variants={itemVariants}>
