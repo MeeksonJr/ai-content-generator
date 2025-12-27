@@ -1,15 +1,23 @@
 import { NextResponse } from "next/server"
+import type { NextRequest } from "next/server"
 import { createSupabaseRouteClient } from "@/lib/supabase/route-client"
 import { createServerSupabaseClient } from "@/lib/supabase/server-client"
 import { logger } from "@/lib/utils/logger"
-import { handleApiError } from "@/lib/utils/error-handler"
+import { handleApiError, AuthenticationError, AuthorizationError, ValidationError } from "@/lib/utils/error-handler"
+import { validateNumber } from "@/lib/utils/validation"
+import { createSecureResponse, handlePreflight } from "@/lib/utils/security"
+import { PAGINATION, STATUS } from "@/lib/constants/app.constants"
 
 /**
  * GET /api/admin/payments
  * Fetch payments for refund management (admin only)
  */
-export async function GET(request: Request) {
+export async function GET(request: NextRequest) {
   try {
+    // Handle preflight OPTIONS request
+    const preflightResponse = handlePreflight(request)
+    if (preflightResponse) return preflightResponse
+
     const supabase = await createSupabaseRouteClient()
 
     const {
@@ -17,7 +25,8 @@ export async function GET(request: Request) {
     } = await supabase.auth.getSession()
 
     if (!session) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
+      const { statusCode, error } = handleApiError(new AuthenticationError(), "Admin Payments GET")
+      return createSecureResponse(error, statusCode)
     }
 
     // Check if user is admin
@@ -30,13 +39,32 @@ export async function GET(request: Request) {
     const isAdmin = (profile as { is_admin?: boolean } | null)?.is_admin || false
 
     if (!isAdmin) {
-      return NextResponse.json({ error: "Forbidden - Admin access required" }, { status: 403 })
+      const { statusCode, error } = handleApiError(
+        new AuthorizationError("Admin access required"),
+        "Admin Payments GET"
+      )
+      return createSecureResponse(error, statusCode)
     }
 
     const { searchParams } = new URL(request.url)
     const status = searchParams.get("status") || "completed"
-    const limit = Number.parseInt(searchParams.get("limit") || "100")
-    const offset = Number.parseInt(searchParams.get("offset") || "0")
+    
+    // Validate pagination parameters
+    const limit = Math.min(
+      PAGINATION.MAX_LIMIT,
+      Math.max(1, Number.parseInt(searchParams.get("limit") || "100"))
+    )
+    const offset = Math.max(0, Number.parseInt(searchParams.get("offset") || "0"))
+
+    // Validate status parameter
+    const validStatuses = ["completed", "pending", "failed", "refunded", "cancelled"]
+    if (status && !validStatuses.includes(status)) {
+      const { statusCode, error } = handleApiError(
+        new ValidationError(`Invalid status. Must be one of: ${validStatuses.join(", ")}`),
+        "Admin Payments GET"
+      )
+      return createSecureResponse(error, statusCode)
+    }
 
     // Use server client to bypass RLS
     const serverSupabase = createServerSupabaseClient()
@@ -54,7 +82,7 @@ export async function GET(request: Request) {
 
     if (error) {
       const { statusCode, error: apiError } = handleApiError(error, "Admin Payments")
-      return NextResponse.json(apiError, { status: statusCode })
+      return createSecureResponse(apiError, statusCode)
     }
 
     logger.info("Fetched payments for refund management", {
@@ -63,13 +91,13 @@ export async function GET(request: Request) {
       data: { count: payments?.length || 0, status },
     })
 
-    return NextResponse.json({ payments: payments || [] })
+    return createSecureResponse({ payments: payments || [] })
   } catch (error) {
     logger.error("Error fetching payments", {
       context: "Admin",
     }, error as Error)
     const { statusCode, error: apiError } = handleApiError(error, "Admin Payments")
-    return NextResponse.json(apiError, { status: statusCode })
+    return createSecureResponse(apiError, statusCode)
   }
 }
 

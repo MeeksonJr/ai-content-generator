@@ -1,9 +1,13 @@
 import { NextResponse } from "next/server"
+import type { NextRequest } from "next/server"
 import { summarizeText } from "@/lib/ai/huggingface-client"
 import { logger } from "@/lib/utils/logger"
 import { createSupabaseRouteClient } from "@/lib/supabase/route-client"
 import { checkRateLimit, getRateLimitHeaders } from "@/lib/utils/rate-limiter"
-import { handleApiError, RateLimitError } from "@/lib/utils/error-handler"
+import { handleApiError, RateLimitError, AuthenticationError, ValidationError } from "@/lib/utils/error-handler"
+import { validateText, validateNumber } from "@/lib/utils/validation"
+import { createSecureResponse, handlePreflight } from "@/lib/utils/security"
+import { API_CONFIG } from "@/lib/constants/app.constants"
 
 // Default usage limits for different plan types
 const DEFAULT_USAGE_LIMITS = {
@@ -41,8 +45,12 @@ const DEFAULT_USAGE_LIMITS = {
   },
 }
 
-export async function POST(request: Request) {
+export async function POST(request: NextRequest) {
   try {
+    // Handle preflight OPTIONS request
+    const preflightResponse = handlePreflight(request)
+    if (preflightResponse) return preflightResponse
+
     const supabase = await createSupabaseRouteClient()
 
     // Check if user is authenticated
@@ -51,11 +59,8 @@ export async function POST(request: Request) {
     } = await supabase.auth.getSession()
 
     if (!session) {
-      logger.warn("Unauthorized access attempt to summarize API", {
-        context: "API",
-        data: { path: "/api/summarize" },
-      })
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
+      const { statusCode, error } = handleApiError(new AuthenticationError(), "Summarize POST")
+      return createSecureResponse(error, statusCode)
     }
 
     const userId = session.user.id
@@ -64,12 +69,31 @@ export async function POST(request: Request) {
     const body = await request.json()
     const { text, maxLength } = body
 
-    if (!text) {
-      logger.warn("Missing text parameter in summarize API", {
-        context: "API",
-        userId,
-      })
-      return NextResponse.json({ error: "Missing required text parameter" }, { status: 400 })
+    // Validate text
+    const textValidation = validateText(text, {
+      minLength: 1,
+      maxLength: API_CONFIG.MAX_CONTENT_LENGTH,
+      required: true,
+    })
+
+    if (!textValidation.isValid) {
+      const { statusCode, error } = handleApiError(
+        new ValidationError(`Text: ${textValidation.error}`),
+        "Summarize POST"
+      )
+      return createSecureResponse(error, statusCode)
+    }
+
+    // Validate maxLength if provided
+    if (maxLength !== undefined) {
+      const maxLengthValidation = validateNumber(maxLength, { min: 10, max: 1000, integer: true })
+      if (!maxLengthValidation.isValid) {
+        const { statusCode, error } = handleApiError(
+          new ValidationError(`Max length: ${maxLengthValidation.error}`),
+          "Summarize POST"
+        )
+        return createSecureResponse(error, statusCode)
+      }
     }
 
     // Check user's subscription and usage limits
@@ -232,9 +256,12 @@ export async function POST(request: Request) {
       responseData.warning = "Using fallback summarization due to service unavailability"
     }
 
-    return NextResponse.json(responseData, {
-      headers: rateLimitHeaders,
+    const response = createSecureResponse(responseData, 200)
+    // Add rate limit headers
+    Object.entries(rateLimitHeaders).forEach(([key, value]) => {
+      response.headers.set(key, value)
     })
+    return response
   } catch (error) {
     logger.error(
       "Error in text summarization API",
@@ -243,6 +270,7 @@ export async function POST(request: Request) {
       },
       error as Error,
     )
-    return NextResponse.json({ error: "Internal server error" }, { status: 500 })
+    const { statusCode, error: apiError } = handleApiError(error, "Summarize")
+    return createSecureResponse(apiError, statusCode)
   }
 }

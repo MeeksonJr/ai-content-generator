@@ -1,15 +1,21 @@
 import { NextResponse } from "next/server"
+import type { NextRequest } from "next/server"
 import { createSupabaseRouteClient } from "@/lib/supabase/route-client"
 import { createServerSupabaseClient } from "@/lib/supabase/server-client"
 import { logger } from "@/lib/utils/logger"
-import { handleApiError } from "@/lib/utils/error-handler"
+import { handleApiError, AuthenticationError, AuthorizationError, ValidationError } from "@/lib/utils/error-handler"
+import { createSecureResponse, handlePreflight } from "@/lib/utils/security"
 
 /**
  * GET /api/admin/usage-limits
  * Fetch all usage limits (admin only)
  */
-export async function GET() {
+export async function GET(request: NextRequest) {
   try {
+    // Handle preflight OPTIONS request
+    const preflightResponse = handlePreflight(request)
+    if (preflightResponse) return preflightResponse
+
     const supabase = await createSupabaseRouteClient()
 
     const {
@@ -17,7 +23,8 @@ export async function GET() {
     } = await supabase.auth.getSession()
 
     if (!session) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
+      const { statusCode, error } = handleApiError(new AuthenticationError(), "Usage Limits GET")
+      return createSecureResponse(error, statusCode)
     }
 
     // Check if user is admin
@@ -30,7 +37,11 @@ export async function GET() {
     const isAdmin = (profile as { is_admin?: boolean } | null)?.is_admin || false
 
     if (!isAdmin) {
-      return NextResponse.json({ error: "Forbidden - Admin access required" }, { status: 403 })
+      const { statusCode, error } = handleApiError(
+        new AuthorizationError("Admin access required"),
+        "Usage Limits GET"
+      )
+      return createSecureResponse(error, statusCode)
     }
 
     // Use server client to bypass RLS if needed
@@ -39,7 +50,7 @@ export async function GET() {
 
     if (error) {
       const { statusCode, error: apiError } = handleApiError(error, "Usage Limits")
-      return NextResponse.json(apiError, { status: statusCode })
+      return createSecureResponse(apiError, statusCode)
     }
 
     logger.info("Fetched usage limits", {
@@ -48,13 +59,13 @@ export async function GET() {
       data: { count: usageLimits?.length || 0 },
     })
 
-    return NextResponse.json({ usageLimits: usageLimits || [] })
+    return createSecureResponse({ usageLimits: usageLimits || [] })
   } catch (error) {
     logger.error("Error fetching usage limits", {
       context: "Admin",
     }, error as Error)
     const { statusCode, error: apiError } = handleApiError(error, "Usage Limits")
-    return NextResponse.json(apiError, { status: statusCode })
+    return createSecureResponse(apiError, statusCode)
   }
 }
 
@@ -62,8 +73,12 @@ export async function GET() {
  * PUT /api/admin/usage-limits
  * Update usage limits (admin only)
  */
-export async function PUT(request: Request) {
+export async function PUT(request: NextRequest) {
   try {
+    // Handle preflight OPTIONS request
+    const preflightResponse = handlePreflight(request)
+    if (preflightResponse) return preflightResponse
+
     const supabase = await createSupabaseRouteClient()
 
     const {
@@ -71,7 +86,8 @@ export async function PUT(request: Request) {
     } = await supabase.auth.getSession()
 
     if (!session) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
+      const { statusCode, error } = handleApiError(new AuthenticationError(), "Usage Limits PUT")
+      return createSecureResponse(error, statusCode)
     }
 
     // Check if user is admin
@@ -84,14 +100,22 @@ export async function PUT(request: Request) {
     const isAdmin = (profile as { is_admin?: boolean } | null)?.is_admin || false
 
     if (!isAdmin) {
-      return NextResponse.json({ error: "Forbidden - Admin access required" }, { status: 403 })
+      const { statusCode, error } = handleApiError(
+        new AuthorizationError("Admin access required"),
+        "Usage Limits PUT"
+      )
+      return createSecureResponse(error, statusCode)
     }
 
     const body = await request.json()
     const { usageLimits } = body
 
     if (!usageLimits || !Array.isArray(usageLimits)) {
-      return NextResponse.json({ error: "usageLimits array is required" }, { status: 400 })
+      const { statusCode, error } = handleApiError(
+        new ValidationError("usageLimits array is required"),
+        "Usage Limits PUT"
+      )
+      return createSecureResponse(error, statusCode)
     }
 
     // Use server client to bypass RLS
@@ -166,13 +190,13 @@ export async function PUT(request: Request) {
       data: { count: results.length },
     })
 
-    return NextResponse.json({ success: true, results })
+    return createSecureResponse({ success: true, results })
   } catch (error) {
     logger.error("Error updating usage limits", {
       context: "Admin",
     }, error as Error)
     const { statusCode, error: apiError } = handleApiError(error, "Usage Limits")
-    return NextResponse.json(apiError, { status: statusCode })
+    return createSecureResponse(apiError, statusCode)
   }
 }
 
