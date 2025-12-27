@@ -593,9 +593,30 @@
     - `app/api/paypal/webhook/route.ts` - Added payment completed handler
     - `components/dashboard/dashboard-layout.tsx` - Added Payment History to navigation
 
-- [ ] **Refund Management**
-  - Process refunds
-  - Refund history
+- [x] **Refund Management** ✅
+  - **Status:** Implemented
+  - **Implementation:**
+    - ✅ PayPal refund API integration
+    - ✅ Process full and partial refunds
+    - ✅ Refund history for users
+    - ✅ Admin refund management page
+    - ✅ Refund tracking in payment_history table
+    - ✅ Refund status tracking (pending, completed, partial, failed)
+    - ✅ Refund reason and metadata storage
+  - **Files Created:**
+    - `docs/refunds-migration.sql` - Database migration for refund columns
+    - `lib/paypal/refunds.ts` - PayPal refunds API client
+    - `app/api/refunds/route.ts` - Refunds API (GET user refunds, POST process refund)
+    - `app/dashboard/refunds/page.tsx` - User refund history page
+    - `app/dashboard/admin/refunds/page.tsx` - Admin refund management page
+    - `app/api/admin/payments/route.ts` - Admin payments API for refund management
+  - **Files Modified:**
+    - `components/dashboard/dashboard-layout.tsx` - Added Refunds to navigation
+  - **Next Steps (Optional):**
+    - Refund request workflow (user-initiated refund requests)
+    - Refund approval workflow
+    - Refund notifications
+    - Refund analytics
 
 ---
 

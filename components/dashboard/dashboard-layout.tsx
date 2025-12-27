@@ -26,6 +26,7 @@ import {
   Users,
   Shield,
   Receipt,
+  RefreshCw,
 } from "lucide-react"
 import { NotificationsBell } from "@/components/notifications/notifications-bell"
 import {
@@ -140,6 +141,7 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
     { name: "API Documentation", href: "/dashboard/api-docs", icon: Code },
     { name: "Subscription", href: "/dashboard/subscription", icon: CreditCard },
     { name: "Payment History", href: "/dashboard/payment-history", icon: Receipt },
+    { name: "Refunds", href: "/dashboard/refunds", icon: RefreshCw },
     { name: "Settings", href: "/dashboard/settings", icon: Settings },
   ]
 
