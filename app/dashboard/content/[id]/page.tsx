@@ -9,7 +9,13 @@ import { Badge } from "@/components/ui/badge"
 import { Textarea } from "@/components/ui/textarea"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-import { Loader2, Save, Copy, ArrowLeft, Sparkles } from "lucide-react"
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu"
+import { Loader2, Save, Copy, ArrowLeft, Sparkles, Download, FileText } from "lucide-react"
 import { useToast } from "@/components/ui/use-toast"
 import { createClient } from "@/lib/supabase/client"
 
@@ -47,9 +53,10 @@ export default function ContentDetailPage({ params }: { params: { id: string } }
         return
       }
 
-      setContent(data)
-      setEditedContent(data.content)
-      setEditedTitle(data.title)
+      const contentData = data as any
+      setContent(contentData)
+      setEditedContent(contentData.content)
+      setEditedTitle(contentData.title)
     } catch (error) {
       console.error("Error fetching content:", error)
       toast({
@@ -70,15 +77,53 @@ export default function ContentDetailPage({ params }: { params: { id: string } }
     })
   }
 
+  const handleExport = async (format: string) => {
+    try {
+      const response = await fetch(`/api/content/export?id=${content.id}&format=${format}`)
+      
+      if (!response.ok) {
+        throw new Error("Failed to export content")
+      }
+
+      const blob = await response.blob()
+      const url = window.URL.createObjectURL(blob)
+      const a = document.createElement("a")
+      a.href = url
+      
+      // Get filename from Content-Disposition header or use default
+      const contentDisposition = response.headers.get("Content-Disposition")
+      const filenameMatch = contentDisposition?.match(/filename="(.+)"/)
+      const filename = filenameMatch ? filenameMatch[1] : `content-${content.id}.${format}`
+      
+      a.download = filename
+      document.body.appendChild(a)
+      a.click()
+      window.URL.revokeObjectURL(url)
+      document.body.removeChild(a)
+
+      toast({
+        title: "Export successful",
+        description: `Content exported as ${format.toUpperCase()}`,
+      })
+    } catch (error) {
+      console.error("Error exporting content:", error)
+      toast({
+        title: "Error",
+        description: "Failed to export content",
+        variant: "destructive",
+      })
+    }
+  }
+
   const handleSaveChanges = async () => {
     try {
       setLoading(true)
-      const { error } = await supabase
+      const { error } = await (supabase as any)
         .from("content")
         .update({
           title: editedTitle,
           content: editedContent,
-        })
+        } as any)
         .eq("id", params.id)
 
       if (error) {
@@ -201,6 +246,32 @@ export default function ContentDetailPage({ params }: { params: { id: string } }
               <Copy className="h-4 w-4 mr-2" />
               Copy
             </Button>
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="outline" size="sm">
+                  <Download className="h-4 w-4 mr-2" />
+                  Export
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="bg-gray-900 border-gray-800">
+                <DropdownMenuItem onClick={() => handleExport("markdown")} className="cursor-pointer">
+                  <FileText className="h-4 w-4 mr-2" />
+                  Export as Markdown
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => handleExport("txt")} className="cursor-pointer">
+                  <FileText className="h-4 w-4 mr-2" />
+                  Export as Text
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => handleExport("html")} className="cursor-pointer">
+                  <FileText className="h-4 w-4 mr-2" />
+                  Export as HTML
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => handleExport("pdf")} className="cursor-pointer">
+                  <FileText className="h-4 w-4 mr-2" />
+                  Export as PDF (HTML)
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
             <Button variant="destructive" size="sm" onClick={handleDeleteContent}>
               Delete
             </Button>

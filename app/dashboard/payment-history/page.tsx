@@ -105,8 +105,14 @@ export default function PaymentHistoryPage() {
   }
 
   const totalAmount = payments
-    .filter((p) => p.status.toLowerCase() === "completed" || p.status.toLowerCase() === "s")
-    .reduce((sum, p) => sum + p.amount, 0)
+    .filter((p) => {
+      const status = String(p.status || "").toLowerCase()
+      return status === "completed" || status === "s"
+    })
+    .reduce((sum, p) => {
+      const amount = typeof p.amount === "number" ? p.amount : parseFloat(String(p.amount || 0)) || 0
+      return sum + amount
+    }, 0)
 
   return (
     <DashboardLayout>
@@ -133,7 +139,7 @@ export default function PaymentHistoryPage() {
               <div>
                 <p className="text-sm text-muted-foreground">Total Paid</p>
                 <p className="text-2xl font-bold">
-                  ${totalAmount.toFixed(2)} {payments[0]?.currency || "USD"}
+                  ${(Number(totalAmount) || 0).toFixed(2)} {payments[0]?.currency || "USD"}
                 </p>
               </div>
             </CardContent>
@@ -210,7 +216,7 @@ export default function PaymentHistoryPage() {
                           {format(new Date(payment.date), "MMM dd, yyyy")}
                         </span>
                         <span className="font-semibold text-white">
-                          {payment.currency} ${payment.amount.toFixed(2)}
+                          {payment.currency} ${(Number(payment.amount) || 0).toFixed(2)}
                         </span>
                         {payment.source && (
                           <span className="text-xs">Source: {payment.source}</span>

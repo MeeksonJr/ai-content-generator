@@ -306,7 +306,7 @@ export default function GeneratePage() {
       const imageTitle = imagePrompt.substring(0, 50) || "Generated Image"
       const imageDescription = `Generated image: ${imagePrompt}`
 
-      const { data, error } = await supabase
+      const { data, error } = await (supabase as any)
         .from("content")
         .insert({
           title: imageTitle,
@@ -316,7 +316,7 @@ export default function GeneratePage() {
           image_prompt: imagePrompt,
           content_category: "image",
           user_id: user.id,
-        })
+        } as any)
         .select()
 
       if (error) {
@@ -363,7 +363,7 @@ export default function GeneratePage() {
       const imageRef = generatedImage ? "generated" : null
       const imagePromptRef = generatedImage ? imagePrompt : null
 
-      const { data, error } = await supabase
+      const { data, error } = await (supabase as any)
         .from("content")
         .insert({
           title: title || "Untitled",
@@ -375,7 +375,7 @@ export default function GeneratePage() {
           image_prompt: imagePromptRef,
           content_category: getCategoryFromType(contentType),
           user_id: user.id,
-        })
+        } as any)
         .select()
 
       if (error) {
@@ -389,8 +389,9 @@ export default function GeneratePage() {
 
       fetchSavedContent()
 
-      if (data && data.length > 0) {
-        router.push(`/dashboard/content/${data[0].id}`)
+      const dataArray = (data as any) || []
+      if (dataArray && dataArray.length > 0 && dataArray[0]?.id) {
+        router.push(`/dashboard/content/${dataArray[0].id}`)
       }
     } catch (error) {
       console.error("Error saving content:", error)
@@ -1050,6 +1051,7 @@ export default function GeneratePage() {
                                   size="icon"
                                   onClick={() => router.push(`/dashboard/content/${content.id}`)}
                                   className="h-8 w-8"
+                                  title="View details"
                                 >
                                   <FileText className="h-4 w-4" />
                                 </Button>
@@ -1059,6 +1061,7 @@ export default function GeneratePage() {
                                   onClick={() => handleDeleteContent(content.id)}
                                   className="h-8 w-8 text-red-400 hover:text-red-300 hover:bg-red-900/20"
                                   disabled={deletingId === content.id}
+                                  title="Delete"
                                 >
                                   {deletingId === content.id ? (
                                     <Loader2 className="h-4 w-4 animate-spin" />

@@ -2,7 +2,8 @@
 
 **Date:** 2025-01-13  
 **Status:** Identified - Needs Fix  
-**Priority:** HIGH
+**Priority:** 🔴 HIGH PRIORITY  
+**User Note:** "Need to be able to pay with the PayPal site or a modal that opens from PayPal. Currently using mock/test data."
 
 ## Issue
 
