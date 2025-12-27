@@ -14,20 +14,60 @@ import { getSubscription } from "@/lib/paypal/client"
  * - BILLING.SUBSCRIPTION.PAYMENT.FAILED
  * - BILLING.SUBSCRIPTION.UPDATED
  */
+// In-memory cache for processed event IDs (prevents duplicate processing)
+// In production, consider using Redis or a database table for distributed systems
+const processedEvents = new Set<string>()
+
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json()
     const eventType = body.event_type
     const resource = body.resource
+    const eventId = body.id
+
+    // Idempotency check: Skip if we've already processed this event
+    if (eventId && processedEvents.has(eventId)) {
+      logger.info("Duplicate PayPal webhook event detected, skipping", {
+        context: "PayPalWebhook",
+        data: {
+          eventId,
+          eventType,
+          resourceId: resource?.id,
+        },
+      })
+      return NextResponse.json({ received: true, duplicate: true })
+    }
 
     logger.info("PayPal webhook received", {
       context: "PayPalWebhook",
       data: {
         eventType,
         resourceId: resource?.id,
-        eventId: body.id,
+        eventId,
       },
     })
+
+    // Handle webhook verification (PayPal sends this when you first configure the webhook)
+    if (eventType === "WEBHOOKS.PAYMENT.SALE.COMPLETED" || body.event_type === "PAYMENT.SALE.COMPLETED") {
+      logger.info("PayPal webhook verification received", {
+        context: "PayPalWebhook",
+        data: { eventId },
+      })
+      // Return 200 to verify the webhook
+      return NextResponse.json({ verified: true })
+    }
+
+    // Mark event as processed before handling
+    if (eventId && typeof eventId === "string") {
+      processedEvents.add(eventId)
+      // Clean up old events (keep last 1000 to prevent memory leak)
+      if (processedEvents.size > 1000) {
+        const firstEvent = Array.from(processedEvents)[0]
+        if (firstEvent) {
+          processedEvents.delete(firstEvent)
+        }
+      }
+    }
 
     // Handle different event types
     switch (eventType) {
