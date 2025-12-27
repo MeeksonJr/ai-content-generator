@@ -351,11 +351,23 @@ export default function ApplicationsPage() {
                                   </DialogHeader>
                                   <div className="mt-4">
                                     {application.resume_url.endsWith(".pdf") || application.resume_url.includes(".pdf") ? (
-                                      <iframe
-                                        src={application.resume_url}
-                                        className="w-full h-[70vh] border border-gray-800 rounded-lg"
-                                        title="Resume PDF"
-                                      />
+                                      <div className="space-y-4">
+                                        <div className="flex justify-end">
+                                          <Button
+                                            size="sm"
+                                            variant="outline"
+                                            onClick={() => window.open(application.resume_url, "_blank")}
+                                          >
+                                            <Download className="h-4 w-4 mr-2" />
+                                            Download PDF
+                                          </Button>
+                                        </div>
+                                        <iframe
+                                          src={application.resume_url}
+                                          className="w-full h-[70vh] border border-gray-800 rounded-lg"
+                                          title="Resume PDF Preview"
+                                        />
+                                      </div>
                                     ) : (
                                       <div className="space-y-4">
                                         <div className="flex justify-end">
@@ -368,18 +380,30 @@ export default function ApplicationsPage() {
                                             Download Resume
                                           </Button>
                                         </div>
-                                        <div className="border border-gray-800 rounded-lg p-4 bg-gray-900">
-                                          <p className="text-sm text-muted-foreground">
-                                            Resume file:{" "}
-                                            <a
-                                              href={application.resume_url}
-                                              target="_blank"
-                                              rel="noopener noreferrer"
-                                              className="text-primary hover:underline"
-                                            >
-                                              {application.resume_url}
-                                            </a>
-                                          </p>
+                                        {/* Image Preview */}
+                                        <div className="border border-gray-800 rounded-lg overflow-hidden bg-gray-900">
+                                          <img
+                                            src={application.resume_url}
+                                            alt={`Resume for ${application.full_name}`}
+                                            className="w-full h-auto max-h-[70vh] object-contain"
+                                            onError={(e) => {
+                                              // If image fails to load, show fallback
+                                              const target = e.target as HTMLImageElement
+                                              target.style.display = "none"
+                                              const parent = target.parentElement
+                                              if (parent) {
+                                                parent.innerHTML = `
+                                                  <div class="p-8 text-center">
+                                                    <FileText class="h-12 w-12 text-muted-foreground mx-auto mb-4" />
+                                                    <p class="text-sm text-muted-foreground mb-4">Unable to preview this file</p>
+                                                    <a href="${application.resume_url}" target="_blank" rel="noopener noreferrer" class="text-primary hover:underline">
+                                                      Open in new tab
+                                                    </a>
+                                                  </div>
+                                                `
+                                              }
+                                            }}
+                                          />
                                         </div>
                                       </div>
                                     )}

@@ -3,45 +3,55 @@ import { createClient } from "@/lib/supabase/server"
 import { DashboardLayout } from "@/components/dashboard/dashboard-layout"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { AdminUsersClient, AdminUserRecord } from "@/components/admin/admin-users-client"
+import type { Database } from "@/lib/database.types"
 
-type SubscriptionTableRow = {
+type UserProfileRow = Database["public"]["Tables"]["user_profiles"]["Row"]
+type SubscriptionRow = Database["public"]["Tables"]["subscriptions"]["Row"]
+type UsageStatsRow = Database["public"]["Tables"]["usage_stats"]["Row"]
+
+// Subscription type that matches AdminUserRecord expectations
+type SubscriptionForUser = {
   id: string
-  user_id: string
-  plan_type: string | null
-  status: string | null
+  plan_type: string
+  status: string
   started_at: string | null
   expires_at: string | null
   updated_at: string | null
 }
 
-type UsageTableRow = {
-  user_id: string
-  content_generated: number
-  sentiment_analysis_used: number
-  keyword_extraction_used: number
-  text_summarization_used: number
-}
-
 export default async function AdminUsersPage() {
   const supabase = await createClient()
 
-  // Try to get user first (more reliable than getSession in server components)
-  const {
-    data: { user },
-    error: userError,
-  } = await supabase.auth.getUser()
+  // Try to get session first, then user
+  let user = null
+  let userError = null
 
-  if (userError || !user) {
-    redirect("/login")
+  // First try to get session
+  const { data: sessionData } = await supabase.auth.getSession()
+  if (sessionData?.session?.user) {
+    user = sessionData.session.user
+  } else {
+    // If no session, try getUser directly
+    const result = await supabase.auth.getUser()
+    user = result.data?.user ?? null
+    userError = result.error ?? null
   }
 
-  const { data: profile } = await supabase
+  if (userError || !user) {
+    redirect("/login?redirectedFrom=/dashboard/admin/users")
+  }
+
+  const { data: profile, error: profileError } = await supabase
     .from("user_profiles")
     .select("is_admin")
     .eq("id", user.id)
     .maybeSingle()
 
-  if (!profile?.is_admin) {
+  // Type assertion for profile
+  const profileData = profile as { is_admin?: boolean } | null
+
+  // If profile doesn't exist or user is not admin, redirect
+  if (profileError || !profileData?.is_admin) {
     redirect("/dashboard")
   }
 
@@ -55,8 +65,13 @@ export default async function AdminUsersPage() {
     supabase.from("usage_stats").select("*"),
   ])
 
+  // Type assertions for query results
+  const profilesData = (profiles as UserProfileRow[] | null) || []
+  const subscriptionsData = (subscriptions as SubscriptionRow[] | null) || []
+  const usageStatsData = (usageStats as UsageStatsRow[] | null) || []
+
   // Fetch user emails from auth.users (requires service role)
-  const userIds = profiles?.map((p) => p.id) || []
+  const userIds = profilesData.map((p) => p.id)
   const userEmailsMap = new Map<string, { email: string; emailVerified: boolean; metadata: any }>()
   
   // Fetch user data from auth.users in batches
@@ -77,22 +92,32 @@ export default async function AdminUsersPage() {
     }
   }
 
-  const subscriptionMap = new Map<string, SubscriptionTableRow>()
-  ;((subscriptions as SubscriptionTableRow[] | null) || []).forEach((sub) => {
+  const subscriptionMap = new Map<string, SubscriptionForUser>()
+  subscriptionsData.forEach((sub) => {
+    // Convert SubscriptionRow to SubscriptionForUser format
+    const subscriptionForUser: SubscriptionForUser = {
+      id: sub.id,
+      plan_type: sub.plan_type,
+      status: sub.status,
+      started_at: sub.started_at,
+      expires_at: sub.expires_at,
+      updated_at: sub.updated_at,
+    }
+    
     const existing = subscriptionMap.get(sub.user_id)
     if (!existing) {
-      subscriptionMap.set(sub.user_id, sub)
+      subscriptionMap.set(sub.user_id, subscriptionForUser)
     } else {
       const existingDate = existing.updated_at || existing.started_at || ""
-      const currentDate = sub.updated_at || sub.started_at || ""
+      const currentDate = subscriptionForUser.updated_at || subscriptionForUser.started_at || ""
       if (currentDate > existingDate) {
-        subscriptionMap.set(sub.user_id, sub)
+        subscriptionMap.set(sub.user_id, subscriptionForUser)
       }
     }
   })
 
   const usageMap = new Map<string, AdminUserRecord["usage"]>()
-  ;((usageStats as UsageTableRow[] | null) || []).forEach((usage) => {
+  usageStatsData.forEach((usage) => {
     const prev = usageMap.get(usage.user_id) || {
       totalContent: 0,
       totalSentiment: 0,
@@ -107,32 +132,31 @@ export default async function AdminUsersPage() {
     })
   })
 
-  const users: AdminUserRecord[] =
-    profiles?.map((profile) => {
-      const userEmailData = userEmailsMap.get(profile.id)
-      return {
-        id: profile.id,
-        email: userEmailData?.email || "",
-        emailVerified: userEmailData?.emailVerified || false,
-        displayName: profile.display_name || userEmailData?.metadata?.name || "",
-        avatarUrl: profile.avatar_url || userEmailData?.metadata?.avatar_url || null,
-        bio: profile.bio || null,
-        location: profile.location || null,
-        company: userEmailData?.metadata?.company || null,
-        website: profile.website_url || userEmailData?.metadata?.website || null,
-        isAdmin: profile.is_admin,
-        createdAt: profile.created_at,
-        updatedAt: profile.updated_at,
-        subscription: subscriptionMap.get(profile.id),
-        usage:
-          usageMap.get(profile.id) || {
-            totalContent: 0,
-            totalSentiment: 0,
-            totalKeywords: 0,
-            totalSummaries: 0,
-          },
-      }
-    }) || []
+  const users: AdminUserRecord[] = profilesData.map((profile) => {
+    const userEmailData = userEmailsMap.get(profile.id)
+    return {
+      id: profile.id,
+      email: userEmailData?.email || "",
+      emailVerified: userEmailData?.emailVerified || false,
+      displayName: profile.display_name || userEmailData?.metadata?.name || "",
+      avatarUrl: profile.avatar_url || userEmailData?.metadata?.avatar_url || null,
+      bio: profile.bio || null,
+      location: profile.location || null,
+      company: userEmailData?.metadata?.company || null,
+      website: profile.website_url || userEmailData?.metadata?.website || null,
+      isAdmin: profile.is_admin,
+      createdAt: profile.created_at,
+      updatedAt: profile.updated_at,
+      subscription: subscriptionMap.get(profile.id),
+      usage:
+        usageMap.get(profile.id) || {
+          totalContent: 0,
+          totalSentiment: 0,
+          totalKeywords: 0,
+          totalSummaries: 0,
+        },
+    }
+  })
 
   return (
     <DashboardLayout>

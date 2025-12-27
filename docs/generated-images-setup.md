@@ -14,16 +14,15 @@ To enable image saving functionality, you need to create a storage bucket in Sup
    - Public: ✅ (checked) - This allows public access to generated images
    - Click **"Create bucket"**
 
-2. **Set Storage Policies** (Optional but Recommended)
-   - Go to Storage > Policies
-   - Create policy for `generated-images` bucket:
-     - Policy name: "Users can upload their own generated images"
-     - Allowed operation: INSERT, SELECT
-     - Policy definition:
-       ```sql
-       (bucket_id = 'generated-images'::text) AND (auth.uid()::text = (storage.foldername(name))[1])
-       ```
-   - This ensures users can only upload to their own folder
+2. **Set Storage Policies (REQUIRED)**
+   - Go to Storage > Policies in Supabase dashboard
+   - OR run the SQL script in `docs/generated-images-rls-policy.sql` in the SQL Editor
+   - The policies allow:
+     - Authenticated users to upload files to their own folder
+     - Authenticated users to read their own files
+     - Public read access (since bucket is public)
+     - Authenticated users to delete their own files
+   - **Important**: Without these policies, you'll get "new row violates row-level security policy" errors
 
 ### How It Works
 
@@ -31,7 +30,7 @@ To enable image saving functionality, you need to create a storage bucket in Sup
 2. When the user clicks "Save", the image is:
    - Converted from base64 to a Blob
    - Uploaded to Supabase Storage in the `generated-images` bucket
-   - Stored in a user-specific folder: `generated-images/{userId}/{timestamp}-{random}.png`
+   - Stored in a user-specific folder: `{userId}/{timestamp}-{random}.png` (path within bucket)
    - The public URL is retrieved and saved to the `content` table's `image_url` column
 3. The image can then be displayed in saved content using the stored URL
 

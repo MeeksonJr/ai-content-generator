@@ -329,7 +329,8 @@ export default function GeneratePage() {
       if (!imageUrl && imageBlob) {
         const fileExt = "png"
         const fileName = `${user.id}/${Date.now()}-${Math.random().toString(36).substring(2)}.${fileExt}`
-        const filePath = `generated-images/${fileName}`
+        // Don't include bucket name in path - just the file path within the bucket
+        const filePath = fileName
 
         const { error: uploadError } = await supabase.storage.from("generated-images").upload(filePath, imageBlob, {
           contentType: "image/png",
