@@ -241,18 +241,42 @@ export interface Database {
         Row: {
           id: string
           is_admin: boolean
+          bio: string | null
+          avatar_url: string | null
+          twitter_url: string | null
+          linkedin_url: string | null
+          github_url: string | null
+          website_url: string | null
+          location: string | null
+          display_name: string | null
           created_at: string
           updated_at: string
         }
         Insert: {
           id: string
           is_admin?: boolean
+          bio?: string | null
+          avatar_url?: string | null
+          twitter_url?: string | null
+          linkedin_url?: string | null
+          github_url?: string | null
+          website_url?: string | null
+          location?: string | null
+          display_name?: string | null
           created_at?: string
           updated_at?: string
         }
         Update: {
           id?: string
           is_admin?: boolean
+          bio?: string | null
+          avatar_url?: string | null
+          twitter_url?: string | null
+          linkedin_url?: string | null
+          github_url?: string | null
+          website_url?: string | null
+          location?: string | null
+          display_name?: string | null
           created_at?: string
           updated_at?: string
         }

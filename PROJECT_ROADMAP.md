@@ -391,11 +391,26 @@
 
 ### Core Features
 
-- [ ] **User Profile Management**
-  - Profile picture upload
-  - Bio/description field
-  - Social links
-  - **Table:** `user_profiles` needs to be created
+- [x] **User Profile Management** ✅
+  - **Status:** Fully implemented
+  - **Features:**
+    - ✅ Profile picture upload (Supabase Storage)
+    - ✅ Bio/description field (500 char limit)
+    - ✅ Social links (Twitter, LinkedIn, GitHub, Website)
+    - ✅ Display name override
+    - ✅ Location field
+    - ✅ Avatar removal
+  - **Database:** Extended `user_profiles` table with new columns
+  - **API Routes:**
+    - `GET /api/profile` - Fetch user profile
+    - `PATCH /api/profile` - Update profile
+    - `POST /api/profile/upload-avatar` - Upload avatar image
+  - **Files Updated:**
+    - `app/dashboard/settings/page.tsx` - Enhanced profile form
+    - `app/api/profile/route.ts` (new)
+    - `app/api/profile/upload-avatar/route.ts` (new)
+    - `lib/database.types.ts` - Extended user_profiles type
+    - `docs/user-profiles-migration.sql` (new) - SQL migration script
 
 - [x] **API Key Management** ✅
   - **Status:** Real implementation completed
@@ -546,10 +561,25 @@
   - Add proper TypeScript types
   - Update database types
 
-- [ ] **Error Handling**
-  - Inconsistent error handling
-  - Better error messages
-  - User-friendly error displays
+- [x] **Error Handling** ✅
+  - **Status:** Centralized error handling system implemented
+  - **Features:**
+    - ✅ Centralized error handler utility (`lib/utils/error-handler.ts`)
+    - ✅ Custom error classes (ValidationError, AuthenticationError, AuthorizationError, etc.)
+    - ✅ User-friendly error messages
+    - ✅ Consistent error response format
+    - ✅ Error boundary component for React
+    - ✅ API error extraction utility
+    - ✅ Error logging integration
+  - **Files Created/Updated:**
+    - `lib/utils/error-handler.ts` (new) - Centralized error handling
+    - `components/error-boundary.tsx` (new) - React error boundary
+    - `lib/hooks/use-api-error.ts` (new) - Hook for API error handling
+    - `app/api/api-keys/route.ts` - Updated to use new error handler
+    - `app/api/profile/route.ts` - Updated to use new error handler
+    - `app/api/profile/upload-avatar/route.ts` - Updated to use new error handler
+    - `app/dashboard/settings/page.tsx` - Updated to use error utilities
+    - `app/layout.tsx` - Added ErrorBoundary
 
 - [ ] **Code Duplication**
   - Supabase client creation duplicated
@@ -839,8 +869,8 @@
 1. ~~PayPal webhook handler~~ ✅ (Completed)
 2. ~~Subscription cancellation flow~~ ✅ (Completed)
 3. ~~API key management (real implementation)~~ ✅ (Completed - full UI and API integration)
-4. User profile management
-5. Better error handling
+4. ~~User profile management~~ ✅ (Completed - profile picture, bio, social links)
+5. ~~Better error handling~~ ✅ (Completed - centralized system with user-friendly messages)
 
 ### Nice to Have (P2)
 1. Stripe integration (if needed)

@@ -9,10 +9,10 @@ import { Label } from "@/components/ui/label"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Switch } from "@/components/ui/switch"
 import { Separator } from "@/components/ui/separator"
-import { Loader2, Save, Plus, Trash2, Copy, Check } from "lucide-react"
+import { Loader2, Save, Plus, Trash2, Copy, Check, Upload, X, MapPin, Globe, Twitter, Linkedin, Github } from "lucide-react"
 import { useToast } from "@/components/ui/use-toast"
 import { createClient } from "@/lib/supabase/client"
-import { useEffect } from "react"
+import { useEffect, useRef } from "react"
 import { Badge } from "@/components/ui/badge"
 import {
   Dialog,
@@ -24,6 +24,9 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog"
 import { format } from "date-fns"
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
+import { Textarea } from "@/components/ui/textarea"
+import { extractApiErrorMessage, getUserFriendlyErrorMessage } from "@/lib/utils/error-handler"
 
 interface ApiKey {
   id: string
@@ -51,6 +54,14 @@ export default function SettingsPage() {
     email: "",
     company: "",
     website: "",
+    display_name: "",
+    bio: "",
+    location: "",
+    twitter_url: "",
+    linkedin_url: "",
+    github_url: "",
+    website_url: "",
+    avatar_url: "",
     notifications: {
       email: true,
       marketing: false,
@@ -58,6 +69,8 @@ export default function SettingsPage() {
       security: true,
     },
   })
+  const [uploadingAvatar, setUploadingAvatar] = useState(false)
+  const fileInputRef = useRef<HTMLInputElement>(null)
   const { toast } = useToast()
   const supabase = createClient()
 
@@ -70,13 +83,40 @@ export default function SettingsPage() {
         } = await supabase.auth.getUser()
         if (user) {
           setUser(user)
-          setFormData((prev) => ({
-            ...prev,
-            email: user.email || "",
-            name: user.user_metadata?.name || "",
-            company: user.user_metadata?.company || "",
-            website: user.user_metadata?.website || "",
-          }))
+          
+          // Fetch profile from API
+          const profileResponse = await fetch("/api/profile")
+          if (profileResponse.ok) {
+            const profileData = await profileResponse.json()
+            const profile = profileData.profile
+            
+            setFormData((prev) => ({
+              ...prev,
+              email: user.email || "",
+              name: user.user_metadata?.name || "",
+              company: user.user_metadata?.company || "",
+              website: user.user_metadata?.website || "",
+              display_name: profile?.display_name || user.user_metadata?.name || "",
+              bio: profile?.bio || "",
+              location: profile?.location || "",
+              twitter_url: profile?.twitter_url || "",
+              linkedin_url: profile?.linkedin_url || "",
+              github_url: profile?.github_url || "",
+              website_url: profile?.website_url || "",
+              avatar_url: profile?.avatar_url || user.user_metadata?.avatar_url || "",
+            }))
+          } else {
+            // Fallback to user_metadata if profile doesn't exist
+            setFormData((prev) => ({
+              ...prev,
+              email: user.email || "",
+              name: user.user_metadata?.name || "",
+              company: user.user_metadata?.company || "",
+              website: user.user_metadata?.website || "",
+              display_name: user.user_metadata?.name || "",
+              avatar_url: user.user_metadata?.avatar_url || "",
+            }))
+          }
         }
       } catch (error) {
         console.error("Error fetching user data:", error)
@@ -136,8 +176,8 @@ export default function SettingsPage() {
       })
 
       if (!response.ok) {
-        const error = await response.json()
-        throw new Error(error.error || "Failed to create API key")
+        const errorMessage = await extractApiErrorMessage(response)
+        throw new Error(errorMessage)
       }
 
       const data = await response.json()
@@ -150,11 +190,11 @@ export default function SettingsPage() {
         title: "API key created",
         description: "Your new API key has been created. Make sure to copy it now - you won't be able to see it again!",
       })
-    } catch (error: any) {
+    } catch (error) {
       console.error("Error creating API key:", error)
       toast({
         title: "Error",
-        description: error.message || "Failed to create API key",
+        description: getUserFriendlyErrorMessage(error),
         variant: "destructive",
       })
     } finally {
@@ -173,7 +213,8 @@ export default function SettingsPage() {
       })
 
       if (!response.ok) {
-        throw new Error("Failed to delete API key")
+        const errorMessage = await extractApiErrorMessage(response)
+        throw new Error(errorMessage)
       }
 
       await fetchApiKeys()
@@ -212,15 +253,38 @@ export default function SettingsPage() {
   const handleSaveProfile = async () => {
     setSaving(true)
     try {
-      const { error } = await supabase.auth.updateUser({
+      // Update auth user metadata (for backward compatibility)
+      const { error: authError } = await supabase.auth.updateUser({
         data: {
-          name: formData.name,
+          name: formData.display_name || formData.name,
           company: formData.company,
-          website: formData.website,
+          website: formData.website_url || formData.website,
         },
       })
 
-      if (error) throw error
+      if (authError) throw authError
+
+      // Update user profile in database
+      const response = await fetch("/api/profile", {
+        method: "PATCH",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          display_name: formData.display_name || formData.name,
+          bio: formData.bio,
+          location: formData.location,
+          twitter_url: formData.twitter_url,
+          linkedin_url: formData.linkedin_url,
+          github_url: formData.github_url,
+          website_url: formData.website_url || formData.website,
+        }),
+      })
+
+      if (!response.ok) {
+        const errorMessage = await extractApiErrorMessage(response)
+        throw new Error(errorMessage)
+      }
 
       toast({
         title: "Profile updated",
@@ -230,11 +294,82 @@ export default function SettingsPage() {
       console.error("Error updating profile:", error)
       toast({
         title: "Error updating profile",
-        description: "Failed to update profile. Please try again.",
+        description: getUserFriendlyErrorMessage(error),
         variant: "destructive",
       })
     } finally {
       setSaving(false)
+    }
+  }
+
+  const handleAvatarUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0]
+    if (!file) return
+
+    setUploadingAvatar(true)
+    try {
+      const formData = new FormData()
+      formData.append("file", file)
+
+      const response = await fetch("/api/profile/upload-avatar", {
+        method: "POST",
+        body: formData,
+      })
+
+      if (!response.ok) {
+        const errorMessage = await extractApiErrorMessage(response)
+        throw new Error(errorMessage)
+      }
+
+      const data = await response.json()
+      setFormData((prev) => ({ ...prev, avatar_url: data.avatar_url }))
+
+      toast({
+        title: "Avatar updated",
+        description: "Your profile picture has been updated successfully.",
+      })
+    } catch (error) {
+      console.error("Error uploading avatar:", error)
+      toast({
+        title: "Error uploading avatar",
+        description: getUserFriendlyErrorMessage(error),
+        variant: "destructive",
+      })
+    } finally {
+      setUploadingAvatar(false)
+      if (fileInputRef.current) {
+        fileInputRef.current.value = ""
+      }
+    }
+  }
+
+  const handleRemoveAvatar = async () => {
+    try {
+      const response = await fetch("/api/profile", {
+        method: "PATCH",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ avatar_url: null }),
+      })
+
+      if (!response.ok) {
+        const errorMessage = await extractApiErrorMessage(response)
+        throw new Error(errorMessage)
+      }
+
+      setFormData((prev) => ({ ...prev, avatar_url: "" }))
+      toast({
+        title: "Avatar removed",
+        description: "Your profile picture has been removed.",
+      })
+    } catch (error) {
+      console.error("Error removing avatar:", error)
+      toast({
+        title: "Error",
+        description: getUserFriendlyErrorMessage(error),
+        variant: "destructive",
+      })
     }
   }
 
@@ -268,45 +403,190 @@ export default function SettingsPage() {
             <Card>
               <CardHeader>
                 <CardTitle>Profile Information</CardTitle>
-                <CardDescription>Update your personal and company information</CardDescription>
+                <CardDescription>Update your personal information and social links</CardDescription>
               </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="space-y-2">
-                  <Label htmlFor="name">Name</Label>
-                  <Input
-                    id="name"
-                    value={formData.name}
-                    onChange={(e) => setFormData((prev) => ({ ...prev, name: e.target.value }))}
-                    placeholder="Your name"
-                  />
+              <CardContent className="space-y-6">
+                {/* Avatar Upload */}
+                <div className="flex items-center gap-6">
+                  <div className="relative">
+                    <Avatar className="h-24 w-24">
+                      <AvatarImage src={formData.avatar_url} alt={formData.display_name || formData.name} />
+                      <AvatarFallback className="text-2xl">
+                        {(formData.display_name || formData.name || "U")
+                          .split(" ")
+                          .map((n) => n[0])
+                          .join("")
+                          .toUpperCase()
+                          .slice(0, 2)}
+                      </AvatarFallback>
+                    </Avatar>
+                    {uploadingAvatar && (
+                      <div className="absolute inset-0 flex items-center justify-center bg-black/50 rounded-full">
+                        <Loader2 className="h-6 w-6 animate-spin text-white" />
+                      </div>
+                    )}
+                  </div>
+                  <div className="flex flex-col gap-2">
+                    <div className="flex gap-2">
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        onClick={() => fileInputRef.current?.click()}
+                        disabled={uploadingAvatar}
+                      >
+                        <Upload className="mr-2 h-4 w-4" />
+                        {formData.avatar_url ? "Change" : "Upload"} Photo
+                      </Button>
+                      {formData.avatar_url && (
+                        <Button
+                          type="button"
+                          variant="outline"
+                          size="sm"
+                          onClick={handleRemoveAvatar}
+                          disabled={uploadingAvatar}
+                        >
+                          <X className="mr-2 h-4 w-4" />
+                          Remove
+                        </Button>
+                      )}
+                    </div>
+                    <p className="text-xs text-muted-foreground">
+                      JPG, PNG or GIF. Max size 5MB.
+                    </p>
+                    <input
+                      ref={fileInputRef}
+                      type="file"
+                      accept="image/*"
+                      onChange={handleAvatarUpload}
+                      className="hidden"
+                      aria-label="Upload profile picture"
+                    />
+                  </div>
                 </div>
 
-                <div className="space-y-2">
-                  <Label htmlFor="email">Email</Label>
-                  <Input id="email" value={formData.email} disabled placeholder="Your email" />
-                  <p className="text-xs text-muted-foreground">
-                    Your email address is associated with your account and cannot be changed.
-                  </p>
+                <Separator />
+
+                {/* Basic Information */}
+                <div className="space-y-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="display_name">Display Name</Label>
+                    <Input
+                      id="display_name"
+                      value={formData.display_name}
+                      onChange={(e) => setFormData((prev) => ({ ...prev, display_name: e.target.value }))}
+                      placeholder="Your display name"
+                    />
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="email">Email</Label>
+                    <Input id="email" value={formData.email} disabled placeholder="Your email" />
+                    <p className="text-xs text-muted-foreground">
+                      Your email address is associated with your account and cannot be changed.
+                    </p>
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="bio">Bio</Label>
+                    <Textarea
+                      id="bio"
+                      value={formData.bio}
+                      onChange={(e) => setFormData((prev) => ({ ...prev, bio: e.target.value }))}
+                      placeholder="Tell us about yourself..."
+                      rows={4}
+                      maxLength={500}
+                    />
+                    <p className="text-xs text-muted-foreground">
+                      {formData.bio.length}/500 characters
+                    </p>
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="location">
+                      <MapPin className="mr-2 h-4 w-4 inline" />
+                      Location
+                    </Label>
+                    <Input
+                      id="location"
+                      value={formData.location}
+                      onChange={(e) => setFormData((prev) => ({ ...prev, location: e.target.value }))}
+                      placeholder="City, Country"
+                    />
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="company">Company</Label>
+                    <Input
+                      id="company"
+                      value={formData.company}
+                      onChange={(e) => setFormData((prev) => ({ ...prev, company: e.target.value }))}
+                      placeholder="Your company name"
+                    />
+                  </div>
                 </div>
 
-                <div className="space-y-2">
-                  <Label htmlFor="company">Company</Label>
-                  <Input
-                    id="company"
-                    value={formData.company}
-                    onChange={(e) => setFormData((prev) => ({ ...prev, company: e.target.value }))}
-                    placeholder="Your company name"
-                  />
-                </div>
+                <Separator />
 
-                <div className="space-y-2">
-                  <Label htmlFor="website">Website</Label>
-                  <Input
-                    id="website"
-                    value={formData.website}
-                    onChange={(e) => setFormData((prev) => ({ ...prev, website: e.target.value }))}
-                    placeholder="Your website URL"
-                  />
+                {/* Social Links */}
+                <div className="space-y-4">
+                  <h3 className="text-sm font-semibold">Social Links</h3>
+                  
+                  <div className="space-y-2">
+                    <Label htmlFor="website_url">
+                      <Globe className="mr-2 h-4 w-4 inline" />
+                      Website
+                    </Label>
+                    <Input
+                      id="website_url"
+                      type="url"
+                      value={formData.website_url}
+                      onChange={(e) => setFormData((prev) => ({ ...prev, website_url: e.target.value }))}
+                      placeholder="https://yourwebsite.com"
+                    />
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="twitter_url">
+                      <Twitter className="mr-2 h-4 w-4 inline" />
+                      Twitter
+                    </Label>
+                    <Input
+                      id="twitter_url"
+                      type="url"
+                      value={formData.twitter_url}
+                      onChange={(e) => setFormData((prev) => ({ ...prev, twitter_url: e.target.value }))}
+                      placeholder="https://twitter.com/username"
+                    />
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="linkedin_url">
+                      <Linkedin className="mr-2 h-4 w-4 inline" />
+                      LinkedIn
+                    </Label>
+                    <Input
+                      id="linkedin_url"
+                      type="url"
+                      value={formData.linkedin_url}
+                      onChange={(e) => setFormData((prev) => ({ ...prev, linkedin_url: e.target.value }))}
+                      placeholder="https://linkedin.com/in/username"
+                    />
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="github_url">
+                      <Github className="mr-2 h-4 w-4 inline" />
+                      GitHub
+                    </Label>
+                    <Input
+                      id="github_url"
+                      type="url"
+                      value={formData.github_url}
+                      onChange={(e) => setFormData((prev) => ({ ...prev, github_url: e.target.value }))}
+                      placeholder="https://github.com/username"
+                    />
+                  </div>
                 </div>
               </CardContent>
               <CardFooter>
