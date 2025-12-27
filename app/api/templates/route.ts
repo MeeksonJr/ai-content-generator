@@ -62,7 +62,7 @@ export async function GET(request: NextRequest) {
       .from("content_templates")
       .select(`
         *,
-        user_profiles!content_templates_user_id_fkey (
+        user_profiles (
           display_name,
           avatar_url
         )

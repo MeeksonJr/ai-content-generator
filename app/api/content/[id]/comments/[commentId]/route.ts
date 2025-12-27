@@ -57,7 +57,7 @@ export async function PATCH(
       .eq("id", commentId)
       .select(`
         *,
-        user_profiles!content_comments_user_id_fkey (
+        user_profiles (
           display_name,
           email,
           avatar_url

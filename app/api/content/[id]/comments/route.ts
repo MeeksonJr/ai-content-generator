@@ -75,13 +75,15 @@ export async function GET(
       return createSecureResponse(error, statusCode)
     }
 
-    // Get comments
+    // Get comments with user profiles
+    // Note: content_comments.user_id references auth.users.id
+    // We join user_profiles where user_profiles.id = content_comments.user_id
     const serverSupabase = createServerSupabaseClient()
     const { data: comments, error } = await (serverSupabase as any)
       .from("content_comments")
       .select(`
         *,
-        user_profiles!content_comments_user_id_fkey (
+        user_profiles (
           display_name,
           email,
           avatar_url
@@ -213,7 +215,7 @@ export async function POST(
       } as any)
       .select(`
         *,
-        user_profiles!content_comments_user_id_fkey (
+        user_profiles (
           display_name,
           email,
           avatar_url
