@@ -93,6 +93,9 @@ export function AuthForm() {
 
           if (!syncResponse.ok) {
             console.warn("Failed to sync session to cookies, but login succeeded")
+          } else {
+            // Wait a bit to ensure cookies are set before redirecting
+            await new Promise(resolve => setTimeout(resolve, 100))
           }
         } catch (syncError) {
           console.warn("Error syncing session:", syncError)
@@ -100,7 +103,11 @@ export function AuthForm() {
         }
       }
 
-      router.push("/dashboard")
+      // Get redirect URL from query params if present
+      const searchParams = new URLSearchParams(window.location.search)
+      const redirectTo = searchParams.get("redirectedFrom") || "/dashboard"
+      
+      router.push(redirectTo)
       router.refresh()
     } catch (error: any) {
       setError(error.message)

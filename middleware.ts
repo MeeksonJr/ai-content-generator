@@ -56,20 +56,30 @@ export async function middleware(req: NextRequest) {
   let session = null
   if (accessToken && refreshToken) {
     try {
-      const { data } = await supabase.auth.setSession({
+      const { data, error } = await supabase.auth.setSession({
         access_token: accessToken,
         refresh_token: refreshToken,
       })
-      session = data.session
+      if (!error && data.session) {
+        session = data.session
+      }
     } catch (error) {
       // If setting session fails, try to get existing session
-      const result = await supabase.auth.getSession()
-      session = result.data?.session ?? null
+      try {
+        const result = await supabase.auth.getSession()
+        session = result.data?.session ?? null
+      } catch {
+        session = null
+      }
     }
   } else {
     // Try to get existing session
-    const result = await supabase.auth.getSession()
-    session = result.data?.session ?? null
+    try {
+      const result = await supabase.auth.getSession()
+      session = result.data?.session ?? null
+    } catch {
+      session = null
+    }
   }
 
   // If there's no session and the user is trying to access a protected route

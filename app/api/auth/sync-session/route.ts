@@ -1,6 +1,7 @@
 import { createSupabaseRouteClient } from "@/lib/supabase/route-client"
 import { NextResponse } from "next/server"
 import type { NextRequest } from "next/server"
+import { getSupabaseUrl } from "@/lib/utils/supabase-env"
 
 export async function POST(request: NextRequest) {
   try {
@@ -23,11 +24,37 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "Failed to set session" }, { status: 401 })
     }
 
-    // The route client will automatically set cookies
-    return NextResponse.json({ 
+    // Extract project ref for cookie names (must match middleware)
+    const supabaseUrl = getSupabaseUrl()
+    const projectRef = supabaseUrl?.match(/https?:\/\/([^.]+)\.supabase\.co/)?.[1] || "default"
+    const sessionCookieName = `sb-${projectRef}-auth-token`
+    const refreshCookieName = `${sessionCookieName}.refresh`
+
+    // Create response with cookies explicitly set
+    const response = NextResponse.json({ 
       success: true,
       user: data.user 
     })
+
+    // Set cookies explicitly to ensure they're available to middleware
+    const isProduction = process.env.NODE_ENV === "production"
+    const cookieOptions = {
+      httpOnly: true,
+      secure: isProduction,
+      sameSite: "lax" as const,
+      path: "/",
+      maxAge: 60 * 60 * 24 * 365, // 1 year
+    }
+
+    // Set the access token cookie
+    response.cookies.set(sessionCookieName, access_token, cookieOptions)
+    
+    // Set the refresh token cookie if provided
+    if (refresh_token) {
+      response.cookies.set(refreshCookieName, refresh_token, cookieOptions)
+    }
+
+    return response
   } catch (error) {
     console.error("Error syncing session:", error)
     return NextResponse.json(
