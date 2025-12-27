@@ -82,6 +82,7 @@ export async function PATCH(request: Request) {
       website_url,
       location,
       display_name,
+      notification_preferences,
     } = body
 
     // Build update object
@@ -97,6 +98,10 @@ export async function PATCH(request: Request) {
     if (website_url !== undefined) updateData.website_url = website_url
     if (location !== undefined) updateData.location = location
     if (display_name !== undefined) updateData.display_name = display_name
+    if (notification_preferences !== undefined) {
+      // @ts-ignore - notification_preferences is a JSONB column
+      updateData.notification_preferences = notification_preferences
+    }
 
     // Ensure profile exists first
     const { data: existingProfile } = await supabase

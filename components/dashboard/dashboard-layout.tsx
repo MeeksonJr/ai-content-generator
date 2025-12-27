@@ -27,6 +27,7 @@ import {
   Shield,
   Receipt,
 } from "lucide-react"
+import { NotificationsBell } from "@/components/notifications/notifications-bell"
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -70,8 +71,9 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
         if (user) {
           // Check if user is admin
           try {
-            const { data: profile } = await supabase.from("user_profiles").select("is_admin").eq("id", user.id).single()
-            setIsAdmin(profile?.is_admin || false)
+            const { data: profile } = await supabase.from("user_profiles").select("is_admin").eq("id", user.id).maybeSingle()
+            const profileData = profile as { is_admin?: boolean } | null
+            setIsAdmin(profileData?.is_admin || false)
           } catch (error) {
             // If user_profiles table doesn't exist or user has no profile, default to false
             setIsAdmin(false)
@@ -170,7 +172,12 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
             >
               {isCollapsed ? <ChevronRight className="h-4 w-4" /> : <ChevronLeft className="h-4 w-4" />}
             </Button>
-          <button className="p-1 text-gray-400 lg:hidden" onClick={() => setIsSidebarOpen(false)}>
+          <button
+            className="p-1 text-gray-400 lg:hidden"
+            onClick={() => setIsSidebarOpen(false)}
+            aria-label="Close sidebar"
+            title="Close sidebar"
+          >
             <X className="w-6 h-6" />
           </button>
           </div>
@@ -302,11 +309,25 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
       </div>
 
       <div className="flex flex-col flex-1 w-0 overflow-hidden">
-        <div className="flex items-center h-16 px-6 border-b border-gray-800 lg:hidden">
-          <button className="p-1 text-gray-400" onClick={() => setIsSidebarOpen(true)}>
+        {/* Mobile Header */}
+        <div className="flex items-center justify-between h-16 px-6 border-b border-gray-800 lg:hidden">
+          <button
+            className="p-1 text-gray-400"
+            onClick={() => setIsSidebarOpen(true)}
+            aria-label="Open sidebar"
+            title="Open sidebar"
+          >
             <Menu className="w-6 h-6" />
           </button>
-          <div className="ml-4 text-lg font-medium text-white">AI Content Generator</div>
+          <div className="text-lg font-medium text-white">AI Content Generator</div>
+          <NotificationsBell />
+        </div>
+        {/* Desktop Header */}
+        <div className="hidden lg:flex items-center justify-between h-16 px-6 border-b border-gray-800">
+          <div className="flex-1" />
+          <div className="flex items-center gap-2">
+            <NotificationsBell />
+          </div>
         </div>
         <main className="flex-1 overflow-y-auto p-6 bg-gray-950">{children}</main>
       </div>

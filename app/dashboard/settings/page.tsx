@@ -90,6 +90,16 @@ export default function SettingsPage() {
             const profileData = await profileResponse.json()
             const profile = profileData.profile
             
+            // Load notification preferences
+            const notificationPrefs = profile?.notification_preferences || {
+              email: true,
+              in_app: true,
+              payment: true,
+              subscription: true,
+              content: true,
+              system: true,
+            }
+
             setFormData((prev) => ({
               ...prev,
               email: user.email || "",
@@ -104,6 +114,12 @@ export default function SettingsPage() {
               github_url: profile?.github_url || "",
               website_url: profile?.website_url || "",
               avatar_url: profile?.avatar_url || user.user_metadata?.avatar_url || "",
+              notifications: {
+                email: notificationPrefs.email !== false,
+                marketing: notificationPrefs.marketing === true,
+                social: notificationPrefs.social !== false,
+                security: notificationPrefs.security !== false,
+              },
             }))
           } else {
             // Fallback to user_metadata if profile doesn't exist
@@ -700,14 +716,20 @@ export default function SettingsPage() {
               </CardContent>
               <CardFooter>
                 <Button
-                  onClick={() => {
-                    toast({
-                      title: "Notification preferences saved",
-                      description: "Your notification preferences have been updated.",
-                    })
-                  }}
+                  onClick={handleSaveNotificationPreferences}
+                  disabled={saving}
                 >
-                  Save Preferences
+                  {saving ? (
+                    <>
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                      Saving...
+                    </>
+                  ) : (
+                    <>
+                      <Save className="mr-2 h-4 w-4" />
+                      Save Preferences
+                    </>
+                  )}
                 </Button>
               </CardFooter>
             </Card>
