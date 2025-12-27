@@ -22,7 +22,20 @@ import {
   Code,
   ChevronLeft,
   ChevronRight,
+  User,
+  Users,
+  Shield,
 } from "lucide-react"
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu"
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
+import { Skeleton } from "@/components/ui/skeleton"
 
 interface DashboardLayoutProps {
   children: React.ReactNode
@@ -37,9 +50,41 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
     }
     return false
   })
+  const [user, setUser] = useState<any>(null)
+  const [isAdmin, setIsAdmin] = useState(false)
+  const [loading, setLoading] = useState(true)
   const pathname = usePathname()
   const router = useRouter()
   const supabase = createClient()
+
+  // Fetch user and admin status
+  useEffect(() => {
+    const fetchUser = async () => {
+      try {
+        const {
+          data: { user },
+        } = await supabase.auth.getUser()
+        setUser(user)
+
+        if (user) {
+          // Check if user is admin
+          try {
+            const { data: profile } = await supabase.from("user_profiles").select("is_admin").eq("id", user.id).single()
+            setIsAdmin(profile?.is_admin || false)
+          } catch (error) {
+            // If user_profiles table doesn't exist or user has no profile, default to false
+            setIsAdmin(false)
+          }
+        }
+      } catch (error) {
+        console.error("Error fetching user:", error)
+      } finally {
+        setLoading(false)
+      }
+    }
+
+    fetchUser()
+  }, [supabase])
 
   const handleSignOut = async () => {
     await supabase.auth.signOut()
@@ -67,6 +112,20 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
       document.documentElement.classList.remove("dark")
     }
   }, [])
+
+  const getInitials = (name: string) => {
+    if (!name) return "U"
+    return name
+      .split(" ")
+      .map((n) => n[0])
+      .join("")
+      .toUpperCase()
+  }
+
+  const getUserName = () => {
+    if (!user) return "User"
+    return user.user_metadata?.name || user.email?.split("@")[0] || "User"
+  }
 
   const navigation = [
     { name: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
@@ -132,16 +191,110 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
               </Link>
             ))}
           </div>
+          {/* Admin Section */}
+          {isAdmin && (
+            <>
+              <div className="pt-4 mt-auto border-t border-gray-800">
+                {!isCollapsed && (
+                  <div className="px-4 py-2 text-xs font-semibold text-gray-500 uppercase tracking-wider">
+                    Admin
+                  </div>
+                )}
+                <Link
+                  href="/dashboard/admin/applications"
+                  className={`flex items-center px-4 py-2 text-sm rounded-md transition-all ${
+                    pathname === "/dashboard/admin/applications" || pathname.startsWith("/dashboard/admin/applications")
+                      ? "bg-gray-800 text-white"
+                      : "text-gray-400 hover:bg-gray-800 hover:text-white"
+                  } ${isCollapsed ? "lg:justify-center" : ""}`}
+                  title={isCollapsed ? "Applications" : undefined}
+                >
+                  <Users className={`w-5 h-5 flex-shrink-0 ${isCollapsed ? "lg:mr-0" : "mr-3"}`} />
+                  {!isCollapsed && <span>Applications</span>}
+                </Link>
+                <Link
+                  href="/dashboard/admin/users"
+                  className={`flex items-center px-4 py-2 text-sm rounded-md transition-all ${
+                    pathname === "/dashboard/admin/users" || pathname.startsWith("/dashboard/admin/users")
+                      ? "bg-gray-800 text-white"
+                      : "text-gray-400 hover:bg-gray-800 hover:text-white"
+                  } ${isCollapsed ? "lg:justify-center" : ""}`}
+                  title={isCollapsed ? "User Management" : undefined}
+                >
+                  <Shield className={`w-5 h-5 flex-shrink-0 ${isCollapsed ? "lg:mr-0" : "mr-3"}`} />
+                  {!isCollapsed && <span>User Management</span>}
+                </Link>
+              </div>
+            </>
+          )}
+
           <div className="pt-4 mt-auto border-t border-gray-800">
-            <Button
-              variant="ghost"
-              className={`w-full text-gray-400 hover:text-white hover:bg-gray-800 ${isCollapsed ? "lg:justify-center" : "justify-start"}`}
-              onClick={handleSignOut}
-              title={isCollapsed ? "Sign out" : undefined}
-            >
-              <LogOut className={`w-5 h-5 flex-shrink-0 ${isCollapsed ? "lg:mr-0" : "mr-3"}`} />
-              {!isCollapsed && <span>Sign out</span>}
-            </Button>
+            {loading ? (
+              <div className={`flex items-center gap-3 px-4 py-2 ${isCollapsed ? "justify-center" : ""}`}>
+                <Skeleton className="h-9 w-9 rounded-full flex-shrink-0" />
+                {!isCollapsed && (
+                  <div className="space-y-1.5 flex-1">
+                    <Skeleton className="h-4 w-24" />
+                    <Skeleton className="h-3 w-16" />
+                  </div>
+                )}
+              </div>
+            ) : (
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button
+                    variant="ghost"
+                    className={`w-full justify-start px-2 text-gray-400 hover:text-white hover:bg-gray-800 ${
+                      isCollapsed ? "justify-center" : ""
+                    }`}
+                  >
+                    <div className={`flex items-center gap-3 ${isCollapsed ? "justify-center" : ""}`}>
+                      <Avatar className="h-9 w-9 flex-shrink-0">
+                        <AvatarImage src={user?.user_metadata?.avatar_url || ""} alt={getUserName()} />
+                        <AvatarFallback className="bg-gray-800 text-white">
+                          {getInitials(getUserName())}
+                        </AvatarFallback>
+                      </Avatar>
+                      {!isCollapsed && (
+                        <div className="flex flex-col items-start text-sm min-w-0 flex-1">
+                          <span className="font-medium truncate w-full text-white">{getUserName()}</span>
+                          <span className="text-xs text-gray-500 truncate w-full">
+                            {user?.email} {isAdmin && "(Admin)"}
+                          </span>
+                        </div>
+                      )}
+                    </div>
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end" className="w-56">
+                  <DropdownMenuLabel>My Account</DropdownMenuLabel>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem asChild>
+                    <Link href="/dashboard/settings" className="flex items-center gap-2 cursor-pointer w-full">
+                      <User className="h-4 w-4" />
+                      Profile
+                    </Link>
+                  </DropdownMenuItem>
+                  <DropdownMenuItem asChild>
+                    <Link href="/dashboard/subscription" className="flex items-center gap-2 cursor-pointer w-full">
+                      <CreditCard className="h-4 w-4" />
+                      Subscription
+                    </Link>
+                  </DropdownMenuItem>
+                  <DropdownMenuItem asChild>
+                    <Link href="/dashboard/settings" className="flex items-center gap-2 cursor-pointer w-full">
+                      <Settings className="h-4 w-4" />
+                      Settings
+                    </Link>
+                  </DropdownMenuItem>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem onClick={handleSignOut} className="flex items-center gap-2 cursor-pointer">
+                    <LogOut className="h-4 w-4" />
+                    Log out
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+            )}
           </div>
         </nav>
       </div>

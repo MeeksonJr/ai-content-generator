@@ -54,6 +54,7 @@
 - [x] **PayPal Subscription Success Handler** - Hardcoded to sandbox URL ✅
   - **Location:** `app/api/paypal/subscription-success/route.ts:51`
   - **Fix:** Handler now reuses `getSubscription()` from `lib/paypal/client.ts`, inheriting environment-aware API base and centralised auth logic
+  - **Verified:** `lib/paypal/client.ts` uses `process.env.NODE_ENV === "production" ? "https://api-m.paypal.com" : "https://api-m.sandbox.paypal.com"` - correctly environment-based
 
 - [ ] **Missing Database Tables**
   - `blog_content` table not in database types
@@ -163,11 +164,17 @@
 
 ### Dashboard Layout
 
-- [ ] **Consistent Layout Component**
+- [x] **Consistent Layout Component** ✅
   - **Issue:** Two different sidebar implementations
-    - `components/dashboard/dashboard-layout.tsx` (used in some pages)
-    - `components/dashboard/dashboard-sidebar.tsx` (used in others)
-  - **Fix:** Standardize on one layout component
+    - `components/dashboard/dashboard-layout.tsx` (used in all pages)
+    - `components/dashboard/dashboard-sidebar.tsx` (unused, removed)
+  - **Fix Applied:**
+    - Enhanced `DashboardLayout` with user profile display, admin section, and avatar dropdown
+    - Removed unused `DashboardSidebar` component
+    - All dashboard pages now use standardized `DashboardLayout`
+  - **Files Updated:**
+    - `components/dashboard/dashboard-layout.tsx` (enhanced)
+    - `components/dashboard/dashboard-sidebar.tsx` (removed)
 
 - [ ] **Responsive Design**
   - [ ] Improve mobile sidebar experience
@@ -811,10 +818,10 @@
 ## 📊 Priority Matrix
 
 ### Must Have (P0)
-1. Fix PayPal hardcoded sandbox URL
-2. Create missing database tables (`blog_content`, `user_profiles`)
-3. Implement sidebar collapse/expand for desktop
-4. Standardize dashboard layout components
+1. ~~Fix PayPal hardcoded sandbox URL~~ ✅ (Fixed - uses environment-based logic)
+2. Create missing database tables (`blog_content`, `user_profiles`) - Types exist, verify tables in Supabase
+3. ~~Implement sidebar collapse/expand for desktop~~ ✅ (Completed)
+4. ~~Standardize dashboard layout components~~ ✅ (Completed - removed unused DashboardSidebar, enhanced DashboardLayout)
 
 ### Should Have (P1)
 1. PayPal webhook handler
