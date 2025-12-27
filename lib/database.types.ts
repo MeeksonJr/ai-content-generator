@@ -41,6 +41,16 @@ export interface Database {
           user_id: string
           created_at: string
           updated_at: string
+          image_url: string | null
+          image_prompt: string | null
+          content_category: string | null
+          moderation_status: string | null
+          flagged_at: string | null
+          flagged_by: string | null
+          moderation_notes: string | null
+          reviewed_at: string | null
+          reviewed_by: string | null
+          flag_reason: string | null
         }
         Insert: {
           id?: string
@@ -53,6 +63,16 @@ export interface Database {
           user_id: string
           created_at?: string
           updated_at?: string
+          image_url?: string | null
+          image_prompt?: string | null
+          content_category?: string | null
+          moderation_status?: string | null
+          flagged_at?: string | null
+          flagged_by?: string | null
+          moderation_notes?: string | null
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          flag_reason?: string | null
         }
         Update: {
           id?: string
@@ -65,6 +85,16 @@ export interface Database {
           user_id?: string
           created_at?: string
           updated_at?: string
+          image_url?: string | null
+          image_prompt?: string | null
+          content_category?: string | null
+          moderation_status?: string | null
+          flagged_at?: string | null
+          flagged_by?: string | null
+          moderation_notes?: string | null
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          flag_reason?: string | null
         }
       }
       subscriptions: {

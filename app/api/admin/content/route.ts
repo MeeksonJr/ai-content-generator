@@ -44,7 +44,7 @@ export async function GET(request: Request) {
       .from("content")
       .select(`
         *,
-        user_profiles!content_user_id_fkey (
+        user_profiles (
           display_name,
           email
         )

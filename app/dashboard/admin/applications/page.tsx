@@ -362,11 +362,28 @@ export default function ApplicationsPage() {
                                             Download PDF
                                           </Button>
                                         </div>
-                                        <iframe
-                                          src={application.resume_url}
-                                          className="w-full h-[70vh] border border-gray-800 rounded-lg"
-                                          title="Resume PDF Preview"
-                                        />
+                                        <div className="border border-gray-800 rounded-lg overflow-hidden bg-gray-900" style={{ height: "70vh" }}>
+                                          <iframe
+                                            src={`${application.resume_url}#toolbar=0`}
+                                            className="w-full h-full"
+                                            title="Resume PDF Preview"
+                                            onError={(e) => {
+                                              const iframe = e.target as HTMLIFrameElement
+                                              const parent = iframe.parentElement
+                                              if (parent) {
+                                                parent.innerHTML = `
+                                                  <div class="p-8 text-center h-full flex flex-col items-center justify-center">
+                                                    <FileText class="h-12 w-12 text-muted-foreground mx-auto mb-4" />
+                                                    <p class="text-sm text-muted-foreground mb-4">Unable to preview this PDF</p>
+                                                    <a href="${application.resume_url}" target="_blank" rel="noopener noreferrer" class="text-primary hover:underline">
+                                                      Open in new tab
+                                                    </a>
+                                                  </div>
+                                                `
+                                              }
+                                            }}
+                                          />
+                                        </div>
                                       </div>
                                     ) : (
                                       <div className="space-y-4">

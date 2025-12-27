@@ -10,9 +10,10 @@ import { handleApiError } from "@/lib/utils/error-handler"
  */
 export async function GET(
   request: Request,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const { id } = await params
     const supabase = await createSupabaseRouteClient()
 
     const {
@@ -27,7 +28,7 @@ export async function GET(
     const { data: content } = await supabase
       .from("content")
       .select("id, user_id, project_id")
-      .eq("id", params.id)
+      .eq("id", id)
       .maybeSingle()
 
     if (!content) {
@@ -61,7 +62,7 @@ export async function GET(
           avatar_url
         )
       `)
-      .eq("content_id", params.id)
+      .eq("content_id", id)
       .order("version_number", { ascending: false })
 
     if (error) {
@@ -85,9 +86,10 @@ export async function GET(
  */
 export async function POST(
   request: Request,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const { id } = await params
     const supabase = await createSupabaseRouteClient()
 
     const {
@@ -102,7 +104,7 @@ export async function POST(
     const { data: content, error: contentError } = await supabase
       .from("content")
       .select("id, user_id, project_id, title, content")
-      .eq("id", params.id)
+      .eq("id", id)
       .maybeSingle()
 
     if (contentError || !content) {
@@ -140,7 +142,7 @@ export async function POST(
     const { data: latestVersion } = await (serverSupabase as any)
       .from("content_versions")
       .select("version_number")
-      .eq("content_id", params.id)
+      .eq("content_id", id)
       .order("version_number", { ascending: false })
       .limit(1)
       .maybeSingle()
@@ -154,7 +156,7 @@ export async function POST(
     const { data: version, error: versionError } = await (serverSupabase as any)
       .from("content_versions")
       .insert({
-        content_id: params.id,
+        content_id: id,
         user_id: session.user.id,
         version_number: nextVersion,
         title: contentData.title,
@@ -179,7 +181,7 @@ export async function POST(
     logger.info("Content version created", {
       context: "Collaboration",
       userId: session.user.id,
-      data: { contentId: params.id, versionNumber: nextVersion },
+      data: { contentId: id, versionNumber: nextVersion },
     })
 
     return NextResponse.json({ success: true, version })

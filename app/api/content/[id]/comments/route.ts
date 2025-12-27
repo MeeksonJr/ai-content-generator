@@ -10,9 +10,10 @@ import { handleApiError } from "@/lib/utils/error-handler"
  */
 export async function GET(
   request: Request,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const { id } = await params
     const supabase = await createSupabaseRouteClient()
 
     const {
@@ -27,7 +28,7 @@ export async function GET(
     const { data: content } = await supabase
       .from("content")
       .select("id, user_id, project_id")
-      .eq("id", params.id)
+      .eq("id", id)
       .maybeSingle()
 
     if (!content) {
@@ -61,7 +62,7 @@ export async function GET(
           avatar_url
         )
       `)
-      .eq("content_id", params.id)
+      .eq("content_id", id)
       .order("created_at", { ascending: true })
 
     if (error) {
@@ -85,9 +86,10 @@ export async function GET(
  */
 export async function POST(
   request: Request,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const { id } = await params
     const supabase = await createSupabaseRouteClient()
 
     const {
@@ -102,7 +104,7 @@ export async function POST(
     const { data: content } = await supabase
       .from("content")
       .select("id, user_id, project_id")
-      .eq("id", params.id)
+      .eq("id", id)
       .maybeSingle()
 
     if (!content) {
@@ -135,7 +137,7 @@ export async function POST(
     const { data: comment, error } = await (serverSupabase as any)
       .from("content_comments")
       .insert({
-        content_id: params.id,
+        content_id: id,
         user_id: session.user.id,
         comment_text: comment_text.trim(),
         parent_comment_id: parent_comment_id || null,
@@ -158,7 +160,7 @@ export async function POST(
     logger.info("Comment created", {
       context: "Collaboration",
       userId: session.user.id,
-      data: { contentId: params.id, commentId: comment.id },
+      data: { contentId: id, commentId: comment.id },
     })
 
     return NextResponse.json({ success: true, comment })

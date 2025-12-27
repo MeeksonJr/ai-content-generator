@@ -281,6 +281,33 @@ export default function ContentDetailPage({ params }: { params: { id: string } }
           </div>
         </div>
 
+        {/* Image Display for Image Content */}
+        {content.image_url && content.content_type === "image" && (
+          <Card className="bg-gray-900 border-gray-800">
+            <CardHeader>
+              <CardTitle>Generated Image</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="relative aspect-video rounded-lg overflow-hidden bg-gray-800">
+                <img
+                  src={content.image_url}
+                  alt={content.title}
+                  className="w-full h-full object-contain"
+                  onError={(e) => {
+                    console.error("Image load error:", content.image_url)
+                    e.currentTarget.src = "/placeholder.svg?height=400&width=600"
+                  }}
+                />
+              </div>
+              {content.image_prompt && (
+                <p className="mt-4 text-sm text-muted-foreground">
+                  <span className="font-medium">Prompt:</span> {content.image_prompt}
+                </p>
+              )}
+            </CardContent>
+          </Card>
+        )}
+
         <div className="grid gap-6 md:grid-cols-2">
           <Card className="bg-gray-900 border-gray-800">
             <CardHeader>

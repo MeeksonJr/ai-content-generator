@@ -39,12 +39,15 @@ export async function GET(request: Request) {
           avatar_url
         )
       `)
-      .or(`user_id.eq.${session.user.id}${includePublic ? ",is_public.eq.true" : ""}`)
-      .order("is_featured", { ascending: false })
-      .order("usage_count", { ascending: false })
-      .order("created_at", { ascending: false })
-      .range(offset, offset + limit - 1)
 
+    // Build the OR condition for user access
+    if (includePublic) {
+      query = query.or(`user_id.eq.${session.user.id},is_public.eq.true`)
+    } else {
+      query = query.eq("user_id", session.user.id)
+    }
+
+    // Apply filters
     if (contentType) {
       query = query.eq("content_type", contentType)
     }
@@ -56,6 +59,13 @@ export async function GET(request: Request) {
     if (search) {
       query = query.or(`name.ilike.%${search}%,description.ilike.%${search}%`)
     }
+
+    // Apply ordering and pagination
+    query = query
+      .order("is_featured", { ascending: false })
+      .order("usage_count", { ascending: false })
+      .order("created_at", { ascending: false })
+      .range(offset, offset + limit - 1)
 
     const { data: templates, error } = await query
 

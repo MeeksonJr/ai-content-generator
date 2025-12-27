@@ -10,9 +10,10 @@ import { handleApiError } from "@/lib/utils/error-handler"
  */
 export async function POST(
   request: Request,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const { id } = await params
     const supabase = await createSupabaseRouteClient()
 
     const {
@@ -33,7 +34,7 @@ export async function POST(
     const { data: content, error: fetchError } = await (serverSupabase as any)
       .from("content")
       .select("id, user_id, moderation_status")
-      .eq("id", params.id)
+      .eq("id", id)
       .maybeSingle()
 
     if (fetchError || !content) {
@@ -54,7 +55,7 @@ export async function POST(
     const { data: updatedContent, error: updateError } = await (serverSupabase as any)
       .from("content")
       .update(updateData as any)
-      .eq("id", params.id)
+      .eq("id", id)
       .select()
       .single()
 
@@ -66,7 +67,7 @@ export async function POST(
     logger.info("Content flagged", {
       context: "Content Moderation",
       userId: session.user.id,
-      data: { contentId: params.id, reason },
+      data: { contentId: id, reason },
     })
 
     return NextResponse.json({ success: true, content: updatedContent })

@@ -22,19 +22,29 @@ type SubscriptionForUser = {
 export default async function AdminUsersPage() {
   const supabase = await createClient()
 
-  // Try to get session first, then user
+  // Get user - try both methods
   let user = null
   let userError = null
 
-  // First try to get session
-  const { data: sessionData } = await supabase.auth.getSession()
-  if (sessionData?.session?.user) {
-    user = sessionData.session.user
-  } else {
-    // If no session, try getUser directly
-    const result = await supabase.auth.getUser()
-    user = result.data?.user ?? null
-    userError = result.error ?? null
+  try {
+    // First try to get session
+    const { data: sessionData, error: sessionError } = await supabase.auth.getSession()
+    if (sessionData?.session?.user) {
+      user = sessionData.session.user
+    } else if (sessionError) {
+      // If session fails, try getUser directly
+      const result = await supabase.auth.getUser()
+      user = result.data?.user ?? null
+      userError = result.error ?? null
+    } else {
+      // No session, try getUser
+      const result = await supabase.auth.getUser()
+      user = result.data?.user ?? null
+      userError = result.error ?? null
+    }
+  } catch (error) {
+    console.error("Error getting user:", error)
+    userError = error as Error
   }
 
   if (userError || !user) {

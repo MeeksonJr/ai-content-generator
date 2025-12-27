@@ -10,9 +10,10 @@ import { handleApiError } from "@/lib/utils/error-handler"
  */
 export async function POST(
   request: Request,
-  { params }: { params: { id: string; versionId: string } }
+  { params }: { params: Promise<{ id: string; versionId: string }> }
 ) {
   try {
+    const { id, versionId } = await params
     const supabase = await createSupabaseRouteClient()
 
     const {
@@ -28,8 +29,8 @@ export async function POST(
     const { data: version, error: versionError } = await (serverSupabase as any)
       .from("content_versions")
       .select("*")
-      .eq("id", params.versionId)
-      .eq("content_id", params.id)
+      .eq("id", versionId)
+      .eq("content_id", id)
       .maybeSingle()
 
     if (versionError || !version) {
@@ -47,7 +48,7 @@ export async function POST(
     const { data: content } = await supabase
       .from("content")
       .select("id, user_id, project_id")
-      .eq("id", params.id)
+      .eq("id", id)
       .maybeSingle()
 
     if (!content) {
@@ -77,7 +78,7 @@ export async function POST(
     const { data: currentContent } = await (serverSupabase as any)
       .from("content")
       .select("title, content")
-      .eq("id", params.id)
+      .eq("id", id)
       .maybeSingle()
 
     if (currentContent) {
@@ -85,7 +86,7 @@ export async function POST(
       const { data: latestVersion } = await (serverSupabase as any)
         .from("content_versions")
         .select("version_number")
-        .eq("content_id", params.id)
+        .eq("content_id", id)
         .order("version_number", { ascending: false })
         .limit(1)
         .maybeSingle()
@@ -96,7 +97,7 @@ export async function POST(
       await (serverSupabase as any)
         .from("content_versions")
         .insert({
-          content_id: params.id,
+          content_id: id,
           user_id: session.user.id,
           version_number: nextVersion,
           title: currentContent.title,
@@ -113,7 +114,7 @@ export async function POST(
         content: versionData.content,
         updated_at: new Date().toISOString(),
       } as any)
-      .eq("id", params.id)
+      .eq("id", id)
       .select()
       .single()
 
@@ -125,7 +126,7 @@ export async function POST(
     logger.info("Content restored to version", {
       context: "Collaboration",
       userId: session.user.id,
-      data: { contentId: params.id, versionId: params.versionId },
+      data: { contentId: id, versionId },
     })
 
     return NextResponse.json({ success: true, content: restoredContent })

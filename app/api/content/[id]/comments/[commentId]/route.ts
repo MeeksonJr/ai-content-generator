@@ -10,9 +10,10 @@ import { handleApiError } from "@/lib/utils/error-handler"
  */
 export async function PATCH(
   request: Request,
-  { params }: { params: { id: string; commentId: string } }
+  { params }: { params: Promise<{ id: string; commentId: string }> }
 ) {
   try {
+    const { commentId } = await params
     const supabase = await createSupabaseRouteClient()
 
     const {
@@ -27,7 +28,7 @@ export async function PATCH(
     const { data: comment } = await supabase
       .from("content_comments")
       .select("user_id")
-      .eq("id", params.commentId)
+      .eq("id", commentId)
       .maybeSingle()
 
     if (!comment) {
@@ -53,7 +54,7 @@ export async function PATCH(
         comment_text: comment_text.trim(),
         updated_at: new Date().toISOString(),
       } as any)
-      .eq("id", params.commentId)
+      .eq("id", commentId)
       .select(`
         *,
         user_profiles!content_comments_user_id_fkey (
@@ -72,7 +73,7 @@ export async function PATCH(
     logger.info("Comment updated", {
       context: "Collaboration",
       userId: session.user.id,
-      data: { commentId: params.commentId },
+      data: { commentId },
     })
 
     return NextResponse.json({ success: true, comment: updatedComment })
@@ -91,9 +92,10 @@ export async function PATCH(
  */
 export async function DELETE(
   request: Request,
-  { params }: { params: { id: string; commentId: string } }
+  { params }: { params: Promise<{ id: string; commentId: string }> }
 ) {
   try {
+    const { commentId } = await params
     const supabase = await createSupabaseRouteClient()
 
     const {
@@ -108,7 +110,7 @@ export async function DELETE(
     const { data: comment } = await supabase
       .from("content_comments")
       .select("user_id")
-      .eq("id", params.commentId)
+      .eq("id", commentId)
       .maybeSingle()
 
     if (!comment) {
@@ -124,7 +126,7 @@ export async function DELETE(
     const { error } = await (serverSupabase as any)
       .from("content_comments")
       .delete()
-      .eq("id", params.commentId)
+      .eq("id", commentId)
 
     if (error) {
       const { statusCode, error: apiError } = handleApiError(error, "Comments")
@@ -134,7 +136,7 @@ export async function DELETE(
     logger.info("Comment deleted", {
       context: "Collaboration",
       userId: session.user.id,
-      data: { commentId: params.commentId },
+      data: { commentId },
     })
 
     return NextResponse.json({ success: true })
