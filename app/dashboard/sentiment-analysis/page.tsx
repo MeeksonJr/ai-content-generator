@@ -201,59 +201,61 @@ export default function SentimentAnalysisPage() {
         animate="visible"
         variants={containerVariants}
       >
-        <motion.div variants={itemVariants}>
-          <div className="flex flex-col gap-4">
-            <div className="flex items-center gap-3">
-              <div className="rounded-full bg-primary/10 p-3">
-                <Sparkles className="h-6 w-6 text-primary" />
+        <motion.div variants={itemVariants} className="space-y-4 sm:space-y-6">
+          <div className="flex flex-col gap-4 sm:gap-6">
+            <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3 sm:gap-4">
+              <div className="rounded-full bg-primary/10 border border-primary/20 p-3 sm:p-4">
+                <Sparkles className="h-5 w-5 sm:h-6 sm:w-6 text-primary" />
               </div>
-              <div>
-                <h2 className="text-3xl font-bold tracking-tight">Sentiment Analysis</h2>
-                <p className="text-muted-foreground">
+              <div className="space-y-1 sm:space-y-2">
+                <h2 className="text-2xl sm:text-3xl md:text-4xl font-bold tracking-tight">Sentiment Analysis</h2>
+                <p className="text-muted-foreground text-sm sm:text-base">
                   Analyze customer reviews and feedback to understand sentiment and extract key insights.
                 </p>
               </div>
             </div>
-            <div className="grid gap-4 md:grid-cols-3">
+            <div className="grid gap-4 sm:gap-6 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3">
               <motion.div
                 variants={itemVariants}
-                className="rounded-lg border border-gray-800 bg-gray-950 p-4 shadow-inner"
-                whileHover={{ y: -3 }}
+                className="rounded-xl border border-gray-800 bg-gradient-to-br from-gray-900 to-gray-950 p-4 sm:p-5 shadow-lg hover:shadow-xl hover:shadow-primary/10 transition-all"
+                whileHover={{ y: -4, scale: 1.02 }}
               >
-                <div className="flex items-center justify-between text-sm text-muted-foreground">
+                <div className="flex items-center justify-between text-xs sm:text-sm text-muted-foreground mb-3">
                   <span>Confidence</span>
-                  <TrendingUp className="h-4 w-4 text-primary" />
+                  <div className="p-1.5 rounded-lg bg-primary/10 border border-primary/20">
+                    <TrendingUp className="h-3 w-3 sm:h-4 sm:w-4 text-primary" />
+                  </div>
                 </div>
-                <p className="mt-2 text-2xl font-semibold text-white">
+                <p className="text-2xl sm:text-3xl font-bold text-white mb-2">
                   {results ? `${Math.round(results.score * 100)}%` : "--"}
                 </p>
-                <Progress value={results ? results.score * 100 : 0} className="mt-3 h-1.5 bg-gray-800" />
+                <Progress value={results ? results.score * 100 : 0} className="h-2 bg-gray-800" />
               </motion.div>
               <motion.div
                 variants={itemVariants}
-                className="rounded-lg border border-gray-800 bg-gray-950 p-4 shadow-inner"
-                whileHover={{ y: -3 }}
+                className="rounded-xl border border-gray-800 bg-gradient-to-br from-gray-900 to-gray-950 p-4 sm:p-5 shadow-lg hover:shadow-xl hover:shadow-primary/10 transition-all"
+                whileHover={{ y: -4, scale: 1.02 }}
               >
-                <div className="flex items-center justify-between text-sm text-muted-foreground">
+                <div className="flex items-center justify-between text-xs sm:text-sm text-muted-foreground mb-3">
                   <span>Sentiment</span>
                   <span
-                    className={`text-xs px-2 py-0.5 rounded-full ${
+                    className={`text-xs px-2.5 py-1 rounded-full font-medium ${
                       results
                         ? results.sentiment === "positive"
-                          ? "bg-green-900/30 text-green-300"
+                          ? "bg-green-500/20 text-green-400 border border-green-500/40"
                           : results.sentiment === "negative"
-                            ? "bg-red-900/30 text-red-300"
-                            : "bg-yellow-900/30 text-yellow-300"
-                        : "bg-gray-800 text-gray-400"
+                            ? "bg-red-500/20 text-red-400 border border-red-500/40"
+                            : "bg-yellow-500/20 text-yellow-400 border border-yellow-500/40"
+                        : "bg-gray-800 text-gray-400 border border-gray-700"
                     }`}
                   >
                     {results ? results.sentiment : "waiting"}
                   </span>
                 </div>
-                <p className="mt-2 text-2xl font-semibold text-white capitalize">
+                <p className="text-2xl sm:text-3xl font-bold text-white capitalize mb-2">
                   {results ? results.sentiment : "No data"}
                 </p>
-                <p className="mt-3 text-xs text-muted-foreground">
+                <p className="text-xs sm:text-sm text-muted-foreground">
                   {results
                     ? results.sentiment === "positive"
                       ? "Strong positive feedback detected."
@@ -265,17 +267,19 @@ export default function SentimentAnalysisPage() {
               </motion.div>
               <motion.div
                 variants={itemVariants}
-                className="rounded-lg border border-gray-800 bg-gray-950 p-4 shadow-inner"
-                whileHover={{ y: -3 }}
+                className="rounded-xl border border-gray-800 bg-gradient-to-br from-gray-900 to-gray-950 p-4 sm:p-5 shadow-lg hover:shadow-xl hover:shadow-primary/10 transition-all"
+                whileHover={{ y: -4, scale: 1.02 }}
               >
-                <div className="flex items-center justify-between text-sm text-muted-foreground">
+                <div className="flex items-center justify-between text-xs sm:text-sm text-muted-foreground mb-3">
                   <span>Insights</span>
-                  <AlertTriangle className="h-4 w-4 text-yellow-400" />
+                  <div className="p-1.5 rounded-lg bg-yellow-500/10 border border-yellow-500/20">
+                    <AlertTriangle className="h-3 w-3 sm:h-4 sm:w-4 text-yellow-400" />
+                  </div>
                 </div>
-                <p className="mt-2 text-2xl font-semibold text-white">
+                <p className="text-2xl sm:text-3xl font-bold text-white mb-2">
                   {results ? (results.sentiment === "negative" ? "Action" : "Great") : "Idle"}
                 </p>
-                <p className="mt-3 text-xs text-muted-foreground">
+                <p className="text-xs sm:text-sm text-muted-foreground">
                   {results
                     ? results.sentiment === "negative"
                       ? "Review highlighted concerns."
@@ -288,46 +292,57 @@ export default function SentimentAnalysisPage() {
         </motion.div>
 
         <motion.div variants={itemVariants}>
-          <Tabs defaultValue="text" className="space-y-4">
-            <TabsList className="bg-gray-900 border border-gray-800">
-              <TabsTrigger value="text">Text Input</TabsTrigger>
-              <TabsTrigger value="bulk">Bulk Analysis</TabsTrigger>
+          <Tabs defaultValue="text" className="space-y-4 sm:space-y-6">
+            <TabsList className="bg-gray-900 border border-gray-800 w-full sm:w-auto flex-wrap">
+              <TabsTrigger value="text" className="text-xs sm:text-sm px-3 sm:px-4">Text Input</TabsTrigger>
+              <TabsTrigger value="bulk" className="text-xs sm:text-sm px-3 sm:px-4">Bulk Analysis</TabsTrigger>
             </TabsList>
 
-            <TabsContent value="text" className="space-y-4">
-              <div className="grid gap-4 md:grid-cols-2">
+            <TabsContent value="text" className="space-y-4 sm:space-y-6">
+              <div className="grid gap-4 sm:gap-6 grid-cols-1 lg:grid-cols-2">
                 <motion.div
                   variants={itemVariants}
                   whileHover={{ scale: 1.01 }}
                   transition={{ duration: 0.2 }}
                   className="h-full"
                 >
-                  <Card className="md:col-span-1 h-full border-gray-800 bg-gray-900">
-                    <CardHeader>
-                      <CardTitle>Input Text</CardTitle>
-                      <CardDescription>Enter the text you want to analyze for sentiment.</CardDescription>
+                  <Card className="h-full border-gray-800 bg-gradient-to-br from-gray-900 to-gray-950 shadow-lg">
+                    <CardHeader className="pb-3 sm:pb-4">
+                      <CardTitle className="text-base sm:text-lg">Input Text</CardTitle>
+                      <CardDescription className="text-xs sm:text-sm">
+                        Enter the text you want to analyze for sentiment.
+                      </CardDescription>
                     </CardHeader>
-                    <CardContent>
+                    <CardContent className="space-y-3 sm:space-y-4">
                       <Textarea
                         placeholder="Paste customer reviews, feedback, or any text you want to analyze..."
-                        className="min-h-[200px] transition-all focus-visible:ring-2 focus-visible:ring-primary"
+                        className="min-h-[200px] sm:min-h-[250px] transition-all focus-visible:ring-2 focus-visible:ring-primary text-sm resize-none"
                         value={text}
                         onChange={(e) => setText(e.target.value)}
                       />
-                    </CardContent>
-                    <CardFooter className="flex flex-col gap-3">
-                      <div className="flex items-center justify-between text-xs text-muted-foreground">
+                      <div className="flex items-center justify-between text-xs text-muted-foreground pt-2 border-t border-gray-800">
                         <span>{text.length ? `${text.length} characters` : "Waiting for input..."}</span>
                         <span>{text.split(/\s+/).filter(Boolean).length} words</span>
                       </div>
-                      <Button onClick={handleAnalyze} disabled={!text || isAnalyzing} className="w-full">
+                    </CardContent>
+                    <CardFooter className="pt-3 sm:pt-4">
+                      <Button 
+                        onClick={handleAnalyze} 
+                        disabled={!text || isAnalyzing} 
+                        className="w-full h-9 sm:h-10 bg-gradient-to-r from-primary to-indigo-600 hover:from-primary/90 hover:to-indigo-600/90"
+                      >
                         {isAnalyzing ? (
                           <>
                             <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                            Analyzing...
+                            <span className="hidden sm:inline">Analyzing...</span>
+                            <span className="sm:hidden">Analyzing</span>
                           </>
                         ) : (
-                          "Analyze Sentiment"
+                          <>
+                            <Sparkles className="mr-2 h-4 w-4" />
+                            <span className="hidden sm:inline">Analyze Sentiment</span>
+                            <span className="sm:hidden">Analyze</span>
+                          </>
                         )}
                       </Button>
                     </CardFooter>
@@ -340,12 +355,14 @@ export default function SentimentAnalysisPage() {
                   transition={{ duration: 0.2 }}
                   className="h-full"
                 >
-                  <Card className="md:col-span-1 h-full border-gray-800 bg-gray-900">
-                    <CardHeader>
-                      <CardTitle>Analysis Results</CardTitle>
-                      <CardDescription>Sentiment analysis results and key insights.</CardDescription>
+                  <Card className="h-full border-gray-800 bg-gradient-to-br from-gray-900 to-gray-950 shadow-lg">
+                    <CardHeader className="pb-3 sm:pb-4">
+                      <CardTitle className="text-base sm:text-lg">Analysis Results</CardTitle>
+                      <CardDescription className="text-xs sm:text-sm">
+                        Sentiment analysis results and key insights.
+                      </CardDescription>
                     </CardHeader>
-                    <CardContent>
+                    <CardContent className="space-y-4 sm:space-y-6">
                       <AnimatePresence mode="wait">
                         {results ? (
                           <motion.div
@@ -454,12 +471,14 @@ export default function SentimentAnalysisPage() {
                             initial={{ opacity: 0, y: 10 }}
                             animate={{ opacity: 1, y: 0 }}
                             exit={{ opacity: 0, y: -10 }}
-                            className="flex flex-col items-center justify-center h-[200px] text-center space-y-3 text-muted-foreground"
+                            className="flex flex-col items-center justify-center h-[200px] sm:h-[250px] text-center space-y-4 text-muted-foreground"
                           >
-                            <Loader2 className="h-6 w-6 animate-spin text-primary/70" />
-                            <div>
-                              <p className="font-medium">Awaiting analysis</p>
-                              <p className="text-sm">Enter text and run sentiment analysis to view results.</p>
+                            <div className="p-4 rounded-full bg-gray-800 border border-gray-700">
+                              <Sparkles className="h-8 w-8 sm:h-10 sm:w-10 text-gray-600" />
+                            </div>
+                            <div className="space-y-1">
+                              <p className="font-semibold text-sm sm:text-base">Awaiting analysis</p>
+                              <p className="text-xs sm:text-sm">Enter text and run sentiment analysis to view results.</p>
                             </div>
                           </motion.div>
                         )}
@@ -470,35 +489,37 @@ export default function SentimentAnalysisPage() {
               </div>
           </TabsContent>
 
-          <TabsContent value="bulk">
+          <TabsContent value="bulk" className="space-y-4 sm:space-y-6">
             <motion.div variants={itemVariants}>
-              <Card className="border-gray-800 bg-gray-900">
-                <CardHeader>
-                  <CardTitle>Bulk Sentiment Analysis</CardTitle>
-                  <CardDescription>
+              <Card className="border-gray-800 bg-gradient-to-br from-gray-900 to-gray-950 shadow-lg">
+                <CardHeader className="pb-3 sm:pb-4">
+                  <CardTitle className="text-base sm:text-lg">Bulk Sentiment Analysis</CardTitle>
+                  <CardDescription className="text-xs sm:text-sm">
                     Upload a CSV file with customer reviews or feedback for batch analysis.
                   </CardDescription>
                 </CardHeader>
                 <CardContent>
                   <motion.div
                     variants={itemVariants}
-                    className="flex flex-col items-center justify-center border-2 border-dashed border-gray-800 rounded-lg p-12 bg-gray-950"
+                    className="flex flex-col items-center justify-center border-2 border-dashed border-gray-700 rounded-xl p-8 sm:p-12 bg-gray-800/50"
                   >
-                    <Upload className="h-8 w-8 text-muted-foreground mb-4" />
-                    <h3 className="text-lg font-medium mb-2">Upload CSV File</h3>
-                    <p className="text-sm text-muted-foreground text-center mb-4">
+                    <div className="p-4 rounded-full bg-gray-800 border border-gray-700 mb-4">
+                      <Upload className="h-8 w-8 sm:h-10 sm:w-10 text-muted-foreground" />
+                    </div>
+                    <h3 className="text-base sm:text-lg font-semibold mb-2">Upload CSV File</h3>
+                    <p className="text-xs sm:text-sm text-muted-foreground text-center mb-6 max-w-md">
                       Drag and drop your CSV file here, or click to browse
                     </p>
-                    <Button variant="outline" disabled title="Coming soon">
+                    <Button variant="outline" disabled title="Coming soon" className="h-9 sm:h-10">
                       Select File
                     </Button>
-                    <p className="text-xs text-muted-foreground mt-4">
+                    <p className="text-xs text-muted-foreground mt-6 text-center max-w-sm">
                       CSV file should have a "text" column containing the content to analyze
                     </p>
                   </motion.div>
                 </CardContent>
-                <CardFooter>
-                  <Button className="w-full" disabled title="Coming soon">
+                <CardFooter className="pt-3 sm:pt-4">
+                  <Button className="w-full h-9 sm:h-10" disabled title="Coming soon">
                     Upload and Analyze
                   </Button>
                 </CardFooter>

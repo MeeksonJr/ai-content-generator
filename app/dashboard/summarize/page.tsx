@@ -363,47 +363,51 @@ export default function SummarizePage() {
         animate="visible"
         variants={containerVariants}
       >
-        <motion.div variants={itemVariants}>
-          <div className="flex flex-col gap-4">
-            <div className="flex items-center gap-3">
-              <div className="rounded-full bg-primary/10 p-3">
-                <Sparkles className="h-6 w-6 text-primary" />
+        <motion.div variants={itemVariants} className="space-y-4 sm:space-y-6">
+          <div className="flex flex-col gap-4 sm:gap-6">
+            <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3 sm:gap-4">
+              <div className="rounded-full bg-primary/10 border border-primary/20 p-3 sm:p-4">
+                <Sparkles className="h-5 w-5 sm:h-6 sm:w-6 text-primary" />
               </div>
-              <div>
-                <h2 className="text-3xl font-bold tracking-tight">Text Summarization</h2>
-                <p className="text-muted-foreground">
+              <div className="space-y-1 sm:space-y-2">
+                <h2 className="text-2xl sm:text-3xl md:text-4xl font-bold tracking-tight">Text Summarization</h2>
+                <p className="text-muted-foreground text-sm sm:text-base">
                   Automatically generate concise summaries from long-form content using AI.
                 </p>
               </div>
             </div>
-            <div className="grid gap-4 md:grid-cols-3">
+            <div className="grid gap-4 sm:gap-6 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3">
               <motion.div
                 variants={itemVariants}
-                className="rounded-xl border border-gray-800 bg-gray-950 p-4"
-                whileHover={{ y: -4 }}
+                className="rounded-xl border border-gray-800 bg-gradient-to-br from-gray-900 to-gray-950 p-4 sm:p-5 shadow-lg hover:shadow-xl hover:shadow-primary/10 transition-all"
+                whileHover={{ y: -4, scale: 1.02 }}
               >
-                <div className="flex items-center justify-between text-sm text-muted-foreground">
+                <div className="flex items-center justify-between text-xs sm:text-sm text-muted-foreground mb-3">
                   <span>Words Processed</span>
-                  <BookMarked className="h-4 w-4 text-primary" />
+                  <div className="p-1.5 rounded-lg bg-primary/10 border border-primary/20">
+                    <BookMarked className="h-3 w-3 sm:h-4 sm:w-4 text-primary" />
+                  </div>
                 </div>
-                <p className="mt-2 text-2xl font-semibold text-white">
+                <p className="text-2xl sm:text-3xl font-bold text-white mb-2">
                   {wordCount.toLocaleString()}
                 </p>
-                <p className="mt-2 text-xs text-muted-foreground">
+                <p className="text-xs sm:text-sm text-muted-foreground">
                   Minimum 100 characters required for accurate summaries.
                 </p>
               </motion.div>
               <motion.div
                 variants={itemVariants}
-                className="rounded-xl border border-gray-800 bg-gray-950 p-4"
-                whileHover={{ y: -4 }}
+                className="rounded-xl border border-gray-800 bg-gradient-to-br from-gray-900 to-gray-950 p-4 sm:p-5 shadow-lg hover:shadow-xl hover:shadow-primary/10 transition-all"
+                whileHover={{ y: -4, scale: 1.02 }}
               >
-                <div className="flex items-center justify-between text-sm text-muted-foreground">
+                <div className="flex items-center justify-between text-xs sm:text-sm text-muted-foreground mb-3">
                   <span>Summary Length</span>
-                  <span className="text-xs text-primary">{summaryLength} sentences</span>
+                  <span className="text-xs font-medium text-primary px-2 py-1 rounded-md bg-primary/10 border border-primary/20">
+                    {summaryLength} sentences
+                  </span>
                 </div>
-                <p className="mt-2 text-2xl font-semibold text-white capitalize">{summaryType}</p>
-                <p className="mt-2 text-xs text-muted-foreground">
+                <p className="text-2xl sm:text-3xl font-bold text-white capitalize mb-2">{summaryType}</p>
+                <p className="text-xs sm:text-sm text-muted-foreground">
                   {summaryType === "extractive"
                     ? "Extracts the most relevant sentences from the original text."
                     : "Generates paraphrased sentences based on the context."}
@@ -411,17 +415,19 @@ export default function SummarizePage() {
               </motion.div>
               <motion.div
                 variants={itemVariants}
-                className="rounded-xl border border-gray-800 bg-gray-950 p-4"
-                whileHover={{ y: -4 }}
+                className="rounded-xl border border-gray-800 bg-gradient-to-br from-gray-900 to-gray-950 p-4 sm:p-5 shadow-lg hover:shadow-xl hover:shadow-primary/10 transition-all"
+                whileHover={{ y: -4, scale: 1.02 }}
               >
-                <div className="flex items-center justify-between text-sm text-muted-foreground">
+                <div className="flex items-center justify-between text-xs sm:text-sm text-muted-foreground mb-3">
                   <span>Summary Output</span>
-                  <span className="text-xs text-primary">{summaryWordCount} words</span>
+                  <span className="text-xs font-medium text-primary px-2 py-1 rounded-md bg-primary/10 border border-primary/20">
+                    {summaryWordCount} words
+                  </span>
                 </div>
-                <p className="mt-2 text-2xl font-semibold text-white">
+                <p className="text-2xl sm:text-3xl font-bold text-white mb-2">
                   {summary ? "Ready" : "Pending"}
                 </p>
-                <p className="mt-2 text-xs text-muted-foreground">
+                <p className="text-xs sm:text-sm text-muted-foreground">
                   {summary
                     ? "Copy or download your summary instantly."
                     : "Generate a summary to preview the output."}
@@ -432,35 +438,40 @@ export default function SummarizePage() {
         </motion.div>
 
         <motion.div variants={itemVariants}>
-          <Tabs defaultValue="text" className="space-y-4">
-            <TabsList className="bg-gray-900 border border-gray-800">
-              <TabsTrigger value="text">Text Input</TabsTrigger>
-              <TabsTrigger value="bulk">Bulk Summarization</TabsTrigger>
+          <Tabs defaultValue="text" className="space-y-4 sm:space-y-6">
+            <TabsList className="bg-gray-900 border border-gray-800 w-full sm:w-auto flex-wrap">
+              <TabsTrigger value="text" className="text-xs sm:text-sm px-3 sm:px-4">Text Input</TabsTrigger>
+              <TabsTrigger value="bulk" className="text-xs sm:text-sm px-3 sm:px-4">Bulk Summarization</TabsTrigger>
             </TabsList>
 
-            <TabsContent value="text">
-              <div className="grid gap-4 md:grid-cols-2">
+            <TabsContent value="text" className="space-y-4 sm:space-y-6">
+              <div className="grid gap-4 sm:gap-6 grid-cols-1 lg:grid-cols-2">
                 <motion.div variants={itemVariants} whileHover={{ scale: 1.01 }} transition={{ duration: 0.2 }}>
-                  <Card className="md:col-span-1 border-gray-800 bg-gray-900">
-                    <CardHeader>
-                      <CardTitle>Input Text</CardTitle>
-                      <CardDescription>Enter the text you want to summarize.</CardDescription>
+                  <Card className="border-gray-800 bg-gradient-to-br from-gray-900 to-gray-950 shadow-lg">
+                    <CardHeader className="pb-3 sm:pb-4">
+                      <CardTitle className="text-base sm:text-lg">Input Text</CardTitle>
+                      <CardDescription className="text-xs sm:text-sm">
+                        Enter the text you want to summarize.
+                      </CardDescription>
                     </CardHeader>
-                    <CardContent className="space-y-4">
+                    <CardContent className="space-y-4 sm:space-y-5">
                       <Textarea
                         placeholder="Paste your long-form content here (articles, reports, documents, etc.)..."
-                        className="min-h-[300px] transition-all focus-visible:ring-2 focus-visible:ring-primary"
+                        className="min-h-[250px] sm:min-h-[300px] transition-all focus-visible:ring-2 focus-visible:ring-primary text-sm resize-none"
                         value={text}
                         onChange={(e) => setText(e.target.value)}
                       />
-                      <div className="flex items-center justify-between text-xs text-muted-foreground">
+                      <div className="flex items-center justify-between text-xs text-muted-foreground pt-2 border-t border-gray-800">
                         <span>{text.length ? `${text.length} characters` : "Waiting for input..."}</span>
                         <span>{wordCount} words</span>
                       </div>
 
-                      <div className="space-y-4">
+                      <div className="space-y-4 sm:space-y-5">
                         <div className="space-y-2">
-                          <Label>Summary Length: {summaryLength} sentences</Label>
+                          <div className="flex items-center justify-between">
+                            <Label className="text-xs sm:text-sm">Summary Length</Label>
+                            <span className="text-xs font-medium text-primary">{summaryLength} sentences</span>
+                          </div>
                           <Slider
                             value={[summaryLength]}
                             onValueChange={(value) => setSummaryLength(value[0])}
@@ -472,31 +483,44 @@ export default function SummarizePage() {
                         </div>
 
                         <div className="space-y-2">
-                          <Label htmlFor="summary-type">Summary Type</Label>
+                          <Label htmlFor="summary-type" className="text-xs sm:text-sm">Summary Type</Label>
                           <Select value={summaryType} onValueChange={setSummaryType}>
-                            <SelectTrigger id="summary-type" className="bg-gray-950 border-gray-800">
+                            <SelectTrigger id="summary-type" className="bg-gray-950 border-gray-800 h-9 sm:h-10 text-sm">
                               <SelectValue placeholder="Select summary type" />
                             </SelectTrigger>
                             <SelectContent>
-                              <SelectItem value="extractive">Extractive (Key sentences)</SelectItem>
-                              <SelectItem value="abstractive">Abstractive (Paraphrased)</SelectItem>
+                              <SelectItem value="extractive" className="text-sm">Extractive (Key sentences)</SelectItem>
+                              <SelectItem value="abstractive" className="text-sm">Abstractive (Paraphrased)</SelectItem>
                             </SelectContent>
                           </Select>
                         </div>
                       </div>
                     </CardContent>
-                    <CardFooter className="flex gap-2">
-                      <Button variant="outline" onClick={resetForm} className="w-full border-gray-700">
+                    <CardFooter className="flex flex-col sm:flex-row gap-2 pt-4">
+                      <Button 
+                        variant="outline" 
+                        onClick={resetForm} 
+                        className="w-full sm:w-auto h-9 sm:h-10 border-gray-700 hover:bg-gray-800"
+                      >
                         Reset
                       </Button>
-                      <Button onClick={handleSummarize} disabled={!text || isSummarizing} className="w-full">
+                      <Button 
+                        onClick={handleSummarize} 
+                        disabled={!text || isSummarizing} 
+                        className="w-full sm:w-auto h-9 sm:h-10 bg-gradient-to-r from-primary to-indigo-600 hover:from-primary/90 hover:to-indigo-600/90"
+                      >
                         {isSummarizing ? (
                           <>
                             <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                            Summarizing...
+                            <span className="hidden sm:inline">Summarizing...</span>
+                            <span className="sm:hidden">Summarizing</span>
                           </>
                         ) : (
-                          "Summarize Text"
+                          <>
+                            <Sparkles className="mr-2 h-4 w-4" />
+                            <span className="hidden sm:inline">Summarize Text</span>
+                            <span className="sm:hidden">Summarize</span>
+                          </>
                         )}
                       </Button>
                     </CardFooter>
@@ -504,25 +528,41 @@ export default function SummarizePage() {
                 </motion.div>
 
                 <motion.div variants={itemVariants} whileHover={{ scale: 1.01 }} transition={{ duration: 0.2 }}>
-                  <Card className="md:col-span-1 border-gray-800 bg-gray-900">
-                    <CardHeader>
-                      <div className="flex items-center justify-between">
-                        <CardTitle>Summary</CardTitle>
+                  <Card className="border-gray-800 bg-gradient-to-br from-gray-900 to-gray-950 shadow-lg">
+                    <CardHeader className="pb-3 sm:pb-4">
+                      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 sm:gap-4">
+                        <div>
+                          <CardTitle className="text-base sm:text-lg">Summary</CardTitle>
+                          <CardDescription className="text-xs sm:text-sm">
+                            AI-generated summary of your text.
+                          </CardDescription>
+                        </div>
                         {summary && (
-                          <div className="flex gap-2">
-                            <Button onClick={handleCopy} size="sm" variant="outline" className="border-gray-700">
-                              <Copy className="h-4 w-4" />
+                          <div className="flex gap-2 w-full sm:w-auto">
+                            <Button 
+                              onClick={handleCopy} 
+                              size="sm" 
+                              variant="outline" 
+                              className="border-gray-700 hover:bg-gray-800 h-9 flex-1 sm:flex-initial"
+                            >
+                              <Copy className="h-3 w-3 sm:h-4 sm:w-4 mr-1.5 sm:mr-2" />
+                              <span className="text-xs sm:text-sm">Copy</span>
                             </Button>
-                            <Button onClick={handleDownload} size="sm" variant="outline" className="border-gray-700">
-                              <Download className="h-4 w-4" />
+                            <Button 
+                              onClick={handleDownload} 
+                              size="sm" 
+                              variant="outline" 
+                              className="border-gray-700 hover:bg-gray-800 h-9 flex-1 sm:flex-initial"
+                            >
+                              <Download className="h-3 w-3 sm:h-4 sm:w-4 mr-1.5 sm:mr-2" />
+                              <span className="text-xs sm:text-sm">Download</span>
                             </Button>
                           </div>
                         )}
                       </div>
-                      <CardDescription>AI-generated summary of your text.</CardDescription>
                     </CardHeader>
-                    <CardContent className="space-y-4">
-                      <div className="rounded-md border border-gray-800 bg-gray-950 p-4 text-sm min-h-[300px]">
+                    <CardContent className="space-y-3 sm:space-y-4">
+                      <div className="rounded-lg border border-gray-700 bg-gray-800/50 p-3 sm:p-4 text-sm min-h-[250px] sm:min-h-[300px]">
                         <AnimatePresence mode="wait">
                           {isSummarizing ? (
                             <motion.div
@@ -530,9 +570,16 @@ export default function SummarizePage() {
                               initial={{ opacity: 0 }}
                               animate={{ opacity: 1 }}
                               exit={{ opacity: 0 }}
-                              className="flex h-full items-center justify-center"
+                              className="flex flex-col h-full items-center justify-center space-y-4"
                             >
-                              <Loader2 className="h-8 w-8 animate-spin text-primary" />
+                              <div className="relative">
+                                <Loader2 className="h-10 w-10 sm:h-12 sm:w-12 animate-spin text-primary" />
+                                <Sparkles className="h-6 w-6 sm:h-8 sm:w-8 text-primary animate-pulse absolute inset-0 m-auto" />
+                              </div>
+                              <div className="text-center space-y-2">
+                                <p className="text-sm sm:text-base font-medium text-white">Summarizing text...</p>
+                                <p className="text-xs sm:text-sm text-muted-foreground">This may take a few moments</p>
+                              </div>
                             </motion.div>
                           ) : summary ? (
                             <motion.div
@@ -540,10 +587,10 @@ export default function SummarizePage() {
                               initial={{ opacity: 0, y: 10 }}
                               animate={{ opacity: 1, y: 0 }}
                               exit={{ opacity: 0, y: -10 }}
-                              className="whitespace-pre-wrap text-sm text-gray-200 space-y-4"
+                              className="whitespace-pre-wrap text-xs sm:text-sm text-gray-200 space-y-4 leading-relaxed"
                             >
                               <p>{summary}</p>
-                              <div className="flex items-center justify-between text-xs text-muted-foreground">
+                              <div className="flex items-center justify-between text-xs text-muted-foreground pt-3 border-t border-gray-700">
                                 <span>{summary.length} characters</span>
                                 <span>{summaryWordCount} words</span>
                               </div>
@@ -554,10 +601,15 @@ export default function SummarizePage() {
                               initial={{ opacity: 0 }}
                               animate={{ opacity: 1 }}
                               exit={{ opacity: 0 }}
-                              className="flex flex-col items-center justify-center h-full text-center text-muted-foreground"
+                              className="flex flex-col items-center justify-center h-full text-center text-muted-foreground space-y-3"
                             >
-                              <FileText className="h-12 w-12 mb-4 opacity-50" />
-                              <p>Enter text and click "Summarize Text" to see results</p>
+                              <div className="p-4 rounded-full bg-gray-800 border border-gray-700">
+                                <FileText className="h-8 w-8 sm:h-10 sm:w-10 text-gray-600" />
+                              </div>
+                              <div className="space-y-1">
+                                <p className="text-sm sm:text-base font-medium">No summary yet</p>
+                                <p className="text-xs sm:text-sm">Enter text and click "Summarize Text" to see results</p>
+                              </div>
                             </motion.div>
                           )}
                         </AnimatePresence>
@@ -652,6 +704,7 @@ export default function SummarizePage() {
                           accept=".csv,text/csv"
                           onChange={handleFileUpload}
                           className="hidden"
+                          aria-label="Upload CSV file for bulk summarization"
                         />
                       </motion.div>
                     ) : (

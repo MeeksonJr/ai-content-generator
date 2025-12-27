@@ -9,7 +9,7 @@ import { Label } from "@/components/ui/label"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Switch } from "@/components/ui/switch"
 import { Separator } from "@/components/ui/separator"
-import { Loader2, Save, Plus, Trash2, Copy, Check, Upload, X, MapPin, Globe, Twitter, Linkedin, Github } from "lucide-react"
+import { Loader2, Save, Plus, Trash2, Copy, Check, Upload, X, MapPin, Globe, Twitter, Linkedin, Github, Code } from "lucide-react"
 import { useToast } from "@/components/ui/use-toast"
 import { createClient } from "@/lib/supabase/client"
 import { useEffect, useRef } from "react"
@@ -389,12 +389,58 @@ export default function SettingsPage() {
     }
   }
 
+  const handleSaveNotificationPreferences = async () => {
+    setSaving(true)
+    try {
+      const response = await fetch("/api/profile", {
+        method: "PATCH",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          notification_preferences: {
+            email: formData.notifications.email,
+            in_app: true,
+            payment: true,
+            subscription: true,
+            content: true,
+            system: true,
+            marketing: formData.notifications.marketing,
+            social: formData.notifications.social,
+            security: formData.notifications.security,
+          },
+        }),
+      })
+
+      if (!response.ok) {
+        const errorMessage = await extractApiErrorMessage(response)
+        throw new Error(errorMessage)
+      }
+
+      toast({
+        title: "Preferences updated",
+        description: "Your notification preferences have been saved successfully.",
+      })
+    } catch (error) {
+      console.error("Error updating notification preferences:", error)
+      toast({
+        title: "Error updating preferences",
+        description: getUserFriendlyErrorMessage(error),
+        variant: "destructive",
+      })
+    } finally {
+      setSaving(false)
+    }
+  }
 
   if (loading) {
     return (
       <DashboardLayout>
         <div className="flex items-center justify-center h-[60vh]">
-          <Loader2 className="h-8 w-8 animate-spin text-primary" />
+          <div className="text-center space-y-4">
+            <Loader2 className="h-10 w-10 animate-spin text-primary mx-auto" />
+            <p className="text-sm text-muted-foreground">Loading settings...</p>
+          </div>
         </div>
       </DashboardLayout>
     )
@@ -402,32 +448,36 @@ export default function SettingsPage() {
 
   return (
     <DashboardLayout>
-      <div className="space-y-6">
-        <div>
-          <h2 className="text-3xl font-bold tracking-tight">Settings</h2>
-          <p className="text-muted-foreground">Manage your account settings and preferences</p>
+      <div className="space-y-6 sm:space-y-8">
+        <div className="space-y-2 sm:space-y-3">
+          <h2 className="text-2xl sm:text-3xl md:text-4xl font-bold tracking-tight">Settings</h2>
+          <p className="text-muted-foreground text-sm sm:text-base">
+            Manage your account settings, preferences, and API keys
+          </p>
         </div>
 
-        <Tabs defaultValue="profile" className="space-y-4">
-          <TabsList>
-            <TabsTrigger value="profile">Profile</TabsTrigger>
-            <TabsTrigger value="notifications">Notifications</TabsTrigger>
-            <TabsTrigger value="api">API</TabsTrigger>
+        <Tabs defaultValue="profile" className="space-y-4 sm:space-y-6">
+          <TabsList className="bg-gray-900 border-gray-800 w-full sm:w-auto flex-wrap">
+            <TabsTrigger value="profile" className="text-xs sm:text-sm px-3 sm:px-4">Profile</TabsTrigger>
+            <TabsTrigger value="notifications" className="text-xs sm:text-sm px-3 sm:px-4">Notifications</TabsTrigger>
+            <TabsTrigger value="api" className="text-xs sm:text-sm px-3 sm:px-4">API Keys</TabsTrigger>
           </TabsList>
 
-          <TabsContent value="profile">
-            <Card>
-              <CardHeader>
-                <CardTitle>Profile Information</CardTitle>
-                <CardDescription>Update your personal information and social links</CardDescription>
+          <TabsContent value="profile" className="space-y-4 sm:space-y-6">
+            <Card className="bg-gradient-to-br from-gray-900 to-gray-950 border-gray-800 shadow-lg">
+              <CardHeader className="pb-3 sm:pb-4">
+                <CardTitle className="text-base sm:text-lg">Profile Information</CardTitle>
+                <CardDescription className="text-xs sm:text-sm">
+                  Update your personal information and social links
+                </CardDescription>
               </CardHeader>
-              <CardContent className="space-y-6">
+              <CardContent className="space-y-6 sm:space-y-8">
                 {/* Avatar Upload */}
-                <div className="flex items-center gap-6">
+                <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4 sm:gap-6">
                   <div className="relative">
-                    <Avatar className="h-24 w-24">
+                    <Avatar className="h-20 w-20 sm:h-24 sm:w-24 border-2 border-gray-700 hover:border-primary/50 transition-colors">
                       <AvatarImage src={formData.avatar_url} alt={formData.display_name || formData.name} />
-                      <AvatarFallback className="text-2xl">
+                      <AvatarFallback className="text-xl sm:text-2xl bg-gradient-to-br from-primary/20 to-indigo-500/20 border-2 border-primary/30">
                         {(formData.display_name || formData.name || "U")
                           .split(" ")
                           .map((n) => n[0])
@@ -437,19 +487,20 @@ export default function SettingsPage() {
                       </AvatarFallback>
                     </Avatar>
                     {uploadingAvatar && (
-                      <div className="absolute inset-0 flex items-center justify-center bg-black/50 rounded-full">
-                        <Loader2 className="h-6 w-6 animate-spin text-white" />
+                      <div className="absolute inset-0 flex items-center justify-center bg-black/70 rounded-full backdrop-blur-sm">
+                        <Loader2 className="h-6 w-6 sm:h-8 sm:w-8 animate-spin text-primary" />
                       </div>
                     )}
                   </div>
-                  <div className="flex flex-col gap-2">
-                    <div className="flex gap-2">
+                  <div className="flex flex-col gap-2 sm:gap-3 flex-1 min-w-0">
+                    <div className="flex flex-col sm:flex-row gap-2">
                       <Button
                         type="button"
                         variant="outline"
                         size="sm"
                         onClick={() => fileInputRef.current?.click()}
                         disabled={uploadingAvatar}
+                        className="h-9 sm:h-10 w-full sm:w-auto"
                       >
                         <Upload className="mr-2 h-4 w-4" />
                         {formData.avatar_url ? "Change" : "Upload"} Photo
@@ -461,6 +512,7 @@ export default function SettingsPage() {
                           size="sm"
                           onClick={handleRemoveAvatar}
                           disabled={uploadingAvatar}
+                          className="h-9 sm:h-10 w-full sm:w-auto"
                         >
                           <X className="mr-2 h-4 w-4" />
                           Remove
@@ -481,141 +533,168 @@ export default function SettingsPage() {
                   </div>
                 </div>
 
-                <Separator />
+                <Separator className="bg-gray-800" />
 
                 {/* Basic Information */}
-                <div className="space-y-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="display_name">Display Name</Label>
-                    <Input
-                      id="display_name"
-                      value={formData.display_name}
-                      onChange={(e) => setFormData((prev) => ({ ...prev, display_name: e.target.value }))}
-                      placeholder="Your display name"
-                    />
-                  </div>
+                <div className="space-y-4 sm:space-y-5">
+                  <div>
+                    <h3 className="text-sm sm:text-base font-semibold mb-4">Basic Information</h3>
+                    <div className="grid gap-4 sm:gap-5 grid-cols-1 sm:grid-cols-2">
+                      <div className="space-y-2 sm:col-span-2">
+                        <Label htmlFor="display_name" className="text-xs sm:text-sm">Display Name</Label>
+                        <Input
+                          id="display_name"
+                          value={formData.display_name}
+                          onChange={(e) => setFormData((prev) => ({ ...prev, display_name: e.target.value }))}
+                          placeholder="Your display name"
+                          className="h-9 sm:h-10 text-sm"
+                        />
+                      </div>
 
-                  <div className="space-y-2">
-                    <Label htmlFor="email">Email</Label>
-                    <Input id="email" value={formData.email} disabled placeholder="Your email" />
-                    <p className="text-xs text-muted-foreground">
-                      Your email address is associated with your account and cannot be changed.
-                    </p>
-                  </div>
+                      <div className="space-y-2 sm:col-span-2">
+                        <Label htmlFor="email" className="text-xs sm:text-sm">Email</Label>
+                        <Input 
+                          id="email" 
+                          value={formData.email} 
+                          disabled 
+                          placeholder="Your email"
+                          className="h-9 sm:h-10 text-sm bg-gray-800/50"
+                        />
+                        <p className="text-xs text-muted-foreground">
+                          Your email address is associated with your account and cannot be changed.
+                        </p>
+                      </div>
 
-                  <div className="space-y-2">
-                    <Label htmlFor="bio">Bio</Label>
-                    <Textarea
-                      id="bio"
-                      value={formData.bio}
-                      onChange={(e) => setFormData((prev) => ({ ...prev, bio: e.target.value }))}
-                      placeholder="Tell us about yourself..."
-                      rows={4}
-                      maxLength={500}
-                    />
-                    <p className="text-xs text-muted-foreground">
-                      {formData.bio.length}/500 characters
-                    </p>
-                  </div>
+                      <div className="space-y-2 sm:col-span-2">
+                        <Label htmlFor="bio" className="text-xs sm:text-sm">Bio</Label>
+                        <Textarea
+                          id="bio"
+                          value={formData.bio}
+                          onChange={(e) => setFormData((prev) => ({ ...prev, bio: e.target.value }))}
+                          placeholder="Tell us about yourself..."
+                          rows={4}
+                          maxLength={500}
+                          className="text-sm resize-none"
+                        />
+                        <p className="text-xs text-muted-foreground">
+                          {formData.bio.length}/500 characters
+                        </p>
+                      </div>
 
-                  <div className="space-y-2">
-                    <Label htmlFor="location">
-                      <MapPin className="mr-2 h-4 w-4 inline" />
-                      Location
-                    </Label>
-                    <Input
-                      id="location"
-                      value={formData.location}
-                      onChange={(e) => setFormData((prev) => ({ ...prev, location: e.target.value }))}
-                      placeholder="City, Country"
-                    />
-                  </div>
+                      <div className="space-y-2">
+                        <Label htmlFor="location" className="text-xs sm:text-sm">
+                          <MapPin className="mr-2 h-3 w-3 sm:h-4 sm:w-4 inline" />
+                          Location
+                        </Label>
+                        <Input
+                          id="location"
+                          value={formData.location}
+                          onChange={(e) => setFormData((prev) => ({ ...prev, location: e.target.value }))}
+                          placeholder="City, Country"
+                          className="h-9 sm:h-10 text-sm"
+                        />
+                      </div>
 
-                  <div className="space-y-2">
-                    <Label htmlFor="company">Company</Label>
-                    <Input
-                      id="company"
-                      value={formData.company}
-                      onChange={(e) => setFormData((prev) => ({ ...prev, company: e.target.value }))}
-                      placeholder="Your company name"
-                    />
+                      <div className="space-y-2">
+                        <Label htmlFor="company" className="text-xs sm:text-sm">Company</Label>
+                        <Input
+                          id="company"
+                          value={formData.company}
+                          onChange={(e) => setFormData((prev) => ({ ...prev, company: e.target.value }))}
+                          placeholder="Your company name"
+                          className="h-9 sm:h-10 text-sm"
+                        />
+                      </div>
+                    </div>
                   </div>
                 </div>
 
-                <Separator />
+                <Separator className="bg-gray-800" />
 
                 {/* Social Links */}
-                <div className="space-y-4">
-                  <h3 className="text-sm font-semibold">Social Links</h3>
+                <div className="space-y-4 sm:space-y-5">
+                  <h3 className="text-sm sm:text-base font-semibold">Social Links</h3>
                   
-                  <div className="space-y-2">
-                    <Label htmlFor="website_url">
-                      <Globe className="mr-2 h-4 w-4 inline" />
-                      Website
-                    </Label>
-                    <Input
-                      id="website_url"
-                      type="url"
-                      value={formData.website_url}
-                      onChange={(e) => setFormData((prev) => ({ ...prev, website_url: e.target.value }))}
-                      placeholder="https://yourwebsite.com"
-                    />
-                  </div>
+                  <div className="grid gap-4 sm:gap-5 grid-cols-1 sm:grid-cols-2">
+                    <div className="space-y-2">
+                      <Label htmlFor="website_url" className="text-xs sm:text-sm">
+                        <Globe className="mr-2 h-3 w-3 sm:h-4 sm:w-4 inline" />
+                        Website
+                      </Label>
+                      <Input
+                        id="website_url"
+                        type="url"
+                        value={formData.website_url}
+                        onChange={(e) => setFormData((prev) => ({ ...prev, website_url: e.target.value }))}
+                        placeholder="https://yourwebsite.com"
+                        className="h-9 sm:h-10 text-sm"
+                      />
+                    </div>
 
-                  <div className="space-y-2">
-                    <Label htmlFor="twitter_url">
-                      <Twitter className="mr-2 h-4 w-4 inline" />
-                      Twitter
-                    </Label>
-                    <Input
-                      id="twitter_url"
-                      type="url"
-                      value={formData.twitter_url}
-                      onChange={(e) => setFormData((prev) => ({ ...prev, twitter_url: e.target.value }))}
-                      placeholder="https://twitter.com/username"
-                    />
-                  </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="twitter_url" className="text-xs sm:text-sm">
+                        <Twitter className="mr-2 h-3 w-3 sm:h-4 sm:w-4 inline" />
+                        Twitter
+                      </Label>
+                      <Input
+                        id="twitter_url"
+                        type="url"
+                        value={formData.twitter_url}
+                        onChange={(e) => setFormData((prev) => ({ ...prev, twitter_url: e.target.value }))}
+                        placeholder="https://twitter.com/username"
+                        className="h-9 sm:h-10 text-sm"
+                      />
+                    </div>
 
-                  <div className="space-y-2">
-                    <Label htmlFor="linkedin_url">
-                      <Linkedin className="mr-2 h-4 w-4 inline" />
-                      LinkedIn
-                    </Label>
-                    <Input
-                      id="linkedin_url"
-                      type="url"
-                      value={formData.linkedin_url}
-                      onChange={(e) => setFormData((prev) => ({ ...prev, linkedin_url: e.target.value }))}
-                      placeholder="https://linkedin.com/in/username"
-                    />
-                  </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="linkedin_url" className="text-xs sm:text-sm">
+                        <Linkedin className="mr-2 h-3 w-3 sm:h-4 sm:w-4 inline" />
+                        LinkedIn
+                      </Label>
+                      <Input
+                        id="linkedin_url"
+                        type="url"
+                        value={formData.linkedin_url}
+                        onChange={(e) => setFormData((prev) => ({ ...prev, linkedin_url: e.target.value }))}
+                        placeholder="https://linkedin.com/in/username"
+                        className="h-9 sm:h-10 text-sm"
+                      />
+                    </div>
 
-                  <div className="space-y-2">
-                    <Label htmlFor="github_url">
-                      <Github className="mr-2 h-4 w-4 inline" />
-                      GitHub
-                    </Label>
-                    <Input
-                      id="github_url"
-                      type="url"
-                      value={formData.github_url}
-                      onChange={(e) => setFormData((prev) => ({ ...prev, github_url: e.target.value }))}
-                      placeholder="https://github.com/username"
-                    />
+                    <div className="space-y-2">
+                      <Label htmlFor="github_url" className="text-xs sm:text-sm">
+                        <Github className="mr-2 h-3 w-3 sm:h-4 sm:w-4 inline" />
+                        GitHub
+                      </Label>
+                      <Input
+                        id="github_url"
+                        type="url"
+                        value={formData.github_url}
+                        onChange={(e) => setFormData((prev) => ({ ...prev, github_url: e.target.value }))}
+                        placeholder="https://github.com/username"
+                        className="h-9 sm:h-10 text-sm"
+                      />
+                    </div>
                   </div>
                 </div>
               </CardContent>
-              <CardFooter>
-                <Button onClick={handleSaveProfile} disabled={saving}>
+              <CardFooter className="flex justify-end pt-4 sm:pt-6 border-t border-gray-800">
+                <Button 
+                  onClick={handleSaveProfile} 
+                  disabled={saving}
+                  className="h-9 sm:h-10 w-full sm:w-auto bg-gradient-to-r from-primary to-indigo-600 hover:from-primary/90 hover:to-indigo-600/90"
+                >
                   {saving ? (
                     <>
                       <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                      Saving...
+                      <span className="hidden sm:inline">Saving...</span>
+                      <span className="sm:hidden">Saving</span>
                     </>
                   ) : (
                     <>
                       <Save className="mr-2 h-4 w-4" />
-                      Save Changes
+                      <span className="hidden sm:inline">Save Changes</span>
+                      <span className="sm:hidden">Save</span>
                     </>
                   )}
                 </Button>
@@ -623,18 +702,22 @@ export default function SettingsPage() {
             </Card>
           </TabsContent>
 
-          <TabsContent value="notifications">
-            <Card>
-              <CardHeader>
-                <CardTitle>Notification Preferences</CardTitle>
-                <CardDescription>Configure how you receive notifications</CardDescription>
+          <TabsContent value="notifications" className="space-y-4 sm:space-y-6">
+            <Card className="bg-gradient-to-br from-gray-900 to-gray-950 border-gray-800 shadow-lg">
+              <CardHeader className="pb-3 sm:pb-4">
+                <CardTitle className="text-base sm:text-lg">Notification Preferences</CardTitle>
+                <CardDescription className="text-xs sm:text-sm">
+                  Configure how you receive notifications
+                </CardDescription>
               </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="space-y-4">
-                  <div className="flex items-center justify-between">
-                    <div className="space-y-0.5">
-                      <Label htmlFor="email-notifications">Email Notifications</Label>
-                      <p className="text-sm text-muted-foreground">
+              <CardContent className="space-y-4 sm:space-y-5">
+                <div className="space-y-4 sm:space-y-5">
+                  <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 sm:gap-4 p-4 rounded-lg bg-gray-800/50 border border-gray-700">
+                    <div className="space-y-1 flex-1 min-w-0">
+                      <Label htmlFor="email-notifications" className="text-sm sm:text-base font-semibold">
+                        Email Notifications
+                      </Label>
+                      <p className="text-xs sm:text-sm text-muted-foreground">
                         Receive notifications about your account activity via email
                       </p>
                     </div>
@@ -650,12 +733,14 @@ export default function SettingsPage() {
                     />
                   </div>
 
-                  <Separator />
+                  <Separator className="bg-gray-800" />
 
-                  <div className="flex items-center justify-between">
-                    <div className="space-y-0.5">
-                      <Label htmlFor="marketing-emails">Marketing Emails</Label>
-                      <p className="text-sm text-muted-foreground">
+                  <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 sm:gap-4 p-4 rounded-lg bg-gray-800/50 border border-gray-700">
+                    <div className="space-y-1 flex-1 min-w-0">
+                      <Label htmlFor="marketing-emails" className="text-sm sm:text-base font-semibold">
+                        Marketing Emails
+                      </Label>
+                      <p className="text-xs sm:text-sm text-muted-foreground">
                         Receive emails about new features, promotions, and updates
                       </p>
                     </div>
@@ -671,12 +756,14 @@ export default function SettingsPage() {
                     />
                   </div>
 
-                  <Separator />
+                  <Separator className="bg-gray-800" />
 
-                  <div className="flex items-center justify-between">
-                    <div className="space-y-0.5">
-                      <Label htmlFor="social-notifications">Social Notifications</Label>
-                      <p className="text-sm text-muted-foreground">
+                  <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 sm:gap-4 p-4 rounded-lg bg-gray-800/50 border border-gray-700">
+                    <div className="space-y-1 flex-1 min-w-0">
+                      <Label htmlFor="social-notifications" className="text-sm sm:text-base font-semibold">
+                        Social Notifications
+                      </Label>
+                      <p className="text-xs sm:text-sm text-muted-foreground">
                         Receive notifications when someone shares your content
                       </p>
                     </div>
@@ -692,12 +779,14 @@ export default function SettingsPage() {
                     />
                   </div>
 
-                  <Separator />
+                  <Separator className="bg-gray-800" />
 
-                  <div className="flex items-center justify-between">
-                    <div className="space-y-0.5">
-                      <Label htmlFor="security-notifications">Security Alerts</Label>
-                      <p className="text-sm text-muted-foreground">
+                  <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 sm:gap-4 p-4 rounded-lg bg-gray-800/50 border border-gray-700">
+                    <div className="space-y-1 flex-1 min-w-0">
+                      <Label htmlFor="security-notifications" className="text-sm sm:text-base font-semibold">
+                        Security Alerts
+                      </Label>
+                      <p className="text-xs sm:text-sm text-muted-foreground">
                         Receive notifications about security updates and login attempts
                       </p>
                     </div>
@@ -714,20 +803,23 @@ export default function SettingsPage() {
                   </div>
                 </div>
               </CardContent>
-              <CardFooter>
+              <CardFooter className="flex justify-end pt-4 sm:pt-6 border-t border-gray-800">
                 <Button
                   onClick={handleSaveNotificationPreferences}
                   disabled={saving}
+                  className="h-9 sm:h-10 w-full sm:w-auto bg-gradient-to-r from-primary to-indigo-600 hover:from-primary/90 hover:to-indigo-600/90"
                 >
                   {saving ? (
                     <>
                       <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                      Saving...
+                      <span className="hidden sm:inline">Saving...</span>
+                      <span className="sm:hidden">Saving</span>
                     </>
                   ) : (
                     <>
                       <Save className="mr-2 h-4 w-4" />
-                      Save Preferences
+                      <span className="hidden sm:inline">Save Preferences</span>
+                      <span className="sm:hidden">Save</span>
                     </>
                   )}
                 </Button>
@@ -735,19 +827,22 @@ export default function SettingsPage() {
             </Card>
           </TabsContent>
 
-          <TabsContent value="api">
-            <Card>
-              <CardHeader>
-                <div className="flex items-center justify-between">
+          <TabsContent value="api" className="space-y-4 sm:space-y-6">
+            <Card className="bg-gradient-to-br from-gray-900 to-gray-950 border-gray-800 shadow-lg">
+              <CardHeader className="pb-3 sm:pb-4">
+                <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 sm:gap-4">
                   <div>
-                    <CardTitle>API Access</CardTitle>
-                    <CardDescription>Manage your API keys and access</CardDescription>
+                    <CardTitle className="text-base sm:text-lg">API Access</CardTitle>
+                    <CardDescription className="text-xs sm:text-sm">
+                      Manage your API keys and access
+                    </CardDescription>
                   </div>
                   <Dialog open={newKeyDialogOpen} onOpenChange={setNewKeyDialogOpen}>
                     <DialogTrigger asChild>
-                      <Button>
+                      <Button className="h-9 sm:h-10 w-full sm:w-auto bg-gradient-to-r from-primary to-indigo-600 hover:from-primary/90 hover:to-indigo-600/90">
                         <Plus className="mr-2 h-4 w-4" />
-                        Create API Key
+                        <span className="hidden sm:inline">Create API Key</span>
+                        <span className="sm:hidden">Create Key</span>
                       </Button>
                     </DialogTrigger>
                     <DialogContent>
@@ -816,61 +911,80 @@ export default function SettingsPage() {
                   </Dialog>
                 </div>
               </CardHeader>
-              <CardContent className="space-y-4">
+              <CardContent className="space-y-4 sm:space-y-5">
                 {loadingKeys ? (
-                  <div className="flex items-center justify-center py-8">
-                    <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+                  <div className="flex flex-col items-center justify-center py-12 space-y-3">
+                    <Loader2 className="h-8 w-8 animate-spin text-primary" />
+                    <p className="text-sm text-muted-foreground">Loading API keys...</p>
                   </div>
                 ) : apiKeys.length === 0 ? (
-                  <div className="py-8 text-center">
-                    <p className="text-sm text-muted-foreground">No API keys found.</p>
-                    <p className="mt-2 text-xs text-muted-foreground">
+                  <div className="py-12 text-center space-y-3">
+                    <div className="p-4 rounded-full bg-gray-800 border border-gray-700 w-fit mx-auto">
+                      <Code className="h-8 w-8 text-gray-600" />
+                    </div>
+                    <p className="text-sm sm:text-base font-medium">No API keys found.</p>
+                    <p className="text-xs sm:text-sm text-muted-foreground max-w-sm mx-auto">
                       Create your first API key to start using the API.
                     </p>
                   </div>
                 ) : (
-                  <div className="space-y-3">
+                  <div className="space-y-3 sm:space-y-4">
                     {apiKeys.map((key) => (
                       <div
                         key={key.id}
-                        className="flex items-center justify-between rounded-lg border p-4"
+                        className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 sm:gap-4 rounded-lg border border-gray-700 bg-gray-800/50 p-4 sm:p-5 hover:border-primary/50 transition-all"
                       >
-                        <div className="flex-1 space-y-1">
-                          <div className="flex items-center gap-2">
-                            <span className="font-medium">{key.key_name}</span>
+                        <div className="flex-1 space-y-2 min-w-0 w-full sm:w-auto">
+                          <div className="flex flex-wrap items-center gap-2">
+                            <span className="font-semibold text-sm sm:text-base">{key.key_name}</span>
                             {key.is_active ? (
-                              <Badge variant="default">Active</Badge>
+                              <Badge variant="default" className="bg-green-500/20 text-green-400 border-green-500/40">
+                                Active
+                              </Badge>
                             ) : (
-                              <Badge variant="secondary">Inactive</Badge>
+                              <Badge variant="secondary" className="bg-gray-700 text-gray-400">
+                                Inactive
+                              </Badge>
                             )}
                           </div>
-                          <div className="flex items-center gap-4 text-xs text-muted-foreground">
-                            <span className="font-mono">{key.key_prefix}••••••••</span>
+                          <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4 text-xs sm:text-sm text-muted-foreground">
+                            <span className="font-mono bg-gray-900 px-2 py-1 rounded border border-gray-700">
+                              {key.key_prefix}••••••••
+                            </span>
                             <span>Created {format(new Date(key.created_at), "MMM d, yyyy")}</span>
                             {key.last_used_at && (
                               <span>Last used {format(new Date(key.last_used_at), "MMM d, yyyy")}</span>
                             )}
                           </div>
                         </div>
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => handleDeleteApiKey(key.id)}
-                          className="text-destructive hover:text-destructive"
-                        >
-                          <Trash2 className="h-4 w-4" />
-                        </Button>
+                        <div className="flex items-center gap-2 w-full sm:w-auto">
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => handleDeleteApiKey(key.id)}
+                            className="h-9 flex-1 sm:flex-initial text-destructive hover:text-destructive hover:bg-red-500/10"
+                          >
+                            <Trash2 className="h-4 w-4" />
+                            <span className="ml-2 hidden sm:inline">Delete</span>
+                          </Button>
+                        </div>
                       </div>
                     ))}
                   </div>
                 )}
 
-                <div className="space-y-2 pt-4">
-                  <Label>API Documentation</Label>
-                  <p className="text-sm text-muted-foreground">
-                    Learn how to integrate our AI content generation capabilities into your applications.
-                  </p>
-                  <Button variant="outline" className="mt-2" asChild>
+                <div className="space-y-3 pt-4 sm:pt-6 border-t border-gray-800">
+                  <div>
+                    <Label className="text-sm sm:text-base font-semibold">API Documentation</Label>
+                    <p className="text-xs sm:text-sm text-muted-foreground mt-1">
+                      Learn how to integrate our AI content generation capabilities into your applications.
+                    </p>
+                  </div>
+                  <Button 
+                    variant="outline" 
+                    className="h-9 sm:h-10 w-full sm:w-auto border-gray-800 hover:bg-gray-800 hover:border-primary/50" 
+                    asChild
+                  >
                     <a href="/dashboard/api-docs" target="_blank" rel="noopener noreferrer">
                       View Documentation
                     </a>

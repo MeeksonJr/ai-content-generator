@@ -525,25 +525,36 @@ export default function GeneratePage() {
         animate="visible"
         variants={containerVariants}
       >
-        <motion.div variants={itemVariants}>
-          <h2 className="text-3xl font-bold tracking-tight">AI Content Studio</h2>
-          <p className="text-muted-foreground">Generate high-quality content and images using AI</p>
+        <motion.div variants={itemVariants} className="space-y-2 sm:space-y-3">
+          <div className="flex items-center justify-between flex-wrap gap-4">
+            <div>
+              <h2 className="text-2xl sm:text-3xl md:text-4xl font-bold tracking-tight">
+                AI Content Studio
+              </h2>
+              <p className="text-muted-foreground text-sm sm:text-base mt-1 sm:mt-2">
+                Generate high-quality content and images using advanced AI technology
+              </p>
+            </div>
+          </div>
         </motion.div>
 
         <motion.div variants={itemVariants}>
-          <Tabs defaultValue="content" className="space-y-4">
-          <TabsList className="bg-gray-900 border-gray-800">
-            <TabsTrigger value="content" className="flex items-center gap-2">
-              <FileText className="h-4 w-4" />
-              Generate Content
+          <Tabs defaultValue="content" className="space-y-4 sm:space-y-6">
+          <TabsList className="bg-gray-900 border-gray-800 w-full sm:w-auto">
+            <TabsTrigger value="content" className="flex items-center gap-1.5 sm:gap-2 text-xs sm:text-sm px-3 sm:px-4">
+              <FileText className="h-3 w-3 sm:h-4 sm:w-4" />
+              <span className="hidden sm:inline">Generate Content</span>
+              <span className="sm:hidden">Content</span>
             </TabsTrigger>
-            <TabsTrigger value="image" className="flex items-center gap-2">
-              <ImageIcon className="h-4 w-4" />
-              Generate Image
+            <TabsTrigger value="image" className="flex items-center gap-1.5 sm:gap-2 text-xs sm:text-sm px-3 sm:px-4">
+              <ImageIcon className="h-3 w-3 sm:h-4 sm:w-4" />
+              <span className="hidden sm:inline">Generate Image</span>
+              <span className="sm:hidden">Image</span>
             </TabsTrigger>
-            <TabsTrigger value="saved" className="flex items-center gap-2">
-              <Save className="h-4 w-4" />
-              Saved Content
+            <TabsTrigger value="saved" className="flex items-center gap-1.5 sm:gap-2 text-xs sm:text-sm px-3 sm:px-4">
+              <Save className="h-3 w-3 sm:h-4 sm:w-4" />
+              <span className="hidden sm:inline">Saved Content</span>
+              <span className="sm:hidden">Saved</span>
             </TabsTrigger>
           </TabsList>
 
@@ -569,42 +580,46 @@ export default function GeneratePage() {
             )}
             </AnimatePresence>
 
-            <div className="grid gap-6 lg:grid-cols-2">
+            <div className="grid gap-4 sm:gap-6 grid-cols-1 lg:grid-cols-2">
               {/* Content Input */}
               <motion.div
                 variants={itemVariants}
                 whileHover={{ scale: 1.01 }}
                 transition={{ duration: 0.2 }}
               >
-              <Card className="bg-gray-900 border-gray-800 hover:border-primary/50 transition-all duration-200">
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2">
-                    <Sparkles className="h-5 w-5" />
+              <Card className="bg-gradient-to-br from-gray-900 to-gray-950 border-gray-800 hover:border-primary/50 transition-all duration-300 shadow-lg hover:shadow-xl hover:shadow-primary/10">
+                <CardHeader className="pb-3 sm:pb-4">
+                  <CardTitle className="flex items-center gap-2 text-base sm:text-lg">
+                    <div className="p-1.5 rounded-lg bg-primary/10 border border-primary/20">
+                      <Sparkles className="h-4 w-4 sm:h-5 sm:w-5 text-primary" />
+                    </div>
                     Content Settings
                   </CardTitle>
-                  <CardDescription>Configure your content generation preferences</CardDescription>
+                  <CardDescription className="text-xs sm:text-sm">
+                    Configure your content generation preferences
+                  </CardDescription>
                 </CardHeader>
-                <CardContent className="space-y-4">
+                <CardContent className="space-y-3 sm:space-y-4">
                   <div className="space-y-2">
-                    <Label htmlFor="title">Title (Optional)</Label>
+                    <Label htmlFor="title" className="text-xs sm:text-sm">Title (Optional)</Label>
                     <Input
                       id="title"
                       placeholder="Enter a title for your content"
                       value={title}
                       onChange={(e) => setTitle(e.target.value)}
-                      className="bg-gray-800 border-gray-700"
+                      className="bg-gray-800 border-gray-700 h-9 sm:h-10 text-sm"
                     />
                   </div>
 
                   <div className="space-y-2">
-                    <Label htmlFor="content-type">Content Type</Label>
+                    <Label htmlFor="content-type" className="text-xs sm:text-sm">Content Type</Label>
                     <Select value={contentType} onValueChange={setContentType}>
-                      <SelectTrigger id="content-type" className="bg-gray-800 border-gray-700">
+                      <SelectTrigger id="content-type" className="bg-gray-800 border-gray-700 h-9 sm:h-10 text-sm">
                         <SelectValue placeholder="Select content type" />
                       </SelectTrigger>
                       <SelectContent className="bg-gray-800 border-gray-700">
                         {contentTypeOptions.map((option) => (
-                          <SelectItem key={option.value} value={option.value}>
+                          <SelectItem key={option.value} value={option.value} className="text-sm">
                             {option.label}
                           </SelectItem>
                         ))}
@@ -613,19 +628,25 @@ export default function GeneratePage() {
                   </div>
 
                   <div className="space-y-2">
-                    <Label htmlFor="prompt">Content Prompt</Label>
+                    <Label htmlFor="prompt" className="text-xs sm:text-sm">Content Prompt</Label>
                     <Textarea
                       id="prompt"
                       placeholder="Describe what you want to generate..."
                       value={prompt}
                       onChange={(e) => setPrompt(e.target.value)}
                       rows={5}
-                      className="bg-gray-800 border-gray-700"
+                      className="bg-gray-800 border-gray-700 text-sm resize-none"
                     />
+                    <p className="text-xs text-muted-foreground">
+                      Be specific about what you want to generate for better results
+                    </p>
                   </div>
 
                   <div className="space-y-2">
-                    <Label>Creativity (Temperature): {temperature}</Label>
+                    <div className="flex items-center justify-between">
+                      <Label className="text-xs sm:text-sm">Creativity (Temperature)</Label>
+                      <span className="text-xs font-medium text-primary">{temperature}</span>
+                    </div>
                     <Slider
                       value={[temperature]}
                       onValueChange={(value) => setTemperature(value[0])}
@@ -640,7 +661,10 @@ export default function GeneratePage() {
                   </div>
 
                   <div className="space-y-2">
-                    <Label>Maximum Length: {maxLength} tokens</Label>
+                    <div className="flex items-center justify-between">
+                      <Label className="text-xs sm:text-sm">Maximum Length</Label>
+                      <span className="text-xs font-medium text-primary">{maxLength} tokens</span>
+                    </div>
                     <Slider
                       value={[maxLength]}
                       onValueChange={(value) => setMaxLength(value[0])}
@@ -651,20 +675,30 @@ export default function GeneratePage() {
                     />
                   </div>
                 </CardContent>
-                <CardFooter className="flex justify-between">
-                  <Button variant="outline" className="border-gray-700 hover:bg-gray-800" onClick={resetContentForm}>
+                <CardFooter className="flex flex-col sm:flex-row justify-between gap-2 sm:gap-0 pt-4">
+                  <Button 
+                    variant="outline" 
+                    className="border-gray-700 hover:bg-gray-800 w-full sm:w-auto h-9 sm:h-10" 
+                    onClick={resetContentForm}
+                  >
                     Reset
                   </Button>
-                  <Button onClick={handleGenerateContent} disabled={contentLoading}>
+                  <Button 
+                    onClick={handleGenerateContent} 
+                    disabled={contentLoading}
+                    className="w-full sm:w-auto h-9 sm:h-10 bg-gradient-to-r from-primary to-indigo-600 hover:from-primary/90 hover:to-indigo-600/90"
+                  >
                     {contentLoading ? (
                       <>
                         <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                        Generating...
+                        <span className="hidden sm:inline">Generating...</span>
+                        <span className="sm:hidden">Generating</span>
                       </>
                     ) : (
                       <>
                         <Sparkles className="mr-2 h-4 w-4" />
-                        Generate Content
+                        <span className="hidden sm:inline">Generate Content</span>
+                        <span className="sm:hidden">Generate</span>
                       </>
                     )}
                   </Button>
@@ -678,30 +712,31 @@ export default function GeneratePage() {
                 whileHover={{ scale: 1.01 }}
                 transition={{ duration: 0.2 }}
               >
-              <Card className="bg-gray-900 border-gray-800 hover:border-primary/50 transition-all duration-200">
-                <CardHeader>
-                  <div className="flex items-center justify-between">
-                    <CardTitle>Generated Content</CardTitle>
+              <Card className="bg-gradient-to-br from-gray-900 to-gray-950 border-gray-800 hover:border-primary/50 transition-all duration-300 shadow-lg hover:shadow-xl hover:shadow-primary/10">
+                <CardHeader className="pb-3 sm:pb-4">
+                  <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 sm:gap-4">
+                    <CardTitle className="text-base sm:text-lg">Generated Content</CardTitle>
                     {generatedContent && (
-                      <div className="flex gap-2">
+                      <div className="flex gap-2 w-full sm:w-auto">
                         <Button
                           onClick={() => handleCopyToClipboard(generatedContent)}
                           size="sm"
                           variant="outline"
-                          className="border-gray-700"
+                          className="border-gray-700 hover:bg-gray-800 flex-1 sm:flex-initial h-9"
                         >
-                          <Copy className="h-4 w-4" />
+                          <Copy className="h-3 w-3 sm:h-4 sm:w-4 mr-1.5 sm:mr-2" />
+                          <span className="text-xs sm:text-sm">Copy</span>
                         </Button>
-                        <Button onClick={handleSaveContent} size="sm">
-                          <Save className="h-4 w-4 mr-2" />
-                          Save
+                        <Button onClick={handleSaveContent} size="sm" className="flex-1 sm:flex-initial h-9">
+                          <Save className="h-3 w-3 sm:h-4 sm:w-4 mr-1.5 sm:mr-2" />
+                          <span className="text-xs sm:text-sm">Save</span>
                         </Button>
                       </div>
                     )}
                   </div>
                 </CardHeader>
-                <CardContent className="space-y-4">
-                  <div className="min-h-[400px] rounded-md border border-gray-700 bg-gray-800 p-4 overflow-auto">
+                <CardContent className="space-y-3 sm:space-y-4">
+                  <div className="min-h-[300px] sm:min-h-[400px] rounded-lg border border-gray-700 bg-gray-800/50 p-3 sm:p-4 overflow-auto">
                     <AnimatePresence mode="wait">
                     {contentLoading ? (
                         <motion.div
@@ -709,9 +744,16 @@ export default function GeneratePage() {
                           initial={{ opacity: 0 }}
                           animate={{ opacity: 1 }}
                           exit={{ opacity: 0 }}
-                          className="flex h-full items-center justify-center"
+                          className="flex flex-col h-full items-center justify-center space-y-4"
                         >
-                        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+                          <div className="relative">
+                            <Loader2 className="h-10 w-10 sm:h-12 sm:w-12 animate-spin text-primary" />
+                            <Sparkles className="h-6 w-6 sm:h-8 sm:w-8 text-primary animate-pulse absolute inset-0 m-auto" />
+                          </div>
+                          <div className="text-center space-y-2">
+                            <p className="text-sm sm:text-base font-medium text-white">Generating content...</p>
+                            <p className="text-xs sm:text-sm text-muted-foreground">This may take a few moments</p>
+                          </div>
                         </motion.div>
                     ) : generatedContent ? (
                         <motion.div
@@ -720,7 +762,7 @@ export default function GeneratePage() {
                           animate={{ opacity: 1, y: 0 }}
                           exit={{ opacity: 0, y: -10 }}
                           transition={{ duration: 0.3 }}
-                          className="whitespace-pre-wrap text-sm"
+                          className="whitespace-pre-wrap text-xs sm:text-sm leading-relaxed"
                         >
                           {generatedContent}
                         </motion.div>
@@ -730,9 +772,15 @@ export default function GeneratePage() {
                           initial={{ opacity: 0 }}
                           animate={{ opacity: 1 }}
                           exit={{ opacity: 0 }}
-                          className="flex h-full items-center justify-center text-muted-foreground"
+                          className="flex flex-col h-full items-center justify-center text-muted-foreground space-y-3"
                         >
-                        Generated content will appear here
+                          <div className="p-4 rounded-full bg-gray-800 border border-gray-700">
+                            <Sparkles className="h-8 w-8 sm:h-10 sm:w-10 text-gray-600" />
+                          </div>
+                          <p className="text-sm sm:text-base text-center">Generated content will appear here</p>
+                          <p className="text-xs text-gray-600 text-center max-w-xs">
+                            Fill in the form on the left and click "Generate Content" to get started
+                          </p>
                         </motion.div>
                     )}
                     </AnimatePresence>
@@ -816,30 +864,40 @@ export default function GeneratePage() {
                 whileHover={{ scale: 1.01 }}
                 transition={{ duration: 0.2 }}
               >
-              <Card className="bg-gray-900 border-gray-800 hover:border-primary/50 transition-all duration-200">
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2">
-                    <Wand2 className="h-5 w-5" />
+              <Card className="bg-gradient-to-br from-gray-900 to-gray-950 border-gray-800 hover:border-primary/50 transition-all duration-300 shadow-lg hover:shadow-xl hover:shadow-primary/10">
+                <CardHeader className="pb-3 sm:pb-4">
+                  <CardTitle className="flex items-center gap-2 text-base sm:text-lg">
+                    <div className="p-1.5 rounded-lg bg-primary/10 border border-primary/20">
+                      <Wand2 className="h-4 w-4 sm:h-5 sm:w-5 text-primary" />
+                    </div>
                     Image Settings
                   </CardTitle>
-                  <CardDescription>Configure your image generation preferences</CardDescription>
+                  <CardDescription className="text-xs sm:text-sm">
+                    Configure your image generation preferences
+                  </CardDescription>
                 </CardHeader>
-                <CardContent className="space-y-4">
+                <CardContent className="space-y-3 sm:space-y-4">
                   <div className="space-y-2">
-                    <Label htmlFor="image-prompt">Image Prompt</Label>
+                    <Label htmlFor="image-prompt" className="text-xs sm:text-sm">Image Prompt</Label>
                     <Textarea
                       id="image-prompt"
                       placeholder="Describe the image you want to generate..."
                       value={imagePrompt}
                       onChange={(e) => setImagePrompt(e.target.value)}
                       rows={4}
-                      className="bg-gray-800 border-gray-700"
+                      className="bg-gray-800 border-gray-700 text-sm resize-none"
                     />
+                    <p className="text-xs text-muted-foreground">
+                      Be descriptive about the style, colors, and composition you want
+                    </p>
                   </div>
 
-                  <div className="grid grid-cols-2 gap-4">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
                     <div className="space-y-2">
-                      <Label>Width: {imageWidth}px</Label>
+                      <div className="flex items-center justify-between">
+                        <Label className="text-xs sm:text-sm">Width</Label>
+                        <span className="text-xs font-medium text-primary">{imageWidth}px</span>
+                      </div>
                       <Slider
                         value={[imageWidth]}
                         onValueChange={(value) => setImageWidth(value[0])}
@@ -850,7 +908,10 @@ export default function GeneratePage() {
                       />
                     </div>
                     <div className="space-y-2">
-                      <Label>Height: {imageHeight}px</Label>
+                      <div className="flex items-center justify-between">
+                        <Label className="text-xs sm:text-sm">Height</Label>
+                        <span className="text-xs font-medium text-primary">{imageHeight}px</span>
+                      </div>
                       <Slider
                         value={[imageHeight]}
                         onValueChange={(value) => setImageHeight(value[0])}
@@ -863,7 +924,10 @@ export default function GeneratePage() {
                   </div>
 
                   <div className="space-y-2">
-                    <Label>Guidance Scale: {guidanceScale}</Label>
+                    <div className="flex items-center justify-between">
+                      <Label className="text-xs sm:text-sm">Guidance Scale</Label>
+                      <span className="text-xs font-medium text-primary">{guidanceScale}</span>
+                    </div>
                     <Slider
                       value={[guidanceScale]}
                       onValueChange={(value) => setGuidanceScale(value[0])}
@@ -878,7 +942,10 @@ export default function GeneratePage() {
                   </div>
 
                   <div className="space-y-2">
-                    <Label>Inference Steps: {inferenceSteps}</Label>
+                    <div className="flex items-center justify-between">
+                      <Label className="text-xs sm:text-sm">Inference Steps</Label>
+                      <span className="text-xs font-medium text-primary">{inferenceSteps}</span>
+                    </div>
                     <Slider
                       value={[inferenceSteps]}
                       onValueChange={(value) => setInferenceSteps(value[0])}
@@ -890,20 +957,30 @@ export default function GeneratePage() {
                     <p className="text-xs text-muted-foreground">More steps = higher quality but slower generation.</p>
                   </div>
                 </CardContent>
-                <CardFooter className="flex justify-between">
-                  <Button variant="outline" className="border-gray-700 hover:bg-gray-800" onClick={resetImageForm}>
+                <CardFooter className="flex flex-col sm:flex-row justify-between gap-2 sm:gap-0 pt-4">
+                  <Button 
+                    variant="outline" 
+                    className="border-gray-700 hover:bg-gray-800 w-full sm:w-auto h-9 sm:h-10" 
+                    onClick={resetImageForm}
+                  >
                     Reset
                   </Button>
-                  <Button onClick={handleGenerateImage} disabled={imageLoading}>
+                  <Button 
+                    onClick={handleGenerateImage} 
+                    disabled={imageLoading}
+                    className="w-full sm:w-auto h-9 sm:h-10 bg-gradient-to-r from-primary to-indigo-600 hover:from-primary/90 hover:to-indigo-600/90"
+                  >
                     {imageLoading ? (
                       <>
                         <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                        Generating...
+                        <span className="hidden sm:inline">Generating...</span>
+                        <span className="sm:hidden">Generating</span>
                       </>
                     ) : (
                       <>
                         <ImageIcon className="mr-2 h-4 w-4" />
-                        Generate Image
+                        <span className="hidden sm:inline">Generate Image</span>
+                        <span className="sm:hidden">Generate</span>
                       </>
                     )}
                   </Button>
@@ -917,25 +994,31 @@ export default function GeneratePage() {
                 whileHover={{ scale: 1.01 }}
                 transition={{ duration: 0.2 }}
               >
-              <Card className="bg-gray-900 border-gray-800 hover:border-primary/50 transition-all duration-200">
-                <CardHeader>
-                  <div className="flex items-center justify-between">
-                    <CardTitle>Generated Image</CardTitle>
+              <Card className="bg-gradient-to-br from-gray-900 to-gray-950 border-gray-800 hover:border-primary/50 transition-all duration-300 shadow-lg hover:shadow-xl hover:shadow-primary/10">
+                <CardHeader className="pb-3 sm:pb-4">
+                  <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 sm:gap-4">
+                    <CardTitle className="text-base sm:text-lg">Generated Image</CardTitle>
                     {generatedImage && (
-                      <div className="flex gap-2">
-                        <Button onClick={handleDownloadImage} size="sm" variant="outline" className="border-gray-700">
-                          <Download className="h-4 w-4" />
+                      <div className="flex gap-2 w-full sm:w-auto">
+                        <Button 
+                          onClick={handleDownloadImage} 
+                          size="sm" 
+                          variant="outline" 
+                          className="border-gray-700 hover:bg-gray-800 flex-1 sm:flex-initial h-9"
+                        >
+                          <Download className="h-3 w-3 sm:h-4 sm:w-4 mr-1.5 sm:mr-2" />
+                          <span className="text-xs sm:text-sm">Download</span>
                         </Button>
-                        <Button onClick={handleSaveImage} size="sm">
-                          <Save className="h-4 w-4 mr-2" />
-                          Save
+                        <Button onClick={handleSaveImage} size="sm" className="flex-1 sm:flex-initial h-9">
+                          <Save className="h-3 w-3 sm:h-4 sm:w-4 mr-1.5 sm:mr-2" />
+                          <span className="text-xs sm:text-sm">Save</span>
                         </Button>
                       </div>
                     )}
                   </div>
                 </CardHeader>
                 <CardContent>
-                  <div className="min-h-[400px] rounded-md border border-gray-700 bg-gray-800 p-4 flex items-center justify-center">
+                  <div className="min-h-[300px] sm:min-h-[400px] rounded-lg border border-gray-700 bg-gray-800/50 p-3 sm:p-4 flex items-center justify-center">
                     <AnimatePresence mode="wait">
                     {imageLoading ? (
                         <motion.div
@@ -945,8 +1028,14 @@ export default function GeneratePage() {
                           exit={{ opacity: 0 }}
                           className="flex flex-col items-center space-y-4"
                         >
-                        <Loader2 className="h-8 w-8 animate-spin text-primary" />
-                        <p className="text-sm text-muted-foreground">Generating your image...</p>
+                          <div className="relative">
+                            <Loader2 className="h-10 w-10 sm:h-12 sm:w-12 animate-spin text-primary" />
+                            <ImageIcon className="h-6 w-6 sm:h-8 sm:w-8 text-primary animate-pulse absolute inset-0 m-auto" />
+                          </div>
+                          <div className="text-center space-y-2">
+                            <p className="text-sm sm:text-base font-medium text-white">Generating your image...</p>
+                            <p className="text-xs sm:text-sm text-muted-foreground">This may take a few moments</p>
+                          </div>
                         </motion.div>
                     ) : generatedImage ? (
                         <motion.img
@@ -957,7 +1046,7 @@ export default function GeneratePage() {
                           transition={{ duration: 0.3 }}
                         src={generatedImage || "/placeholder.svg"}
                         alt="Generated image"
-                        className="max-w-full max-h-full rounded-lg"
+                        className="max-w-full max-h-full rounded-lg shadow-lg"
                       />
                     ) : (
                         <motion.div
@@ -965,10 +1054,15 @@ export default function GeneratePage() {
                           initial={{ opacity: 0 }}
                           animate={{ opacity: 1 }}
                           exit={{ opacity: 0 }}
-                          className="text-center text-muted-foreground"
+                          className="flex flex-col items-center text-center text-muted-foreground space-y-3"
                         >
-                        <ImageIcon className="h-12 w-12 mx-auto mb-4 opacity-50" />
-                        <p>Generated image will appear here</p>
+                          <div className="p-4 rounded-full bg-gray-800 border border-gray-700">
+                            <ImageIcon className="h-8 w-8 sm:h-10 sm:w-10 text-gray-600" />
+                          </div>
+                          <p className="text-sm sm:text-base">Generated image will appear here</p>
+                          <p className="text-xs text-gray-600 max-w-xs">
+                            Fill in the form on the left and click "Generate Image" to get started
+                          </p>
                         </motion.div>
                     )}
                     </AnimatePresence>

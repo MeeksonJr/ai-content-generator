@@ -7,7 +7,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Progress } from "@/components/ui/progress"
-import { Loader2, BarChart3, FileText, MessageSquare, Tag, Download, RefreshCw } from "lucide-react"
+import { Loader2, BarChart3, FileText, MessageSquare, Tag, Download, RefreshCw, TrendingUp } from "lucide-react"
 import { useToast } from "@/components/ui/use-toast"
 import { createClient } from "@/lib/supabase/client"
 import { cn } from "@/lib/utils"
@@ -28,6 +28,7 @@ import {
 } from "recharts"
 import { motion } from "framer-motion"
 import { SkeletonCard } from "@/components/dashboard/skeleton-card"
+import { Skeleton } from "@/components/ui/skeleton"
 
 export default function AnalyticsPage() {
   const [loading, setLoading] = useState(true)
@@ -320,12 +321,12 @@ export default function AnalyticsPage() {
   if (loading) {
     return (
       <DashboardLayout>
-        <div className="space-y-6">
-          <div>
-            <div className="h-9 w-64 bg-gray-800 rounded mb-2 animate-pulse" />
-            <div className="h-5 w-96 bg-gray-800 rounded animate-pulse" />
+        <div className="space-y-6 sm:space-y-8">
+          <div className="space-y-3">
+            <Skeleton className="h-8 sm:h-9 w-48 sm:w-64 bg-gray-800 rounded" />
+            <Skeleton className="h-4 sm:h-5 w-64 sm:w-80 bg-gray-800 rounded" />
           </div>
-          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+          <div className="grid gap-4 sm:gap-6 grid-cols-1 sm:grid-cols-2 lg:grid-cols-4">
             {[...Array(4)].map((_, i) => (
               <SkeletonCard key={i} />
             ))}
@@ -343,21 +344,31 @@ export default function AnalyticsPage() {
         animate="visible"
         variants={containerVariants}
       >
-        <motion.div className="flex items-center justify-between" variants={itemVariants}>
-          <div>
-            <h2 className="text-3xl font-bold tracking-tight">Analytics Dashboard</h2>
-            <p className="text-muted-foreground">View insights and statistics about your content</p>
+        <motion.div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4" variants={itemVariants}>
+          <div className="space-y-1 sm:space-y-2">
+            <h2 className="text-2xl sm:text-3xl md:text-4xl font-bold tracking-tight">Analytics Dashboard</h2>
+            <p className="text-muted-foreground text-sm sm:text-base">
+              View insights and statistics about your content generation activity
+            </p>
           </div>
-          <Button variant="outline" size="sm" onClick={refreshData} disabled={refreshing} className="border-gray-800">
+          <Button 
+            variant="outline" 
+            size="sm" 
+            onClick={refreshData} 
+            disabled={refreshing} 
+            className="border-gray-800 hover:bg-gray-800 hover:border-primary/50 h-9 sm:h-10 w-full sm:w-auto"
+          >
             {refreshing ? (
               <>
                 <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                Refreshing...
+                <span className="hidden sm:inline">Refreshing...</span>
+                <span className="sm:hidden">Refreshing</span>
               </>
             ) : (
               <>
                 <RefreshCw className="mr-2 h-4 w-4" />
-                Refresh Data
+                <span className="hidden sm:inline">Refresh Data</span>
+                <span className="sm:hidden">Refresh</span>
               </>
             )}
           </Button>
@@ -366,114 +377,129 @@ export default function AnalyticsPage() {
         {/* Period Comparison Card */}
         {comparisonData && (
           <motion.div variants={itemVariants}>
-            <Card className="bg-gray-900 border-gray-800">
-              <CardHeader>
-                <CardTitle>Period Comparison</CardTitle>
-                <CardDescription>This month vs last month</CardDescription>
+            <Card className="bg-gradient-to-br from-gray-900 to-gray-950 border-gray-800 shadow-lg">
+              <CardHeader className="pb-3 sm:pb-4">
+                <CardTitle className="text-base sm:text-lg">Period Comparison</CardTitle>
+                <CardDescription className="text-xs sm:text-sm">This month vs last month</CardDescription>
               </CardHeader>
-              <CardContent>
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="text-center p-4 bg-gray-800 rounded-lg">
-                    <p className="text-sm text-muted-foreground mb-1">{comparisonData.thisMonth.date}</p>
-                    <p className="text-2xl font-bold">{comparisonData.thisMonth.content}</p>
-                    <p className="text-xs text-muted-foreground">Content pieces</p>
+              <CardContent className="space-y-4">
+                <div className="grid grid-cols-2 gap-3 sm:gap-4">
+                  <div className="text-center p-4 sm:p-5 bg-gradient-to-br from-gray-800 to-gray-900 rounded-lg border border-gray-700">
+                    <p className="text-xs sm:text-sm text-muted-foreground mb-2">{comparisonData.thisMonth.date}</p>
+                    <p className="text-2xl sm:text-3xl font-bold text-primary">{comparisonData.thisMonth.content}</p>
+                    <p className="text-xs text-muted-foreground mt-1">Content pieces</p>
                   </div>
-                  <div className="text-center p-4 bg-gray-800 rounded-lg">
-                    <p className="text-sm text-muted-foreground mb-1">{comparisonData.lastMonth.date}</p>
-                    <p className="text-2xl font-bold">{comparisonData.lastMonth.content}</p>
-                    <p className="text-xs text-muted-foreground">Content pieces</p>
+                  <div className="text-center p-4 sm:p-5 bg-gradient-to-br from-gray-800 to-gray-900 rounded-lg border border-gray-700">
+                    <p className="text-xs sm:text-sm text-muted-foreground mb-2">{comparisonData.lastMonth.date}</p>
+                    <p className="text-2xl sm:text-3xl font-bold">{comparisonData.lastMonth.content}</p>
+                    <p className="text-xs text-muted-foreground mt-1">Content pieces</p>
                   </div>
                 </div>
-                <div className="mt-4 pt-4 border-t border-gray-800 text-center">
-                  <p className="text-sm text-muted-foreground mb-1">Change</p>
-                  <p className={`text-xl font-bold ${comparisonData.change.isPositive ? "text-green-400" : "text-red-400"}`}>
-                    {comparisonData.change.isPositive ? "+" : ""}{comparisonData.change.content}%
-                  </p>
+                <div className="pt-4 border-t border-gray-800 text-center">
+                  <p className="text-xs sm:text-sm text-muted-foreground mb-2">Change</p>
+                  <div className="flex items-center justify-center gap-2">
+                    <p className={`text-xl sm:text-2xl font-bold ${comparisonData.change.isPositive ? "text-green-400" : "text-red-400"}`}>
+                      {comparisonData.change.isPositive ? "+" : ""}{comparisonData.change.content}%
+                    </p>
+                    {comparisonData.change.isPositive ? (
+                      <TrendingUp className="h-5 w-5 text-green-400" />
+                    ) : (
+                      <TrendingUp className="h-5 w-5 text-red-400 rotate-180" />
+                    )}
+                  </div>
                 </div>
               </CardContent>
             </Card>
           </motion.div>
         )}
 
-        <motion.div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4" variants={containerVariants}>
+        <motion.div className="grid gap-4 sm:gap-6 grid-cols-1 sm:grid-cols-2 lg:grid-cols-4" variants={containerVariants}>
           <motion.div variants={itemVariants}>
-            <Card className="bg-gray-900 border-gray-800 hover:border-primary/50 transition-all duration-200 group">
-              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">Total Content</CardTitle>
-                <FileText className="h-4 w-4 text-muted-foreground group-hover:text-primary transition-colors" />
+            <Card className="bg-gradient-to-br from-gray-900 to-gray-950 border-gray-800 hover:border-primary/50 transition-all duration-300 group hover:shadow-lg hover:shadow-primary/10">
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-3">
+                <CardTitle className="text-xs sm:text-sm font-medium">Total Content</CardTitle>
+                <div className="p-2 rounded-lg bg-primary/10 border border-primary/20 group-hover:bg-primary/20 transition-colors">
+                  <FileText className="h-4 w-4 sm:h-5 sm:w-5 text-primary" />
+                </div>
               </CardHeader>
               <CardContent>
-                <div className="text-2xl font-bold">{contentStats?.total || 0}</div>
-                <p className="text-xs text-muted-foreground">Pieces of content generated</p>
+                <div className="text-2xl sm:text-3xl font-bold">{contentStats?.total || 0}</div>
+                <p className="text-xs sm:text-sm text-muted-foreground mt-1">Pieces of content generated</p>
               </CardContent>
             </Card>
           </motion.div>
           <motion.div variants={itemVariants}>
-            <Card className="bg-gray-900 border-gray-800 hover:border-primary/50 transition-all duration-200 group">
-              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">Content Types</CardTitle>
-                <BarChart3 className="h-4 w-4 text-muted-foreground group-hover:text-primary transition-colors" />
+            <Card className="bg-gradient-to-br from-gray-900 to-gray-950 border-gray-800 hover:border-primary/50 transition-all duration-300 group hover:shadow-lg hover:shadow-primary/10">
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-3">
+                <CardTitle className="text-xs sm:text-sm font-medium">Content Types</CardTitle>
+                <div className="p-2 rounded-lg bg-primary/10 border border-primary/20 group-hover:bg-primary/20 transition-colors">
+                  <BarChart3 className="h-4 w-4 sm:h-5 sm:w-5 text-primary" />
+                </div>
               </CardHeader>
               <CardContent>
-                <div className="text-2xl font-bold">{contentStats?.types || 0}</div>
-                <p className="text-xs text-muted-foreground">Different content types used</p>
+                <div className="text-2xl sm:text-3xl font-bold">{contentStats?.types || 0}</div>
+                <p className="text-xs sm:text-sm text-muted-foreground mt-1">Different content types used</p>
               </CardContent>
             </Card>
           </motion.div>
           <motion.div variants={itemVariants}>
-            <Card className="bg-gray-900 border-gray-800 hover:border-primary/50 transition-all duration-200 group">
-              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">Sentiment Analysis</CardTitle>
-                <MessageSquare className="h-4 w-4 text-muted-foreground group-hover:text-primary transition-colors" />
+            <Card className="bg-gradient-to-br from-gray-900 to-gray-950 border-gray-800 hover:border-primary/50 transition-all duration-300 group hover:shadow-lg hover:shadow-primary/10">
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-3">
+                <CardTitle className="text-xs sm:text-sm font-medium">Sentiment Analysis</CardTitle>
+                <div className="p-2 rounded-lg bg-primary/10 border border-primary/20 group-hover:bg-primary/20 transition-colors">
+                  <MessageSquare className="h-4 w-4 sm:h-5 sm:w-5 text-primary" />
+                </div>
               </CardHeader>
               <CardContent>
-                <div className="text-2xl font-bold">{contentStats?.withSentiment || 0}</div>
-                <p className="text-xs text-muted-foreground">Content pieces analyzed</p>
+                <div className="text-2xl sm:text-3xl font-bold">{contentStats?.withSentiment || 0}</div>
+                <p className="text-xs sm:text-sm text-muted-foreground mt-1">Content pieces analyzed</p>
               </CardContent>
             </Card>
           </motion.div>
           <motion.div variants={itemVariants}>
-            <Card className="bg-gray-900 border-gray-800 hover:border-primary/50 transition-all duration-200 group">
-              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">Keyword Extraction</CardTitle>
-                <Tag className="h-4 w-4 text-muted-foreground group-hover:text-primary transition-colors" />
+            <Card className="bg-gradient-to-br from-gray-900 to-gray-950 border-gray-800 hover:border-primary/50 transition-all duration-300 group hover:shadow-lg hover:shadow-primary/10">
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-3">
+                <CardTitle className="text-xs sm:text-sm font-medium">Keyword Extraction</CardTitle>
+                <div className="p-2 rounded-lg bg-primary/10 border border-primary/20 group-hover:bg-primary/20 transition-colors">
+                  <Tag className="h-4 w-4 sm:h-5 sm:w-5 text-primary" />
+                </div>
               </CardHeader>
               <CardContent>
-                <div className="text-2xl font-bold">{contentStats?.withKeywords || 0}</div>
-                <p className="text-xs text-muted-foreground">Content with extracted keywords</p>
+                <div className="text-2xl sm:text-3xl font-bold">{contentStats?.withKeywords || 0}</div>
+                <p className="text-xs sm:text-sm text-muted-foreground mt-1">Content with extracted keywords</p>
               </CardContent>
             </Card>
           </motion.div>
         </motion.div>
 
         <motion.div variants={itemVariants}>
-        <Tabs defaultValue="content" className="space-y-4">
-          <TabsList className="bg-gray-900 border-gray-800">
-            <TabsTrigger value="content">Content Analytics</TabsTrigger>
-            <TabsTrigger value="sentiment">Sentiment Analysis</TabsTrigger>
-            <TabsTrigger value="keywords">Keyword Analytics</TabsTrigger>
-            <TabsTrigger value="usage">Usage Statistics</TabsTrigger>
+        <Tabs defaultValue="content" className="space-y-4 sm:space-y-6">
+          <TabsList className="bg-gray-900 border-gray-800 w-full sm:w-auto flex-wrap">
+            <TabsTrigger value="content" className="text-xs sm:text-sm px-3 sm:px-4">Content Analytics</TabsTrigger>
+            <TabsTrigger value="sentiment" className="text-xs sm:text-sm px-3 sm:px-4">Sentiment Analysis</TabsTrigger>
+            <TabsTrigger value="keywords" className="text-xs sm:text-sm px-3 sm:px-4">Keyword Analytics</TabsTrigger>
+            <TabsTrigger value="usage" className="text-xs sm:text-sm px-3 sm:px-4">Usage Statistics</TabsTrigger>
           </TabsList>
 
-          <TabsContent value="content" className="space-y-4">
-            <div className="grid gap-4 md:grid-cols-2">
-              <Card className="bg-gray-900 border-gray-800">
-                <CardHeader className="flex items-center justify-between">
+          <TabsContent value="content" className="space-y-4 sm:space-y-6">
+            <div className="grid gap-4 sm:gap-6 grid-cols-1 lg:grid-cols-2">
+              <Card className="bg-gradient-to-br from-gray-900 to-gray-950 border-gray-800 shadow-lg">
+                <CardHeader className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 sm:gap-4 pb-3 sm:pb-4">
                   <div>
-                    <CardTitle>Content by Type</CardTitle>
-                    <CardDescription>Distribution of content across different types</CardDescription>
+                    <CardTitle className="text-base sm:text-lg">Content by Type</CardTitle>
+                    <CardDescription className="text-xs sm:text-sm">Distribution of content across different types</CardDescription>
                   </div>
                   <Button
                     variant="outline"
                     size="sm"
-                    className="border-gray-800"
+                    className="border-gray-800 hover:bg-gray-800 hover:border-primary/50 h-9 w-full sm:w-auto"
                     onClick={() => downloadCSV(contentTypeStats || [], "content-by-type")}
                   >
-                    <Download className="h-4 w-4 mr-2" />
-                    Export
+                    <Download className="h-3 w-3 sm:h-4 sm:w-4 mr-1.5 sm:mr-2" />
+                    <span className="text-xs sm:text-sm">Export</span>
                   </Button>
                 </CardHeader>
-                <CardContent className="h-[300px]">
+                <CardContent className="h-[250px] sm:h-[300px] lg:h-[350px]">
                   {contentTypeStats && contentTypeStats.length > 0 ? (
                     <ResponsiveContainer width="100%" height="100%">
                       <PieChart>
@@ -510,13 +536,13 @@ export default function AnalyticsPage() {
                 </CardContent>
               </Card>
 
-              <Card className="bg-gray-900 border-gray-800">
-                <CardHeader className="flex items-center justify-between">
+              <Card className="bg-gradient-to-br from-gray-900 to-gray-950 border-gray-800 shadow-lg">
+                <CardHeader className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 sm:gap-4 pb-3 sm:pb-4">
                   <div>
-                    <CardTitle>Content Creation Over Time</CardTitle>
-                    <CardDescription>Number of content pieces created per month</CardDescription>
+                    <CardTitle className="text-base sm:text-lg">Content Creation Over Time</CardTitle>
+                    <CardDescription className="text-xs sm:text-sm">Number of content pieces created per month</CardDescription>
                   </div>
-                  <div className="flex items-center gap-2">
+                  <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 w-full sm:w-auto">
                     <div className="flex items-center space-x-1">
                       <label htmlFor="timeRange" className="sr-only">
                         Select time range
@@ -524,7 +550,7 @@ export default function AnalyticsPage() {
                       <select
                         id="timeRange"
                         aria-label="Select time range"
-                        className="bg-gray-800 border border-gray-700 rounded-md text-xs px-2 py-1 text-white focus:outline-none focus:ring-2 focus:ring-primary"
+                        className="bg-gray-800 border border-gray-700 rounded-md text-xs sm:text-sm px-3 py-1.5 sm:py-2 text-white focus:outline-none focus:ring-2 focus:ring-primary h-9 sm:h-10 flex-1 sm:flex-initial"
                         value={timeRange}
                         onChange={(e) => setTimeRange(e.target.value)}
                       >
@@ -537,15 +563,15 @@ export default function AnalyticsPage() {
                     <Button
                       variant="outline"
                       size="sm"
-                      className="border-gray-800"
+                      className="border-gray-800 hover:bg-gray-800 hover:border-primary/50 h-9 w-full sm:w-auto"
                       onClick={() => downloadCSV(filteredContentHistory || [], "content-over-time")}
                     >
-                      <Download className="h-4 w-4 mr-2" />
-                      Export
+                      <Download className="h-3 w-3 sm:h-4 sm:w-4 mr-1.5 sm:mr-2" />
+                      <span className="text-xs sm:text-sm">Export</span>
                     </Button>
                   </div>
                 </CardHeader>
-                <CardContent className="h-[300px]">
+                <CardContent className="h-[250px] sm:h-[300px] lg:h-[350px]">
                   {filteredContentHistory && filteredContentHistory.length > 0 ? (
                     <ResponsiveContainer width="100%" height="100%">
                       <AreaChart data={filteredContentHistory}>

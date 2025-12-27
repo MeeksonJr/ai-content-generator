@@ -156,7 +156,7 @@ export default function ProjectsPage() {
           name: newProject.name,
           description: newProject.description,
           user_id: userData.user.id,
-        })
+        } as any)
         .select()
         .single()
 
@@ -234,7 +234,7 @@ export default function ProjectsPage() {
           project_id: newContent.projectId,
           user_id: userData.user.id,
           content_category: getCategoryFromContentType(newContent.contentType),
-        })
+        } as any)
         .select()
         .single()
 
@@ -318,17 +318,20 @@ export default function ProjectsPage() {
         animate="visible"
         variants={containerVariants}
       >
-        <motion.div className="flex items-center justify-between" variants={itemVariants}>
-          <div>
-            <h2 className="text-3xl font-bold tracking-tight">Projects</h2>
-            <p className="text-muted-foreground">Organize your content into projects for better management.</p>
+        <motion.div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4" variants={itemVariants}>
+          <div className="space-y-1 sm:space-y-2">
+            <h2 className="text-2xl sm:text-3xl md:text-4xl font-bold tracking-tight">Projects</h2>
+            <p className="text-muted-foreground text-sm sm:text-base">
+              Organize your content into projects for better management and collaboration.
+            </p>
           </div>
-          <div className="flex gap-2">
+          <div className="flex flex-col sm:flex-row gap-2 w-full sm:w-auto">
             <Dialog open={openNewContentDialog} onOpenChange={setOpenNewContentDialog}>
               <DialogTrigger asChild>
-                <Button variant="outline">
+                <Button variant="outline" className="w-full sm:w-auto h-9 sm:h-10">
                   <FileText className="mr-2 h-4 w-4" />
-                  New Content
+                  <span className="hidden sm:inline">New Content</span>
+                  <span className="sm:hidden">Content</span>
                 </Button>
               </DialogTrigger>
               <DialogContent>
@@ -415,9 +418,10 @@ export default function ProjectsPage() {
 
             <Dialog open={openNewProjectDialog} onOpenChange={setOpenNewProjectDialog}>
               <DialogTrigger asChild>
-                <Button>
+                <Button className="w-full sm:w-auto h-9 sm:h-10 bg-gradient-to-r from-primary to-indigo-600 hover:from-primary/90 hover:to-indigo-600/90">
                   <PlusCircle className="mr-2 h-4 w-4" />
-                  New Project
+                  <span className="hidden sm:inline">New Project</span>
+                  <span className="sm:hidden">New</span>
                 </Button>
               </DialogTrigger>
               <DialogContent>
@@ -469,20 +473,20 @@ export default function ProjectsPage() {
 
         {projects.length > 0 && (
           <motion.div variants={itemVariants} className="relative">
-            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground z-10" />
             <Input
               type="text"
-              placeholder="Search projects..."
+              placeholder="Search projects by name or description..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="pl-10 bg-gray-900 border-gray-800"
+              className="pl-10 pr-4 bg-gray-900 border-gray-800 h-10 sm:h-11 text-sm focus:border-primary/50"
             />
           </motion.div>
         )}
 
         {filteredProjects.length > 0 ? (
           <motion.div
-            className="grid gap-4 md:grid-cols-2 lg:grid-cols-3"
+            className="grid gap-4 sm:gap-6 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3"
             variants={containerVariants}
           >
             {filteredProjects.map((project) => (
@@ -492,33 +496,37 @@ export default function ProjectsPage() {
                 whileHover={{ y: -4, scale: 1.02 }}
                 transition={{ type: "spring", stiffness: 400, damping: 17 }}
               >
-                <Card className="bg-gray-900 border-gray-800 hover:border-primary/50 transition-all duration-200">
-                <CardHeader className="pb-2">
-                  <CardTitle className="flex items-center gap-2">
-                    <FolderOpen className="h-5 w-5 text-primary" />
-                    {project.name}
+                <Card className="bg-gradient-to-br from-gray-900 to-gray-950 border-gray-800 hover:border-primary/50 transition-all duration-300 shadow-lg hover:shadow-xl hover:shadow-primary/10">
+                <CardHeader className="pb-3">
+                  <CardTitle className="flex items-center gap-2 text-base sm:text-lg">
+                    <div className="p-1.5 rounded-lg bg-primary/10 border border-primary/20">
+                      <FolderOpen className="h-4 w-4 sm:h-5 sm:w-5 text-primary" />
+                    </div>
+                    <span className="line-clamp-1">{project.name}</span>
                   </CardTitle>
-                  <CardDescription className="line-clamp-2">
+                  <CardDescription className="line-clamp-2 text-xs sm:text-sm mt-1">
                     {project.description || "No description provided"}
                   </CardDescription>
                 </CardHeader>
-                <CardContent>
-                    <div className="flex items-center justify-between text-sm text-muted-foreground">
-                    <div className="flex items-center gap-1">
-                      <Calendar className="h-3 w-3" />
+                <CardContent className="space-y-3">
+                    <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2 text-xs sm:text-sm text-muted-foreground">
+                    <div className="flex items-center gap-1.5">
+                      <Calendar className="h-3 w-3 sm:h-4 sm:w-4" />
                       <span>{formatDate(project.created_at)}</span>
                     </div>
                       {projectContentCounts[project.id] !== undefined && (
-                        <div className="flex items-center gap-1">
-                          <FileText className="h-3 w-3" />
-                          <span>{projectContentCounts[project.id]} items</span>
+                        <div className="flex items-center gap-1.5 px-2 py-1 rounded-md bg-gray-800 border border-gray-700">
+                          <FileText className="h-3 w-3 sm:h-4 sm:w-4" />
+                          <span className="font-medium">{projectContentCounts[project.id]} items</span>
                         </div>
                       )}
                   </div>
                 </CardContent>
-                <CardFooter>
-                  <Button asChild className="w-full">
-                    <Link href={`/dashboard/projects/${project.id}`}>View Project</Link>
+                <CardFooter className="pt-3">
+                  <Button asChild className="w-full h-9 sm:h-10">
+                    <Link href={`/dashboard/projects/${project.id}`} className="text-xs sm:text-sm">
+                      View Project
+                    </Link>
                   </Button>
                 </CardFooter>
               </Card>
@@ -527,15 +535,20 @@ export default function ProjectsPage() {
           </motion.div>
         ) : projects.length === 0 ? (
           <motion.div variants={itemVariants}>
-            <Card className="bg-gray-900 border-gray-800">
-            <CardHeader>
-              <CardTitle>No projects yet</CardTitle>
-              <CardDescription>Create your first project to start organizing your content.</CardDescription>
+            <Card className="bg-gradient-to-br from-gray-900 to-gray-950 border-gray-800">
+            <CardHeader className="text-center pb-4">
+              <div className="p-4 rounded-full bg-primary/10 border border-primary/20 w-fit mx-auto mb-4">
+                <FolderOpen className="h-8 w-8 sm:h-10 sm:w-10 text-primary" />
+              </div>
+              <CardTitle className="text-xl sm:text-2xl">No projects yet</CardTitle>
+              <CardDescription className="text-sm sm:text-base mt-2">
+                Create your first project to start organizing your content.
+              </CardDescription>
             </CardHeader>
             <CardContent>
               <div className="flex justify-center">
-                <Button onClick={() => setOpenNewProjectDialog(true)}>
-                  <PlusCircle className="mr-2 h-4 w-4" />
+                <Button onClick={() => setOpenNewProjectDialog(true)} className="h-10 sm:h-11 gap-2">
+                  <PlusCircle className="h-4 w-4" />
                   Create Your First Project
                 </Button>
               </div>
@@ -544,10 +557,15 @@ export default function ProjectsPage() {
           </motion.div>
         ) : (
           <motion.div variants={itemVariants}>
-            <Card className="bg-gray-900 border-gray-800">
-              <CardHeader>
-                <CardTitle>No projects found</CardTitle>
-                <CardDescription>Try adjusting your search query.</CardDescription>
+            <Card className="bg-gradient-to-br from-gray-900 to-gray-950 border-gray-800">
+              <CardHeader className="text-center pb-4">
+                <div className="p-4 rounded-full bg-gray-800 border border-gray-700 w-fit mx-auto mb-4">
+                  <Search className="h-8 w-8 sm:h-10 sm:w-10 text-gray-600" />
+                </div>
+                <CardTitle className="text-xl sm:text-2xl">No projects found</CardTitle>
+                <CardDescription className="text-sm sm:text-base mt-2">
+                  Try adjusting your search query or create a new project.
+                </CardDescription>
               </CardHeader>
             </Card>
           </motion.div>
