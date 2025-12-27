@@ -9,6 +9,7 @@ import { Progress } from "@/components/ui/progress"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Badge } from "@/components/ui/badge"
 import { Loader2, FileText, FolderKanban, BarChart3, ArrowRight, Plus, CreditCard } from "lucide-react"
+import { Skeleton } from "@/components/ui/skeleton"
 import { createClient } from "@/lib/supabase/client"
 import { motion } from "framer-motion"
 import { SkeletonCard } from "@/components/dashboard/skeleton-card"
@@ -104,15 +105,23 @@ export default function DashboardPage() {
   if (loading) {
     return (
       <DashboardLayout>
-        <div className="space-y-6">
-          <div>
-            <div className="h-9 w-48 bg-gray-800 rounded mb-2 animate-pulse" />
-            <div className="h-5 w-64 bg-gray-800 rounded animate-pulse" />
+        <div className="space-y-6 sm:space-y-8">
+          <div className="space-y-3">
+            <Skeleton className="h-8 sm:h-9 w-48 sm:w-64 bg-gray-800 rounded" />
+            <Skeleton className="h-4 sm:h-5 w-64 sm:w-80 bg-gray-800 rounded" />
           </div>
-          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+          <div className="grid gap-4 sm:gap-6 grid-cols-1 sm:grid-cols-2 lg:grid-cols-4">
             {[...Array(4)].map((_, i) => (
               <SkeletonCard key={i} />
             ))}
+          </div>
+          <div className="space-y-4">
+            <Skeleton className="h-10 w-32 bg-gray-800 rounded" />
+            <div className="space-y-3">
+              {[...Array(3)].map((_, i) => (
+                <Skeleton key={i} className="h-24 w-full bg-gray-800 rounded-lg" />
+              ))}
+            </div>
           </div>
         </div>
       </DashboardLayout>
@@ -122,38 +131,58 @@ export default function DashboardPage() {
   return (
     <DashboardLayout>
       <motion.div
-        className="space-y-6"
+        className="space-y-6 sm:space-y-8"
         initial="hidden"
         animate="visible"
         variants={containerVariants}
       >
-        <motion.div variants={itemVariants}>
-          <h2 className="text-3xl font-bold tracking-tight">Dashboard</h2>
-          <p className="text-muted-foreground">Welcome to your AI Content Generator dashboard</p>
+        <motion.div variants={itemVariants} className="space-y-2 sm:space-y-3">
+          <div className="flex items-center justify-between flex-wrap gap-4">
+            <div>
+              <h2 className="text-2xl sm:text-3xl md:text-4xl font-bold tracking-tight">
+                Dashboard
+              </h2>
+              <p className="text-muted-foreground text-sm sm:text-base mt-1 sm:mt-2">
+                Welcome back! Here's an overview of your content generation activity.
+              </p>
+            </div>
+            <Link href="/dashboard/generate">
+              <Button size="sm" className="gap-2 h-9 sm:h-10">
+                <Plus className="h-4 w-4" />
+                <span className="hidden sm:inline">Generate Content</span>
+                <span className="sm:hidden">Generate</span>
+              </Button>
+            </Link>
+          </div>
         </motion.div>
 
         <motion.div
-          className="grid gap-4 md:grid-cols-2 lg:grid-cols-4"
+          className="grid gap-4 sm:gap-6 grid-cols-1 sm:grid-cols-2 lg:grid-cols-4"
           variants={containerVariants}
         >
           <motion.div variants={itemVariants}>
-            <Card className="bg-gray-900 border-gray-800 hover:border-primary/50 transition-all duration-200 group">
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Subscription Plan</CardTitle>
-              <CreditCard className="h-4 w-4 text-muted-foreground group-hover:text-primary transition-colors" />
+            <Card className="bg-gradient-to-br from-gray-900 to-gray-950 border-gray-800 hover:border-primary/50 transition-all duration-300 group hover:shadow-lg hover:shadow-primary/10">
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-3">
+              <CardTitle className="text-xs sm:text-sm font-medium">Subscription Plan</CardTitle>
+              <div className="p-2 rounded-lg bg-primary/10 border border-primary/20 group-hover:bg-primary/20 transition-colors">
+                <CreditCard className="h-4 w-4 sm:h-5 sm:w-5 text-primary" />
+              </div>
             </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">
+            <CardContent className="space-y-3">
+              <div className="text-2xl sm:text-3xl font-bold">
                 {subscription?.plan_type
                   ? subscription.plan_type.charAt(0).toUpperCase() + subscription.plan_type.slice(1)
                   : "Free"}
               </div>
-              <p className="text-xs text-muted-foreground">
-                {subscription?.status === "active" ? "Active subscription" : "Inactive subscription"}
-              </p>
-              <div className="mt-3">
+              <div className="flex items-center gap-2">
+                <div className={`h-2 w-2 rounded-full ${subscription?.status === "active" ? "bg-green-500" : "bg-gray-500"}`}></div>
+                <p className="text-xs sm:text-sm text-muted-foreground">
+                  {subscription?.status === "active" ? "Active subscription" : "Inactive subscription"}
+                </p>
+              </div>
+              <div className="pt-2">
                 <Link href="/dashboard/subscription">
-                  <Button variant="outline" size="sm" className="w-full border-gray-800 hover:bg-gray-800">
+                  <Button variant="outline" size="sm" className="w-full border-gray-800 hover:bg-gray-800 hover:border-primary/50 h-9 text-xs sm:text-sm">
                     Manage Subscription
                   </Button>
                 </Link>
@@ -163,36 +192,47 @@ export default function DashboardPage() {
           </motion.div>
 
           <motion.div variants={itemVariants}>
-            <Card className="bg-gray-900 border-gray-800 hover:border-primary/50 transition-all duration-200 group">
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Content Generated</CardTitle>
-              <FileText className="h-4 w-4 text-muted-foreground group-hover:text-primary transition-colors" />
+            <Card className="bg-gradient-to-br from-gray-900 to-gray-950 border-gray-800 hover:border-primary/50 transition-all duration-300 group hover:shadow-lg hover:shadow-primary/10">
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-3">
+              <CardTitle className="text-xs sm:text-sm font-medium">Content Generated</CardTitle>
+              <div className="p-2 rounded-lg bg-primary/10 border border-primary/20 group-hover:bg-primary/20 transition-colors">
+                <FileText className="h-4 w-4 sm:h-5 sm:w-5 text-primary" />
+              </div>
             </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">{usageStats?.content_generated || 0}</div>
-              <p className="text-xs text-muted-foreground">
+            <CardContent className="space-y-3">
+              <div className="text-2xl sm:text-3xl font-bold">{usageStats?.content_generated || 0}</div>
+              <p className="text-xs sm:text-sm text-muted-foreground">
                 of {usageLimits?.monthly_content_limit || "∞"} available this month
               </p>
-              <Progress
-                value={getUsagePercentage(usageStats?.content_generated || 0, usageLimits?.monthly_content_limit || 0)}
-                className="mt-3 h-1 bg-gray-800"
-              />
+              <div className="space-y-1.5">
+                <Progress
+                  value={getUsagePercentage(usageStats?.content_generated || 0, usageLimits?.monthly_content_limit || 0)}
+                  className="h-2 bg-gray-800"
+                />
+                <p className="text-xs text-muted-foreground">
+                  {usageLimits?.monthly_content_limit 
+                    ? `${Math.max(0, (usageLimits.monthly_content_limit || 0) - (usageStats?.content_generated || 0))} remaining`
+                    : "Unlimited"}
+                </p>
+              </div>
             </CardContent>
           </Card>
           </motion.div>
 
           <motion.div variants={itemVariants}>
-            <Card className="bg-gray-900 border-gray-800 hover:border-primary/50 transition-all duration-200 group">
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Projects</CardTitle>
-              <FolderKanban className="h-4 w-4 text-muted-foreground group-hover:text-primary transition-colors" />
+            <Card className="bg-gradient-to-br from-gray-900 to-gray-950 border-gray-800 hover:border-primary/50 transition-all duration-300 group hover:shadow-lg hover:shadow-primary/10">
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-3">
+              <CardTitle className="text-xs sm:text-sm font-medium">Projects</CardTitle>
+              <div className="p-2 rounded-lg bg-primary/10 border border-primary/20 group-hover:bg-primary/20 transition-colors">
+                <FolderKanban className="h-4 w-4 sm:h-5 sm:w-5 text-primary" />
+              </div>
             </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">{recentProjects.length}</div>
-              <p className="text-xs text-muted-foreground">Total projects created</p>
-              <div className="mt-3">
+            <CardContent className="space-y-3">
+              <div className="text-2xl sm:text-3xl font-bold">{recentProjects.length}</div>
+              <p className="text-xs sm:text-sm text-muted-foreground">Total projects created</p>
+              <div className="pt-2">
                 <Link href="/dashboard/projects">
-                  <Button variant="outline" size="sm" className="w-full border-gray-800 hover:bg-gray-800">
+                  <Button variant="outline" size="sm" className="w-full border-gray-800 hover:bg-gray-800 hover:border-primary/50 h-9 text-xs sm:text-sm">
                     View Projects
                   </Button>
                 </Link>
@@ -202,21 +242,23 @@ export default function DashboardPage() {
           </motion.div>
 
           <motion.div variants={itemVariants}>
-            <Card className="bg-gray-900 border-gray-800 hover:border-primary/50 transition-all duration-200 group">
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Analytics</CardTitle>
-              <BarChart3 className="h-4 w-4 text-muted-foreground group-hover:text-primary transition-colors" />
+            <Card className="bg-gradient-to-br from-gray-900 to-gray-950 border-gray-800 hover:border-primary/50 transition-all duration-300 group hover:shadow-lg hover:shadow-primary/10">
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-3">
+              <CardTitle className="text-xs sm:text-sm font-medium">Analytics</CardTitle>
+              <div className="p-2 rounded-lg bg-primary/10 border border-primary/20 group-hover:bg-primary/20 transition-colors">
+                <BarChart3 className="h-4 w-4 sm:h-5 sm:w-5 text-primary" />
+              </div>
             </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">
+            <CardContent className="space-y-3">
+              <div className="text-2xl sm:text-3xl font-bold">
                 {(usageStats?.sentiment_analysis_used || 0) +
                   (usageStats?.keyword_extraction_used || 0) +
                   (usageStats?.text_summarization_used || 0)}
               </div>
-              <p className="text-xs text-muted-foreground">Total AI analyses performed</p>
-              <div className="mt-3">
+              <p className="text-xs sm:text-sm text-muted-foreground">Total AI analyses performed</p>
+              <div className="pt-2">
                 <Link href="/dashboard/analytics">
-                  <Button variant="outline" size="sm" className="w-full border-gray-800 hover:bg-gray-800">
+                  <Button variant="outline" size="sm" className="w-full border-gray-800 hover:bg-gray-800 hover:border-primary/50 h-9 text-xs sm:text-sm">
                     View Analytics
                   </Button>
                 </Link>
@@ -226,27 +268,35 @@ export default function DashboardPage() {
           </motion.div>
         </motion.div>
 
-        <motion.div variants={itemVariants}>
-        <Tabs defaultValue="content" className="space-y-4">
-          <TabsList className="bg-gray-900 border-gray-800">
-            <TabsTrigger value="content">Recent Content</TabsTrigger>
-            <TabsTrigger value="projects">Recent Projects</TabsTrigger>
-          </TabsList>
+        <motion.div variants={itemVariants} className="space-y-4 sm:space-y-6">
+        <Tabs defaultValue="content" className="space-y-4 sm:space-y-6">
+          <div className="flex items-center justify-between flex-wrap gap-4">
+            <TabsList className="bg-gray-900 border-gray-800">
+              <TabsTrigger value="content" className="text-xs sm:text-sm">Recent Content</TabsTrigger>
+              <TabsTrigger value="projects" className="text-xs sm:text-sm">Recent Projects</TabsTrigger>
+            </TabsList>
+          </div>
 
-          <TabsContent value="content" className="space-y-4">
-            <div className="flex justify-between items-center">
-              <h3 className="text-xl font-bold">Recent Content</h3>
+          <TabsContent value="content" className="space-y-4 sm:space-y-6">
+            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 sm:gap-4">
+              <div>
+                <h3 className="text-lg sm:text-xl md:text-2xl font-bold">Recent Content</h3>
+                <p className="text-xs sm:text-sm text-muted-foreground mt-1">
+                  Your latest generated content items
+                </p>
+              </div>
               <Link href="/dashboard/generate">
-                <Button size="sm" className="gap-1">
+                <Button size="sm" className="gap-1.5 h-9 sm:h-10 w-full sm:w-auto">
                   <Plus className="h-4 w-4" />
-                  Create New
+                  <span className="hidden sm:inline">Create New</span>
+                  <span className="sm:hidden">New</span>
                 </Button>
               </Link>
             </div>
 
             {recentContent.length > 0 ? (
               <motion.div
-                className="space-y-2"
+                className="space-y-3 sm:space-y-4"
                 variants={containerVariants}
               >
                 {recentContent.map((content, index) => (
@@ -257,27 +307,32 @@ export default function DashboardPage() {
                     transition={{ type: "spring", stiffness: 400, damping: 17 }}
                   >
                     <Link href={`/dashboard/content/${content.id}`}>
-                      <Card className="bg-gray-900 border-gray-800 hover:bg-gray-800 hover:border-gray-700 transition-all cursor-pointer">
-                        <CardContent className="p-4">
-                          <div className="flex justify-between items-start">
-                            <div>
-                              <h4 className="font-medium">{content.title}</h4>
-                              <p className="text-sm text-muted-foreground mt-1">
-                                {content.content.substring(0, 100)}...
+                      <Card className="bg-gradient-to-br from-gray-900 to-gray-950 border-gray-800 hover:bg-gray-800 hover:border-primary/50 transition-all duration-300 cursor-pointer group">
+                        <CardContent className="p-4 sm:p-5">
+                          <div className="flex flex-col sm:flex-row justify-between items-start gap-3 sm:gap-4">
+                            <div className="flex-1 min-w-0">
+                              <div className="flex items-start gap-2 sm:gap-3 mb-2">
+                                <FileText className="h-4 w-4 sm:h-5 sm:w-5 text-primary mt-0.5 flex-shrink-0" />
+                                <h4 className="font-semibold text-sm sm:text-base group-hover:text-primary transition-colors line-clamp-2">
+                                  {content.title || "Untitled Content"}
+                                </h4>
+                              </div>
+                              <p className="text-xs sm:text-sm text-muted-foreground mt-1.5 line-clamp-2 sm:line-clamp-3">
+                                {content.content.substring(0, 120)}...
                               </p>
-                              <div className="flex items-center gap-2 mt-2">
-                                <Badge variant="outline" className="text-xs border-gray-700">
-                                  {content.content_type?.replace(/_/g, " ")}
+                              <div className="flex flex-wrap items-center gap-2 mt-3">
+                                <Badge variant="outline" className="text-xs border-gray-700 bg-gray-800/50">
+                                  {content.content_type?.replace(/_/g, " ") || "Content"}
                                 </Badge>
                                 {content.sentiment && (
                                   <Badge
                                     variant="outline"
                                     className={`text-xs border-gray-700 ${
                                       content.sentiment === "positive"
-                                        ? "text-green-400"
+                                        ? "text-green-400 border-green-400/30 bg-green-400/10"
                                         : content.sentiment === "negative"
-                                          ? "text-red-400"
-                                          : "text-yellow-400"
+                                          ? "text-red-400 border-red-400/30 bg-red-400/10"
+                                          : "text-yellow-400 border-yellow-400/30 bg-yellow-400/10"
                                     }`}
                                   >
                                     {content.sentiment}
@@ -285,7 +340,7 @@ export default function DashboardPage() {
                                 )}
                               </div>
                             </div>
-                            <div className="text-xs text-muted-foreground">
+                            <div className="text-xs text-muted-foreground whitespace-nowrap flex-shrink-0">
                               {new Date(content.created_at).toLocaleDateString()}
                             </div>
                           </div>
@@ -296,20 +351,29 @@ export default function DashboardPage() {
                 ))}
               </motion.div>
             ) : (
-              <Card className="bg-gray-900 border-gray-800">
-                <CardContent className="flex flex-col items-center justify-center p-6">
-                  <p className="text-muted-foreground mb-4">No content generated yet</p>
+              <Card className="bg-gradient-to-br from-gray-900 to-gray-950 border-gray-800">
+                <CardContent className="flex flex-col items-center justify-center p-8 sm:p-12 text-center">
+                  <div className="p-4 rounded-full bg-primary/10 border border-primary/20 mb-4">
+                    <FileText className="h-8 w-8 sm:h-10 sm:w-10 text-primary" />
+                  </div>
+                  <h4 className="text-lg sm:text-xl font-semibold mb-2">No content generated yet</h4>
+                  <p className="text-sm text-muted-foreground mb-6 max-w-sm">
+                    Start creating amazing content with our AI-powered generator
+                  </p>
                   <Link href="/dashboard/generate">
-                    <Button>Generate Your First Content</Button>
+                    <Button className="gap-2 h-10 sm:h-11">
+                      <Plus className="h-4 w-4" />
+                      Generate Your First Content
+                    </Button>
                   </Link>
                 </CardContent>
               </Card>
             )}
 
             {recentContent.length > 0 && (
-              <div className="flex justify-center">
+              <div className="flex justify-center pt-2">
                 <Link href="/dashboard/generate">
-                  <Button variant="outline" className="border-gray-800 hover:bg-gray-800">
+                  <Button variant="outline" className="border-gray-800 hover:bg-gray-800 hover:border-primary/50 h-9 sm:h-10">
                     View All Content
                     <ArrowRight className="ml-2 h-4 w-4" />
                   </Button>
@@ -318,19 +382,25 @@ export default function DashboardPage() {
             )}
           </TabsContent>
 
-          <TabsContent value="projects" className="space-y-4">
-            <div className="flex justify-between items-center">
-              <h3 className="text-xl font-bold">Recent Projects</h3>
+          <TabsContent value="projects" className="space-y-4 sm:space-y-6">
+            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 sm:gap-4">
+              <div>
+                <h3 className="text-lg sm:text-xl md:text-2xl font-bold">Recent Projects</h3>
+                <p className="text-xs sm:text-sm text-muted-foreground mt-1">
+                  Your latest content organization projects
+                </p>
+              </div>
               <Link href="/dashboard/projects">
-                <Button size="sm" className="gap-1">
+                <Button size="sm" className="gap-1.5 h-9 sm:h-10 w-full sm:w-auto">
                   <Plus className="h-4 w-4" />
-                  Create New
+                  <span className="hidden sm:inline">Create New</span>
+                  <span className="sm:hidden">New</span>
                 </Button>
               </Link>
             </div>
 
             {recentProjects.length > 0 ? (
-              <motion.div className="space-y-2" variants={containerVariants}>
+              <motion.div className="space-y-3 sm:space-y-4" variants={containerVariants}>
                 {recentProjects.map((project, index) => (
                   <motion.div
                     key={project.id}
@@ -339,16 +409,21 @@ export default function DashboardPage() {
                     transition={{ type: "spring", stiffness: 400, damping: 17 }}
                   >
                     <Link href={`/dashboard/projects/${project.id}`}>
-                      <Card className="bg-gray-900 border-gray-800 hover:bg-gray-800 hover:border-gray-700 transition-all cursor-pointer">
-                        <CardContent className="p-4">
-                          <div className="flex justify-between items-start">
-                            <div>
-                              <h4 className="font-medium">{project.name}</h4>
-                              <p className="text-sm text-muted-foreground mt-1">
-                                {project.description || "No description"}
+                      <Card className="bg-gradient-to-br from-gray-900 to-gray-950 border-gray-800 hover:bg-gray-800 hover:border-primary/50 transition-all duration-300 cursor-pointer group">
+                        <CardContent className="p-4 sm:p-5">
+                          <div className="flex flex-col sm:flex-row justify-between items-start gap-3 sm:gap-4">
+                            <div className="flex-1 min-w-0">
+                              <div className="flex items-start gap-2 sm:gap-3 mb-2">
+                                <FolderKanban className="h-4 w-4 sm:h-5 sm:w-5 text-primary mt-0.5 flex-shrink-0" />
+                                <h4 className="font-semibold text-sm sm:text-base group-hover:text-primary transition-colors">
+                                  {project.name}
+                                </h4>
+                              </div>
+                              <p className="text-xs sm:text-sm text-muted-foreground mt-1.5 line-clamp-2">
+                                {project.description || "No description provided"}
                               </p>
                             </div>
-                            <div className="text-xs text-muted-foreground">
+                            <div className="text-xs text-muted-foreground whitespace-nowrap flex-shrink-0">
                               {new Date(project.created_at).toLocaleDateString()}
                             </div>
                           </div>
@@ -359,20 +434,29 @@ export default function DashboardPage() {
                 ))}
               </motion.div>
             ) : (
-              <Card className="bg-gray-900 border-gray-800">
-                <CardContent className="flex flex-col items-center justify-center p-6">
-                  <p className="text-muted-foreground mb-4">No projects created yet</p>
+              <Card className="bg-gradient-to-br from-gray-900 to-gray-950 border-gray-800">
+                <CardContent className="flex flex-col items-center justify-center p-8 sm:p-12 text-center">
+                  <div className="p-4 rounded-full bg-primary/10 border border-primary/20 mb-4">
+                    <FolderKanban className="h-8 w-8 sm:h-10 sm:w-10 text-primary" />
+                  </div>
+                  <h4 className="text-lg sm:text-xl font-semibold mb-2">No projects created yet</h4>
+                  <p className="text-sm text-muted-foreground mb-6 max-w-sm">
+                    Organize your content into projects for better workflow management
+                  </p>
                   <Link href="/dashboard/projects">
-                    <Button>Create Your First Project</Button>
+                    <Button className="gap-2 h-10 sm:h-11">
+                      <Plus className="h-4 w-4" />
+                      Create Your First Project
+                    </Button>
                   </Link>
                 </CardContent>
               </Card>
             )}
 
             {recentProjects.length > 0 && (
-              <div className="flex justify-center">
+              <div className="flex justify-center pt-2">
                 <Link href="/dashboard/projects">
-                  <Button variant="outline" className="border-gray-800 hover:bg-gray-800">
+                  <Button variant="outline" className="border-gray-800 hover:bg-gray-800 hover:border-primary/50 h-9 sm:h-10">
                     View All Projects
                     <ArrowRight className="ml-2 h-4 w-4" />
                   </Button>
