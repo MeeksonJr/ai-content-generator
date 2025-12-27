@@ -5,6 +5,7 @@ import type React from "react"
 import { useState, useEffect } from "react"
 import { useRouter } from "next/navigation"
 import Link from "next/link"
+import Image from "next/image"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
@@ -13,6 +14,7 @@ import { BlogMobileMenu } from "@/components/blog/blog-mobile-menu"
 import { formatDate } from "@/lib/utils"
 import { BlogPostSkeleton, ContentGridSkeleton } from "@/components/ui/loading-skeleton"
 import { Skeleton } from "@/components/ui/skeleton"
+import { Pagination } from "@/components/ui/pagination"
 
 interface BlogPost {
   id: string
@@ -35,20 +37,23 @@ export default function BlogPage() {
   const [blogPosts, setBlogPosts] = useState<BlogPost[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+  const [currentPage, setCurrentPage] = useState(1)
+  const [totalPages, setTotalPages] = useState(1)
+  const [totalItems, setTotalItems] = useState(0)
   const router = useRouter()
 
   useEffect(() => {
-    fetchBlogPosts()
-  }, [])
+    fetchBlogPosts(currentPage)
+  }, [currentPage])
 
-  const fetchBlogPosts = async () => {
+  const fetchBlogPosts = async (page = 1) => {
     try {
       setLoading(true)
       setError(null)
       console.log("Fetching blog posts...")
 
       // Use a different endpoint to avoid route conflicts
-      const response = await fetch("/api/blog-posts", {
+      const response = await fetch(`/api/blog-posts?page=${page}&limit=12`, {
         method: "GET",
         headers: {
           "Content-Type": "application/json",
@@ -73,12 +78,22 @@ export default function BlogPage() {
       const data = await response.json()
       console.log("Fetched data:", data)
       setBlogPosts(data.results || [])
+      if (data.pagination) {
+        setCurrentPage(data.pagination.currentPage)
+        setTotalPages(data.pagination.totalPages)
+        setTotalItems(data.pagination.totalItems)
+      }
     } catch (error) {
       console.error("Error fetching blog posts:", error)
       setError(error instanceof Error ? error.message : "Failed to fetch blog posts")
     } finally {
       setLoading(false)
     }
+  }
+
+  const handlePageChange = (page: number) => {
+    setCurrentPage(page)
+    window.scrollTo({ top: 0, behavior: "smooth" })
   }
 
   const handleSearch = (e: React.FormEvent) => {
@@ -263,7 +278,7 @@ export default function BlogPage() {
                   <h3 className="text-xl sm:text-2xl font-semibold mb-2 text-destructive">Error Loading Blog Posts</h3>
                   <p className="text-muted-foreground mb-6 text-sm sm:text-base">{error}</p>
                   <Button 
-                    onClick={fetchBlogPosts} 
+                    onClick={() => fetchBlogPosts(currentPage)} 
                     className="h-10 sm:h-11 px-6"
                   >
                     Try Again
@@ -326,10 +341,13 @@ export default function BlogPage() {
                           </div>
                         </div>
                         <div className="h-64 sm:h-80 md:h-auto bg-muted relative overflow-hidden group">
-                          <img
-                            src={blogPosts[0].image_url || "/placeholder.svg?height=400&width=600"}
+                          <Image
+                            src={blogPosts[0].image_url || "/placeholder.svg"}
                             alt={blogPosts[0].title}
-                            className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110"
+                            fill
+                            className="object-cover transition-transform duration-500 group-hover:scale-110"
+                            sizes="(max-width: 768px) 100vw, 50vw"
+                            priority
                           />
                           <div className="absolute inset-0 bg-gradient-to-t from-black/20 to-transparent"></div>
                         </div>
@@ -344,10 +362,12 @@ export default function BlogPage() {
                     <Link key={post.id} href={`/blog/${post.id}`} className="group">
                       <Card className="h-full border border-border transition-all duration-300 shadow-sm hover:shadow-xl hover:border-primary/50 hover:-translate-y-1 bg-card overflow-hidden">
                         <div className="h-48 sm:h-56 overflow-hidden bg-muted relative">
-                          <img
-                            src={post.image_url || "/placeholder.svg?height=300&width=400"}
+                          <Image
+                            src={post.image_url || "/placeholder.svg"}
                             alt={post.title}
-                            className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110"
+                            fill
+                            className="object-cover transition-transform duration-300 group-hover:scale-110"
+                            sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
                           />
                           <div className="absolute inset-0 bg-gradient-to-t from-black/40 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity"></div>
                           <div className="absolute top-3 left-3">
@@ -411,16 +431,16 @@ export default function BlogPage() {
                   ))}
                 </div>
 
-                {blogPosts.length > 6 && (
-                  <div className="mt-12 sm:mt-16 text-center">
-                    <Button
-                      variant="outline"
-                      size="lg"
-                      className="h-11 sm:h-12 px-6 sm:px-8"
-                      onClick={fetchBlogPosts}
-                    >
-                      Load More Articles
-                    </Button>
+                {totalPages > 1 && (
+                  <div className="mt-12 sm:mt-16">
+                    <Pagination
+                      currentPage={currentPage}
+                      totalPages={totalPages}
+                      onPageChange={handlePageChange}
+                    />
+                    <p className="text-center text-sm text-muted-foreground mt-4">
+                      Showing {blogPosts.length} of {totalItems} articles
+                    </p>
                   </div>
                 )}
               </>

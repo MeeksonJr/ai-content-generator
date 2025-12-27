@@ -2,6 +2,9 @@ import { type NextRequest, NextResponse } from "next/server"
 import { createClient } from "@supabase/supabase-js"
 import { getSupabaseServiceRoleKey, getSupabaseUrl } from "@/lib/utils/supabase-env"
 import { logger } from "@/lib/utils/logger"
+import { validateText, validateSearchQuery } from "@/lib/utils/validation"
+import { createSecureResponse, handlePreflight } from "@/lib/utils/security"
+import { API_CONFIG } from "@/lib/constants/app.constants"
 
 const supabaseUrl = getSupabaseUrl()
 const supabaseServiceKey = getSupabaseServiceRoleKey()
@@ -302,6 +305,10 @@ async function generateImage(title: string): Promise<string | null> {
 
 export async function POST(request: NextRequest) {
   try {
+    // Handle preflight OPTIONS request
+    const preflightResponse = handlePreflight(request)
+    if (preflightResponse) return preflightResponse
+
     logger.info("Blog generate API called", { context: "BlogGenerate" })
 
     // Parse request body
@@ -310,17 +317,19 @@ export async function POST(request: NextRequest) {
       body = await request.json()
     } catch (error) {
       console.error("[SERVER] Failed to parse request body:", error)
-      return NextResponse.json({ error: "Invalid request body" }, { status: 400 })
+      return createSecureResponse({ error: "Invalid request body" }, 400)
     }
 
     const { searchQuery, forceRegenerate = false } = body
 
-    if (!searchQuery || typeof searchQuery !== "string") {
+    // Validate search query
+    const searchValidation = validateSearchQuery(searchQuery)
+    if (!searchValidation.isValid) {
       logger.warn("Invalid search query received", { context: "BlogGenerate" })
-      return NextResponse.json({ error: "Search query is required" }, { status: 400 })
+      return createSecureResponse({ error: `Search query: ${searchValidation.error}` }, 400)
     }
 
-    const trimmedQuery = searchQuery.trim()
+    const trimmedQuery = searchValidation.sanitized!
     logger.info("Processing blog query", { context: "BlogGenerate", data: { searchQuery: trimmedQuery } })
 
     // Check if content already exists (unless force regenerate)
@@ -338,7 +347,7 @@ export async function POST(request: NextRequest) {
           console.error("[SERVER] Database search error:", searchError)
         } else if (existingContent) {
           logger.info("Reusing existing content", { context: "BlogGenerate", data: { id: existingContent.id } })
-          return NextResponse.json({
+          return createSecureResponse({
             content: existingContent,
             isExisting: true,
           })
@@ -417,7 +426,7 @@ Topic: ${trimmedQuery}`
 
       if (saveError) {
         console.error("[SERVER] Database save error:", saveError)
-        return NextResponse.json({ error: "Failed to save content to database" }, { status: 500 })
+        return createSecureResponse({ error: "Failed to save content to database" }, 500)
       }
 
       logger.info("Blog content saved successfully", {
@@ -425,22 +434,22 @@ Topic: ${trimmedQuery}`
         data: { id: savedContent.id },
       })
 
-      return NextResponse.json({
+      return createSecureResponse({
         content: savedContent,
         isExisting: false,
       })
     } catch (error) {
       console.error("[SERVER] Error saving to database:", error)
-      return NextResponse.json({ error: "Database error" }, { status: 500 })
+      return createSecureResponse({ error: "Database error" }, 500)
     }
   } catch (error) {
     console.error("[SERVER] Unexpected error in blog generate API:", error)
-    return NextResponse.json(
+    return createSecureResponse(
       {
         error: "Internal server error",
         details: error instanceof Error ? error.message : "Unknown error",
       },
-      { status: 500 },
+      500
     )
   }
 }

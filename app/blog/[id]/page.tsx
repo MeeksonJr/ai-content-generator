@@ -1,5 +1,6 @@
 import { notFound } from "next/navigation"
 import Link from "next/link"
+import Image from "next/image"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { ArrowLeft, Calendar, Clock, Eye, Tag, Sparkles, Zap, BookOpen, TrendingUp, Share2 } from "lucide-react"
@@ -251,10 +252,13 @@ export default async function BlogPostPage({ params }: { params: Promise<{ id: s
                   <div className="h-56 sm:h-64 md:h-80 lg:h-96 overflow-hidden bg-gradient-to-r from-primary/10 via-primary/5 to-primary/10 flex items-center justify-center relative group">
                     {blogPost.image_url && !blogPost.image_url.includes("placeholder") ? (
                       <>
-                        <img
-                          src={blogPost.image_url || "/placeholder.svg"}
+                        <Image
+                          src={blogPost.image_url}
                           alt={blogPost.title}
-                          className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105"
+                          fill
+                          className="object-cover transition-transform duration-700 group-hover:scale-105"
+                          sizes="(max-width: 1024px) 100vw, 66vw"
+                          priority
                         />
                         <div className="absolute inset-0 bg-gradient-to-t from-black/40 via-transparent to-transparent"></div>
                       </>

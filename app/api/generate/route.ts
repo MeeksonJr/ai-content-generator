@@ -1,5 +1,8 @@
 import { type NextRequest, NextResponse } from "next/server"
 import { logger } from "@/lib/utils/logger"
+import { validateText } from "@/lib/utils/validation"
+import { createSecureResponse, handlePreflight } from "@/lib/utils/security"
+import { API_CONFIG, CONTENT_TYPES } from "@/lib/constants/app.constants"
 
 function createSlug(title: string): string {
   return title
@@ -222,19 +225,53 @@ This guide provides a foundation for understanding "${searchQuery}" and its appl
 
 export async function POST(request: NextRequest) {
   try {
+    // Handle preflight OPTIONS request
+    const preflightResponse = handlePreflight(request)
+    if (preflightResponse) return preflightResponse
+
     console.log("[API] Generate route called")
 
     const body = await request.json()
     const { prompt, title, contentType, temperature = 0.7, maxLength = 1000 } = body
 
-    if (!prompt || typeof prompt !== "string" || prompt.trim().length === 0) {
-      return NextResponse.json({ error: "Prompt is required and must be a non-empty string" }, { status: 400 })
+    // Validate prompt
+    const promptValidation = validateText(prompt, {
+      minLength: 1,
+      maxLength: API_CONFIG.MAX_CONTENT_LENGTH,
+      required: true,
+    })
+
+    if (!promptValidation.isValid) {
+      return createSecureResponse({ error: `Prompt: ${promptValidation.error}` }, 400)
     }
 
-    console.log("[API] Request body:", { prompt: prompt.substring(0, 100), title, contentType })
+    // Validate title if provided
+    if (title) {
+      const titleValidation = validateText(title, {
+        maxLength: API_CONFIG.MAX_TITLE_LENGTH,
+      })
+      if (!titleValidation.isValid) {
+        return createSecureResponse({ error: `Title: ${titleValidation.error}` }, 400)
+      }
+    }
+
+    // Validate temperature
+    if (temperature !== undefined && (temperature < 0 || temperature > 2)) {
+      return createSecureResponse({ error: "Temperature must be between 0 and 2" }, 400)
+    }
+
+    // Validate maxLength
+    if (maxLength !== undefined && (maxLength < 100 || maxLength > API_CONFIG.MAX_CONTENT_LENGTH)) {
+      return createSecureResponse(
+        { error: `Max length must be between 100 and ${API_CONFIG.MAX_CONTENT_LENGTH}` },
+        400
+      )
+    }
+
+    console.log("[API] Request body:", { prompt: promptValidation.sanitized!.substring(0, 100), title, contentType })
 
     // Generate content with fallback
-    const { content, provider } = await generateContentWithFallback(prompt)
+    const { content, provider } = await generateContentWithFallback(promptValidation.sanitized!)
 
     // Extract keywords from generated content
     const keywords = extractKeywords(content)
@@ -268,16 +305,16 @@ export async function POST(request: NextRequest) {
       fallback: response.fallback,
     })
 
-    return NextResponse.json(response)
+    return createSecureResponse(response)
   } catch (error) {
     console.error("[API] Error in generate route:", error)
 
-    return NextResponse.json(
+    return createSecureResponse(
       {
         error: "Internal server error during content generation",
         details: error instanceof Error ? error.message : "Unknown error",
       },
-      { status: 500 },
+      500
     )
   }
 }

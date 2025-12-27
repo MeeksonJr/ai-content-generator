@@ -1,12 +1,19 @@
 import { NextResponse } from "next/server"
+import type { NextRequest } from "next/server"
 import { logger } from "@/lib/utils/logger"
 import { createSupabaseRouteClient } from "@/lib/supabase/route-client"
 import { createServerSupabaseClient } from "@/lib/supabase/server-client"
 import { AuthenticationError, ValidationError, handleApiError } from "@/lib/utils/error-handler"
 import type { Database } from "@/lib/database.types"
+import { createSecureResponse, handlePreflight } from "@/lib/utils/security"
+import { FILE_CONFIG, STORAGE_BUCKETS } from "@/lib/constants/app.constants"
 
-export async function POST(request: Request) {
+export async function POST(request: NextRequest) {
   try {
+    // Handle preflight OPTIONS request
+    const preflightResponse = handlePreflight(request)
+    if (preflightResponse) return preflightResponse
+
     const supabase = await createSupabaseRouteClient()
     const serverSupabase = createServerSupabaseClient()
 
@@ -17,7 +24,7 @@ export async function POST(request: Request) {
 
     if (!session) {
       const { statusCode, error } = handleApiError(new AuthenticationError(), "Avatar Upload")
-      return NextResponse.json(error, { status: statusCode })
+      return createSecureResponse(error, statusCode)
     }
 
     // Get the file from the request
@@ -26,32 +33,31 @@ export async function POST(request: Request) {
 
     if (!file) {
       const { statusCode, error } = handleApiError(new ValidationError("No file provided"), "Avatar Upload")
-      return NextResponse.json(error, { status: statusCode })
+      return createSecureResponse(error, statusCode)
     }
 
     // Validate file type
-    if (!file.type.startsWith("image/")) {
+    if (!FILE_CONFIG.ALLOWED_IMAGE_TYPES.includes(file.type as typeof FILE_CONFIG.ALLOWED_IMAGE_TYPES[number])) {
       const { statusCode, error } = handleApiError(
-        new ValidationError("File must be an image (JPG, PNG, or GIF)"),
+        new ValidationError(`File must be one of: ${FILE_CONFIG.ALLOWED_IMAGE_TYPES.join(", ")}`),
         "Avatar Upload"
       )
-      return NextResponse.json(error, { status: statusCode })
+      return createSecureResponse(error, statusCode)
     }
 
-    // Validate file size (max 5MB)
-    const maxSize = 5 * 1024 * 1024 // 5MB
-    if (file.size > maxSize) {
+    // Validate file size
+    if (file.size > FILE_CONFIG.MAX_AVATAR_SIZE) {
       const { statusCode, error } = handleApiError(
-        new ValidationError("File size must be less than 5MB"),
+        new ValidationError(`File size must be less than ${FILE_CONFIG.MAX_AVATAR_SIZE / 1024 / 1024}MB`),
         "Avatar Upload"
       )
-      return NextResponse.json(error, { status: statusCode })
+      return createSecureResponse(error, statusCode)
     }
 
     // Generate unique filename
-    const fileExt = file.name.split(".").pop()
+    const fileExt = file.name.split(".").pop() || "jpg"
     const fileName = `${session.user.id}/${Date.now()}.${fileExt}`
-    const filePath = `avatars/${fileName}`
+    const filePath = `${STORAGE_BUCKETS.AVATARS}/${fileName}`
 
     // Convert file to ArrayBuffer
     const arrayBuffer = await file.arrayBuffer()
@@ -59,21 +65,21 @@ export async function POST(request: Request) {
 
     // Upload to Supabase Storage
     const { data: uploadData, error: uploadError } = await serverSupabase.storage
-      .from("avatars")
-      .upload(filePath, buffer, {
+      .from(STORAGE_BUCKETS.AVATARS)
+      .upload(fileName, buffer, {
         contentType: file.type,
         upsert: true, // Replace if exists
       })
 
     if (uploadError) {
       const { statusCode, error: apiError } = handleApiError(uploadError, "Avatar Upload")
-      return NextResponse.json(apiError, { status: statusCode })
+      return createSecureResponse(apiError, statusCode)
     }
 
     // Get public URL
     const {
       data: { publicUrl },
-    } = serverSupabase.storage.from("avatars").getPublicUrl(filePath)
+    } = serverSupabase.storage.from(STORAGE_BUCKETS.AVATARS).getPublicUrl(fileName)
 
     // Update user profile with avatar URL
     const { error: updateError } = await supabase
@@ -95,20 +101,20 @@ export async function POST(request: Request) {
 
       if (insertError) {
         const { statusCode, error: apiError } = handleApiError(insertError, "Avatar Upload")
-        return NextResponse.json(apiError, { status: statusCode })
+        return createSecureResponse(apiError, statusCode)
       }
     }
 
     logger.info("Avatar uploaded", {
       context: "Profile",
       userId: session.user.id,
-      data: { filePath, publicUrl },
+      data: { fileName, publicUrl },
     })
 
-    return NextResponse.json({ avatar_url: publicUrl })
+    return createSecureResponse({ avatar_url: publicUrl })
   } catch (error) {
     const { statusCode, error: apiError } = handleApiError(error, "Avatar Upload")
-    return NextResponse.json(apiError, { status: statusCode })
+    return createSecureResponse(apiError, statusCode)
   }
 }
 
