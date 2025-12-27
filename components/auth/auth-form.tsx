@@ -16,6 +16,7 @@ import { Loader2, Eye, EyeOff, Sparkles } from "lucide-react"
 import { motion, AnimatePresence } from "framer-motion"
 import { useToast } from "@/components/ui/use-toast"
 import { ForgotPasswordDialog } from "@/components/auth/forgot-password-dialog"
+import { ResendVerificationDialog } from "@/components/auth/resend-verification-dialog"
 
 export function AuthForm() {
   const [email, setEmail] = useState("")
@@ -337,6 +338,11 @@ export function AuthForm() {
                       </motion.div>
               )}
                   </AnimatePresence>
+                  {view === "sign-up" && (
+                    <div className="flex justify-center text-sm">
+                      <ResendVerificationDialog />
+                    </div>
+                  )}
                   <Button type="submit" className="w-full" disabled={loading || (view === "sign-up" && passwordStrength.strength < 40)}>
                 {loading ? (
                   <>

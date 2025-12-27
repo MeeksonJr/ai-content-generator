@@ -1,6 +1,11 @@
 import { NextResponse } from "next/server"
 import { logger } from "@/lib/utils/logger"
 import { createSupabaseRouteClient } from "@/lib/supabase/route-client"
+import type { Database } from "@/lib/database.types"
+
+type SubscriptionRow = Database["public"]["Tables"]["subscriptions"]["Row"]
+type SubscriptionInsert = Database["public"]["Tables"]["subscriptions"]["Insert"]
+type SubscriptionUpdate = Database["public"]["Tables"]["subscriptions"]["Update"]
 
 // Default usage limits for different plan types
 const DEFAULT_USAGE_LIMITS = {
@@ -64,7 +69,7 @@ export async function GET(request: Request) {
       .eq("user_id", userId)
       .order("created_at", { ascending: false })
       .limit(1)
-      .single()
+      .maybeSingle()
 
     if (subscriptionError && subscriptionError.code !== "PGRST116") {
       // PGRST116 is "no rows returned" which is fine - user just doesn't have a subscription yet
@@ -77,7 +82,8 @@ export async function GET(request: Request) {
     }
 
     // Default to free plan if no subscription exists
-    const planType = subscription?.plan_type || "free"
+    const subscriptionData = subscription as SubscriptionRow | null
+    const planType = subscriptionData?.plan_type || "free"
 
     // Get usage limits for the subscription plan
     const { data: usageLimits, error: limitsError } = await supabase
@@ -133,14 +139,14 @@ export async function GET(request: Request) {
       userId,
       data: {
         planType,
-        status: subscription?.status || "free",
+        status: subscriptionData?.status || "free",
         limitsFound: !!usageLimits,
         statsFound: !!usageStats,
       },
     })
 
     return NextResponse.json({
-      subscription: subscription || {
+      subscription: subscriptionData || {
         plan_type: "free",
         status: "active",
         started_at: new Date().toISOString(),
@@ -204,20 +210,24 @@ export async function POST(request: Request) {
     }
 
     // If user has an active subscription, update it
-    if (existingSubscription && existingSubscription.status === "active") {
+    const existingSubscriptionData = existingSubscription as SubscriptionRow | null
+    if (existingSubscriptionData && existingSubscriptionData.status === "active") {
+      const updateData: SubscriptionUpdate = {
+        plan_type: planType,
+        updated_at: new Date().toISOString(),
+      }
+      
       const { error: updateError } = await supabase
         .from("subscriptions")
-        .update({
-          plan_type: planType,
-          updated_at: new Date().toISOString(),
-        })
-        .eq("id", existingSubscription.id)
+        // @ts-ignore - Known Supabase type inference issue with update operations
+        .update(updateData)
+        .eq("id", existingSubscriptionData.id)
 
       if (updateError) {
         logger.error("Error updating subscription", {
           context: "API",
           userId,
-          data: { error: updateError, subscriptionId: existingSubscription.id },
+          data: { error: updateError, subscriptionId: existingSubscriptionData.id },
         })
         return NextResponse.json({ error: "Failed to update subscription" }, { status: 500 })
       }
@@ -225,28 +235,39 @@ export async function POST(request: Request) {
       logger.info("Successfully updated subscription", {
         context: "API",
         userId,
-        data: { planType, subscriptionId: existingSubscription.id },
+        data: { planType, subscriptionId: existingSubscriptionData.id },
       })
 
+      // Fetch updated subscription
+      const { data: updatedSubscription } = await supabase
+        .from("subscriptions")
+        .select("*")
+        .eq("id", existingSubscriptionData.id)
+        .single()
+
+      const updatedSubscriptionData = updatedSubscription as SubscriptionRow | null
       return NextResponse.json({
         success: true,
         message: "Subscription updated successfully",
-        subscription: {
-          ...existingSubscription,
+        subscription: updatedSubscriptionData || {
+          ...existingSubscriptionData,
           plan_type: planType,
         },
       })
     }
 
     // Otherwise, create a new subscription
+    const insertData: SubscriptionInsert = {
+      user_id: userId,
+      plan_type: planType,
+      status: "active",
+      started_at: new Date().toISOString(),
+    }
+    
     const { data: newSubscription, error: createError } = await supabase
       .from("subscriptions")
-      .insert({
-        user_id: userId,
-        plan_type: planType,
-        status: "active",
-        started_at: new Date().toISOString(),
-      })
+      // @ts-ignore - Known Supabase type inference issue with insert operations
+      .insert(insertData)
       .select()
       .single()
 
@@ -259,16 +280,17 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "Failed to create subscription" }, { status: 500 })
     }
 
+    const newSubscriptionData = newSubscription as SubscriptionRow
     logger.info("Successfully created subscription", {
       context: "API",
       userId,
-      data: { planType, subscriptionId: newSubscription.id },
+      data: { planType, subscriptionId: newSubscriptionData.id },
     })
 
     return NextResponse.json({
       success: true,
       message: "Subscription created successfully",
-      subscription: newSubscription,
+      subscription: newSubscriptionData,
     })
   } catch (error) {
     logger.error("Error in subscription API", { context: "API" }, error as Error)

@@ -30,22 +30,54 @@ export async function GET() {
         }
       }
 
-      // Calculate words generated (estimate: average 500 words per content)
-      const wordsGenerated = (contentCount || 0) * 500
-      const wordsFormatted = wordsGenerated >= 1000000 ? `${(wordsGenerated / 1000000).toFixed(1)}M+` : `${(wordsGenerated / 1000).toFixed(0)}K+`
+      // Calculate actual words generated from content
+      const { data: allContent } = await supabase
+        .from("content")
+        .select("content")
+      
+      let wordsGenerated = 0
+      if (allContent) {
+        wordsGenerated = allContent.reduce((total, item) => {
+          const wordCount = item.content ? item.content.split(/\s+/).filter(Boolean).length : 0
+          return total + wordCount
+        }, 0)
+      }
+      
+      // Fallback to estimate if calculation fails
+      if (wordsGenerated === 0 && contentCount) {
+        wordsGenerated = contentCount * 500
+      }
+      
+      const wordsFormatted = wordsGenerated >= 1000000 
+        ? `${(wordsGenerated / 1000000).toFixed(1)}M+` 
+        : wordsGenerated >= 1000
+        ? `${(wordsGenerated / 1000).toFixed(0)}K+`
+        : `${wordsGenerated}+`
 
       // Get active users (users who created content in last 30 days)
       const thirtyDaysAgo = new Date()
       thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30)
       
-      const { count: activeUsersCount } = await supabase
+      const { data: recentContent } = await supabase
         .from("content")
-        .select("user_id", { count: "exact", head: true })
+        .select("user_id")
         .gte("created_at", thirtyDaysAgo.toISOString())
+      
+      let activeUsersCount = 0
+      if (recentContent) {
+        const uniqueActiveUserIds = new Set(recentContent.map((c: any) => c.user_id))
+        activeUsersCount = uniqueActiveUserIds.size
+      }
+      
+      // Use active users if available, otherwise use total users
+      const displayUsers = activeUsersCount > 0 ? activeUsersCount : totalUsers
+      const usersFormatted = displayUsers >= 1000 
+        ? `${(displayUsers / 1000).toFixed(1)}K+` 
+        : `${displayUsers}+`
 
       const stats = [
         { value: wordsFormatted, label: "Words Generated" },
-        { value: `${totalUsers >= 1000 ? (totalUsers / 1000).toFixed(1) + "K+" : totalUsers}+`, label: "Active Users" },
+        { value: usersFormatted, label: "Active Users" },
         { value: "98%", label: "Satisfaction Rate" },
         { value: "24/7", label: "Support" },
       ]

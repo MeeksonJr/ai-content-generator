@@ -114,10 +114,10 @@
     - ✅ Can sync specific user or subscription
   - **Files Created:**
     - `app/api/subscription/sync/route.ts` (new)
-    - `vercel.json` (new) - Cron job configuration (runs every 6 hours)
-  - **Usage:**
+    - `vercel.json` (new) - Cron job configuration (runs daily at 2 AM UTC, Hobby mode compatible)
+  - **Usage:** 
     - Manual: `POST /api/subscription/sync` (with optional `{ userId, subscriptionId }` in body)
-    - Cron: Automatically runs every 6 hours via Vercel Cron
+    - Cron: Automatically runs daily at 2 AM UTC via Vercel Cron (Hobby mode compatible)
     - Monitoring: `GET /api/subscription/sync` to check status
 
 - [x] **Payment Method Update** ✅
@@ -277,7 +277,7 @@
 #### Landing Page (`app/page.tsx`)
 - [x] **Mobile Menu**  - Add hamburger menu with Sheet component ✅
 - [x] **Newsletter Signup**  - Add backend API endpoint and functional form in footer ✅
-- [ ] **Stats**  -  fetche from API with fallback to defaults
+- [x] **Stats**  -  Fetches from API with fallback to defaults ✅
 - [ ] **Pricing Cards**  - Different routes for Free/Professional/Enterprise plans
 - [ ] **CTA Buttons**  - Improve button text and routing
 - [ ] **Testimonials** - All hardcoded, should be dynamic (can be improved later)
@@ -292,7 +292,7 @@
 - [x] **Forgot Password**  - Added dialog with password reset functionality ✅
 - [ ] **Supabase URL Fix**  - Client-side URL now auto-fixes missing `.co` extension (same as server-side)
 - [ ] **Social Login** - No Google/GitHub/OAuth options (can be add later)
-- [ ] **Resend Verification** - Missing option to resend verification email
+- [x] **Resend Verification** - Added resend verification email dialog ✅
 
 #### Blog Listing (`app/blog/page.tsx`)
 - [ ] **Search** - Redirects to separate page instead of inline results

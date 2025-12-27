@@ -28,12 +28,56 @@ import { Menu, X } from "lucide-react"
 export default function Home() {
   const [mounted, setMounted] = useState(false)
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
+  const [stats, setStats] = useState([
+    { value: "10M+", label: "Words Generated", icon: <FileText className="h-4 w-4 sm:h-5 sm:w-5" />, color: "from-green-500 to-emerald-500" },
+    { value: "5K+", label: "Active Users", icon: <Users className="h-4 w-4 sm:h-5 sm:w-5" />, color: "from-blue-500 to-cyan-500" },
+    { value: "98%", label: "Satisfaction Rate", icon: <Star className="h-4 w-4 sm:h-5 sm:w-5" />, color: "from-yellow-500 to-orange-500" },
+    { value: "24/7", label: "Support", icon: <Shield className="h-4 w-4 sm:h-5 sm:w-5" />, color: "from-purple-500 to-pink-500" },
+  ])
   const { scrollYProgress } = useScroll()
   const opacity = useTransform(scrollYProgress, [0, 0.2], [1, 0])
   const y = useTransform(scrollYProgress, [0, 0.2], [0, -50])
 
   useEffect(() => {
     setMounted(true)
+    
+    // Fetch stats from API
+    const fetchStats = async () => {
+      try {
+        const response = await fetch("/api/stats")
+        if (response.ok) {
+          const data = await response.json()
+          if (data.stats && Array.isArray(data.stats)) {
+            // Map API stats to component format with icons and colors
+            const statsWithIcons = data.stats.map((stat: { value: string; label: string }, index: number) => {
+              const icons = [
+                <FileText className="h-4 w-4 sm:h-5 sm:w-5" />,
+                <Users className="h-4 w-4 sm:h-5 sm:w-5" />,
+                <Star className="h-4 w-4 sm:h-5 sm:w-5" />,
+                <Shield className="h-4 w-4 sm:h-5 sm:w-5" />,
+              ]
+              const colors = [
+                "from-green-500 to-emerald-500",
+                "from-blue-500 to-cyan-500",
+                "from-yellow-500 to-orange-500",
+                "from-purple-500 to-pink-500",
+              ]
+              return {
+                ...stat,
+                icon: icons[index] || icons[0],
+                color: colors[index] || colors[0],
+              }
+            })
+            setStats(statsWithIcons)
+          }
+        }
+      } catch (error) {
+        console.error("Failed to fetch stats:", error)
+        // Keep default stats on error
+      }
+    }
+    
+    fetchStats()
   }, [])
 
   const fadeIn = {
@@ -65,13 +109,6 @@ export default function Home() {
     hidden: { x: -60, opacity: 0 },
     visible: { x: 0, opacity: 1, transition: { duration: 0.5 } },
   }
-
-  const stats = [
-    { value: "10M+", label: "Words Generated", icon: <FileText className="h-4 w-4 sm:h-5 sm:w-5" />, color: "from-green-500 to-emerald-500" },
-    { value: "5K+", label: "Active Users", icon: <Users className="h-4 w-4 sm:h-5 sm:w-5" />, color: "from-blue-500 to-cyan-500" },
-    { value: "98%", label: "Satisfaction Rate", icon: <Star className="h-4 w-4 sm:h-5 sm:w-5" />, color: "from-yellow-500 to-orange-500" },
-    { value: "24/7", label: "Support", icon: <Shield className="h-4 w-4 sm:h-5 sm:w-5" />, color: "from-purple-500 to-pink-500" },
-  ]
 
   const features = [
     {
