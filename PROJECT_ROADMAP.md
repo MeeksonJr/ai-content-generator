@@ -91,9 +91,24 @@
   - **Files:** `app/api/paypal/cancel/route.ts`, `app/dashboard/subscription/page.tsx`
   - **Status:** Added API endpoint to cancel PayPal subscriptions (and update DB) plus UI button to trigger cancellation
 
-- [ ] **Subscription Status Sync**
-  - **Issue:** No periodic sync with PayPal to update subscription status
-  - **Needed:** Background job or webhook to sync subscription states
+- [x] **Subscription Status Sync** ✅
+  - **Status:** Implemented
+  - **Features:**
+    - ✅ API endpoint `/api/subscription/sync` (POST) to sync all or specific subscriptions
+    - ✅ GET endpoint for monitoring sync status
+    - ✅ Syncs subscription status from PayPal to database
+    - ✅ Updates expires_at from PayPal billing info
+    - ✅ Handles errors gracefully with detailed logging
+    - ✅ Supports cron job integration (Vercel Cron configured)
+    - ✅ Optional authentication via CRON_SECRET
+    - ✅ Can sync specific user or subscription
+  - **Files Created:**
+    - `app/api/subscription/sync/route.ts` (new)
+    - `vercel.json` (new) - Cron job configuration (runs every 6 hours)
+  - **Usage:**
+    - Manual: `POST /api/subscription/sync` (with optional `{ userId, subscriptionId }` in body)
+    - Cron: Automatically runs every 6 hours via Vercel Cron
+    - Monitoring: `GET /api/subscription/sync` to check status
 
 - [ ] **Payment Method Update**
   - **Status:** Not implemented
