@@ -16,6 +16,9 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
 import { Loader2, Save, Copy, ArrowLeft, Sparkles, Download, FileText, Flag } from "lucide-react"
+import { ContentComments } from "@/components/collaboration/content-comments"
+import { VersionHistory } from "@/components/collaboration/version-history"
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { useToast } from "@/components/ui/use-toast"
 import { createClient } from "@/lib/supabase/client"
 
@@ -136,7 +139,7 @@ export default function ContentDetailPage({ params }: { params: { id: string } }
       })
 
       // Refresh content
-      fetchContent()
+      await fetchContent()
       setIsEditing(false)
     } catch (error) {
       console.error("Error saving changes:", error)
@@ -407,6 +410,33 @@ export default function ContentDetailPage({ params }: { params: { id: string } }
             </CardFooter>
           </Card>
         </div>
+
+        {/* Collaboration Features */}
+        <Tabs defaultValue="comments" className="w-full">
+          <TabsList className="bg-gray-900 border-gray-800">
+            <TabsTrigger value="comments">Comments</TabsTrigger>
+            <TabsTrigger value="versions">Version History</TabsTrigger>
+          </TabsList>
+          <TabsContent value="comments" className="mt-4">
+            <Card className="bg-gray-900 border-gray-800">
+              <CardContent className="pt-6">
+                <ContentComments contentId={params.id} />
+              </CardContent>
+            </Card>
+          </TabsContent>
+          <TabsContent value="versions" className="mt-4">
+            <Card className="bg-gray-900 border-gray-800">
+              <CardContent className="pt-6">
+                <VersionHistory
+                  contentId={params.id}
+                  onRestore={() => {
+                    fetchContent()
+                  }}
+                />
+              </CardContent>
+            </Card>
+          </TabsContent>
+        </Tabs>
       </div>
     </DashboardLayout>
   )

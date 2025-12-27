@@ -24,6 +24,8 @@ import {
 } from "@/components/ui/dialog"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Badge } from "@/components/ui/badge"
+import { ProjectShareDialog } from "@/components/collaboration/project-share-dialog"
+import { Share2 } from "lucide-react"
 
 export default function ProjectDetailPage() {
   const params = useParams()
@@ -45,6 +47,7 @@ export default function ProjectDetailPage() {
     prompt: "",
   })
   const [generatingContent, setGeneratingContent] = useState(false)
+  const [shareDialogOpen, setShareDialogOpen] = useState(false)
 
   useEffect(() => {
     if (params.id) {
@@ -74,9 +77,10 @@ export default function ProjectDetailPage() {
 
       if (contentError) throw contentError
 
-      setProject(projectData)
-      setProjectName(projectData.name)
-      setProjectDescription(projectData.description || "")
+      const projectTyped = projectData as any
+      setProject(projectTyped)
+      setProjectName(projectTyped.name)
+      setProjectDescription(projectTyped.description || "")
       setContents(contentData || [])
     } catch (error) {
       console.error("Error fetching project data:", error)
@@ -102,13 +106,13 @@ export default function ProjectDetailPage() {
 
     setSaving(true)
     try {
-      const { error } = await supabase
+      const { error } = await (supabase as any)
         .from("projects")
         .update({
           name: projectName,
           description: projectDescription,
           updated_at: new Date().toISOString(),
-        })
+        } as any)
         .eq("id", project.id)
 
       if (error) throw error
@@ -202,7 +206,7 @@ export default function ProjectDetailPage() {
       const data = await response.json()
 
       // Save the generated content to the database
-      const { data: savedContent, error } = await supabase
+      const { data: savedContent, error } = await (supabase as any)
         .from("content")
         .insert({
           title: newContent.title,
@@ -213,7 +217,7 @@ export default function ProjectDetailPage() {
           project_id: project.id,
           user_id: project.user_id,
           content_category: getCategoryFromContentType(newContent.contentType),
-        })
+        } as any)
         .select()
         .single()
 
@@ -306,6 +310,10 @@ export default function ProjectDetailPage() {
           <div className="flex items-center space-x-2">
             {!editMode ? (
               <>
+                <Button variant="outline" size="sm" onClick={() => setShareDialogOpen(true)}>
+                  <Share2 className="mr-2 h-4 w-4" />
+                  Share
+                </Button>
                 <Button variant="outline" size="sm" onClick={() => setEditMode(true)}>
                   <Edit className="mr-2 h-4 w-4" />
                   Edit
