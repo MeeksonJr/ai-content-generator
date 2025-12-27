@@ -1,19 +1,38 @@
 import { NextResponse } from "next/server"
+import type { NextRequest } from "next/server"
 import { createSupabaseRouteClient } from "@/lib/supabase/route-client"
 import { createServerSupabaseClient } from "@/lib/supabase/server-client"
 import { logger } from "@/lib/utils/logger"
-import { handleApiError } from "@/lib/utils/error-handler"
+import { handleApiError, AuthenticationError, ValidationError, NotFoundError, AuthorizationError } from "@/lib/utils/error-handler"
+import { validateText, validateUuid } from "@/lib/utils/validation"
+import { createSecureResponse, handlePreflight } from "@/lib/utils/security"
+import { API_CONFIG } from "@/lib/constants/app.constants"
 
 /**
  * GET /api/content/[id]/comments
  * Get comments for a content item
  */
 export async function GET(
-  request: Request,
+  request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    // Handle preflight OPTIONS request
+    const preflightResponse = handlePreflight(request)
+    if (preflightResponse) return preflightResponse
+
     const { id } = await params
+
+    // Validate UUID
+    const uuidValidation = validateUuid(id)
+    if (!uuidValidation.isValid) {
+      const { statusCode, error } = handleApiError(
+        new ValidationError(uuidValidation.error || "Invalid content ID format"),
+        "Comments GET"
+      )
+      return createSecureResponse(error, statusCode)
+    }
+
     const supabase = await createSupabaseRouteClient()
 
     const {
@@ -21,7 +40,8 @@ export async function GET(
     } = await supabase.auth.getSession()
 
     if (!session) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
+      const { statusCode, error } = handleApiError(new AuthenticationError(), "Comments GET")
+      return createSecureResponse(error, statusCode)
     }
 
     // Check if user has access to content
@@ -67,16 +87,16 @@ export async function GET(
 
     if (error) {
       const { statusCode, error: apiError } = handleApiError(error, "Comments")
-      return NextResponse.json(apiError, { status: statusCode })
+      return createSecureResponse(apiError, statusCode)
     }
 
-    return NextResponse.json({ comments: comments || [] })
+    return createSecureResponse({ comments: comments || [] })
   } catch (error) {
     logger.error("Error fetching comments", {
       context: "Collaboration",
     }, error as Error)
     const { statusCode, error: apiError } = handleApiError(error, "Comments")
-    return NextResponse.json(apiError, { status: statusCode })
+    return createSecureResponse(apiError, statusCode)
   }
 }
 
@@ -85,11 +105,26 @@ export async function GET(
  * Create a comment on content
  */
 export async function POST(
-  request: Request,
+  request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    // Handle preflight OPTIONS request
+    const preflightResponse = handlePreflight(request)
+    if (preflightResponse) return preflightResponse
+
     const { id } = await params
+
+    // Validate UUID
+    const uuidValidation = validateUuid(id)
+    if (!uuidValidation.isValid) {
+      const { statusCode, error } = handleApiError(
+        new ValidationError(uuidValidation.error || "Invalid content ID format"),
+        "Comments POST"
+      )
+      return createSecureResponse(error, statusCode)
+    }
+
     const supabase = await createSupabaseRouteClient()
 
     const {
@@ -97,7 +132,8 @@ export async function POST(
     } = await supabase.auth.getSession()
 
     if (!session) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
+      const { statusCode, error } = handleApiError(new AuthenticationError(), "Comments POST")
+      return createSecureResponse(error, statusCode)
     }
 
     // Check if user has access to content
@@ -108,7 +144,8 @@ export async function POST(
       .maybeSingle()
 
     if (!content) {
-      return NextResponse.json({ error: "Content not found" }, { status: 404 })
+      const { statusCode, error } = handleApiError(new NotFoundError("Content not found"), "Comments POST")
+      return createSecureResponse(error, statusCode)
     }
 
     const contentData = content as { user_id: string; project_id: string | null }
@@ -123,14 +160,41 @@ export async function POST(
           .maybeSingle()).data)
 
     if (!hasAccess) {
-      return NextResponse.json({ error: "Forbidden - You don't have access to this content" }, { status: 403 })
+      const { statusCode, error } = handleApiError(
+        new AuthorizationError("You don't have access to this content"),
+        "Comments POST"
+      )
+      return createSecureResponse(error, statusCode)
     }
 
     const body = await request.json()
     const { comment_text, parent_comment_id } = body
 
-    if (!comment_text || !comment_text.trim()) {
-      return NextResponse.json({ error: "comment_text is required" }, { status: 400 })
+    // Validate comment text
+    const commentValidation = validateText(comment_text, {
+      minLength: 1,
+      maxLength: API_CONFIG.MAX_COMMENT_LENGTH,
+      required: true,
+    })
+
+    if (!commentValidation.isValid) {
+      const { statusCode, error } = handleApiError(
+        new ValidationError(`Comment: ${commentValidation.error}`),
+        "Comments POST"
+      )
+      return createSecureResponse(error, statusCode)
+    }
+
+    // Validate parent_comment_id if provided
+    if (parent_comment_id) {
+      const parentUuidValidation = validateUuid(parent_comment_id)
+      if (!parentUuidValidation.isValid) {
+        const { statusCode, error } = handleApiError(
+          new ValidationError(parentUuidValidation.error || "Invalid parent comment ID format"),
+          "Comments POST"
+        )
+        return createSecureResponse(error, statusCode)
+      }
     }
 
     const serverSupabase = createServerSupabaseClient()
@@ -139,7 +203,7 @@ export async function POST(
       .insert({
         content_id: id,
         user_id: session.user.id,
-        comment_text: comment_text.trim(),
+        comment_text: commentValidation.sanitized!,
         parent_comment_id: parent_comment_id || null,
       } as any)
       .select(`
@@ -154,7 +218,7 @@ export async function POST(
 
     if (error) {
       const { statusCode, error: apiError } = handleApiError(error, "Comments")
-      return NextResponse.json(apiError, { status: statusCode })
+      return createSecureResponse(apiError, statusCode)
     }
 
     logger.info("Comment created", {
@@ -163,13 +227,13 @@ export async function POST(
       data: { contentId: id, commentId: comment.id },
     })
 
-    return NextResponse.json({ success: true, comment })
+    return createSecureResponse({ success: true, comment })
   } catch (error) {
     logger.error("Error creating comment", {
       context: "Collaboration",
     }, error as Error)
     const { statusCode, error: apiError } = handleApiError(error, "Comments")
-    return NextResponse.json(apiError, { status: statusCode })
+    return createSecureResponse(apiError, statusCode)
   }
 }
 

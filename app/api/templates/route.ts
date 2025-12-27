@@ -1,15 +1,23 @@
 import { NextResponse } from "next/server"
+import type { NextRequest } from "next/server"
 import { createSupabaseRouteClient } from "@/lib/supabase/route-client"
 import { createServerSupabaseClient } from "@/lib/supabase/server-client"
 import { logger } from "@/lib/utils/logger"
-import { handleApiError } from "@/lib/utils/error-handler"
+import { handleApiError, AuthenticationError, ValidationError } from "@/lib/utils/error-handler"
+import { validateText } from "@/lib/utils/validation"
+import { createSecureResponse, handlePreflight } from "@/lib/utils/security"
+import { PAGINATION, API_CONFIG } from "@/lib/constants/app.constants"
 
 /**
  * GET /api/templates
  * Fetch content templates
  */
-export async function GET(request: Request) {
+export async function GET(request: NextRequest) {
   try {
+    // Handle preflight OPTIONS request
+    const preflightResponse = handlePreflight(request)
+    if (preflightResponse) return preflightResponse
+
     const supabase = await createSupabaseRouteClient()
 
     const {
@@ -17,7 +25,8 @@ export async function GET(request: Request) {
     } = await supabase.auth.getSession()
 
     if (!session) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
+      const { statusCode, error } = handleApiError(new AuthenticationError(), "Templates GET")
+      return createSecureResponse(error, statusCode)
     }
 
     const { searchParams } = new URL(request.url)
@@ -25,8 +34,27 @@ export async function GET(request: Request) {
     const category = searchParams.get("category")
     const search = searchParams.get("search")
     const includePublic = searchParams.get("include_public") !== "false"
-    const limit = Number.parseInt(searchParams.get("limit") || "50")
-    const offset = Number.parseInt(searchParams.get("offset") || "0")
+    
+    // Validate and sanitize pagination parameters
+    const limit = Math.min(
+      PAGINATION.MAX_LIMIT,
+      Math.max(1, Number.parseInt(searchParams.get("limit") || String(PAGINATION.DEFAULT_LIMIT)))
+    )
+    const offset = Math.max(0, Number.parseInt(searchParams.get("offset") || "0"))
+
+    // Validate search query if provided
+    if (search) {
+      const searchValidation = validateText(search, {
+        maxLength: 100,
+      })
+      if (!searchValidation.isValid) {
+        const { statusCode, error } = handleApiError(
+          new ValidationError(`Search query: ${searchValidation.error}`),
+          "Templates GET"
+        )
+        return createSecureResponse(error, statusCode)
+      }
+    }
 
     // Build query
     const serverSupabase = createServerSupabaseClient()
@@ -71,7 +99,7 @@ export async function GET(request: Request) {
 
     if (error) {
       const { statusCode, error: apiError } = handleApiError(error, "Templates")
-      return NextResponse.json(apiError, { status: statusCode })
+      return createSecureResponse(apiError, statusCode)
     }
 
     logger.info("Fetched content templates", {
@@ -80,13 +108,13 @@ export async function GET(request: Request) {
       data: { count: templates?.length || 0 },
     })
 
-    return NextResponse.json({ templates: templates || [] })
+    return createSecureResponse({ templates: templates || [] })
   } catch (error) {
     logger.error("Error fetching templates", {
       context: "Templates",
     }, error as Error)
     const { statusCode, error: apiError } = handleApiError(error, "Templates")
-    return NextResponse.json(apiError, { status: statusCode })
+    return createSecureResponse(apiError, statusCode)
   }
 }
 
@@ -94,8 +122,12 @@ export async function GET(request: Request) {
  * POST /api/templates
  * Create a new content template
  */
-export async function POST(request: Request) {
+export async function POST(request: NextRequest) {
   try {
+    // Handle preflight OPTIONS request
+    const preflightResponse = handlePreflight(request)
+    if (preflightResponse) return preflightResponse
+
     const supabase = await createSupabaseRouteClient()
 
     const {
@@ -103,17 +135,51 @@ export async function POST(request: Request) {
     } = await supabase.auth.getSession()
 
     if (!session) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
+      const { statusCode, error } = handleApiError(new AuthenticationError(), "Templates POST")
+      return createSecureResponse(error, statusCode)
     }
 
     const body = await request.json()
     const { name, description, content_type, template_content, template_prompt, variables, is_public, category, tags } = body
 
-    if (!name || !content_type || !template_content) {
-      return NextResponse.json(
-        { error: "Name, content_type, and template_content are required" },
-        { status: 400 }
+    // Validate required fields
+    const nameValidation = validateText(name, {
+      minLength: 1,
+      maxLength: API_CONFIG.MAX_TITLE_LENGTH,
+      required: true,
+    })
+
+    const contentValidation = validateText(template_content, {
+      minLength: 1,
+      maxLength: API_CONFIG.MAX_CONTENT_LENGTH,
+      required: true,
+    })
+
+    if (!nameValidation.isValid || !contentValidation.isValid || !content_type) {
+      const errors = []
+      if (!nameValidation.isValid) errors.push(`Name: ${nameValidation.error}`)
+      if (!contentValidation.isValid) errors.push(`Template content: ${contentValidation.error}`)
+      if (!content_type) errors.push("Content type is required")
+
+      const { statusCode, error } = handleApiError(
+        new ValidationError(errors.join(", ")),
+        "Templates POST"
       )
+      return createSecureResponse(error, statusCode)
+    }
+
+    // Validate description if provided
+    if (description) {
+      const descValidation = validateText(description, {
+        maxLength: API_CONFIG.MAX_DESCRIPTION_LENGTH,
+      })
+      if (!descValidation.isValid) {
+        const { statusCode, error } = handleApiError(
+          new ValidationError(`Description: ${descValidation.error}`),
+          "Templates POST"
+        )
+        return createSecureResponse(error, statusCode)
+      }
     }
 
     const serverSupabase = createServerSupabaseClient()
