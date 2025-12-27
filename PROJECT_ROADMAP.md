@@ -27,7 +27,7 @@
 
 ### High Priority
 
-- [x] **Supabase Connection Issues** 
+- [x] **Supabase Connection Issues** ✅
   - **Location:** All API routes using Supabase
   - **Issue:** "TypeError: fetch failed" - Network connectivity and URL format issues
   - **Fix Applied:**
@@ -41,6 +41,15 @@
     - `app/api/blog/generate/route.ts`
     - `app/api/blog/[id]/route.ts`
     - `app/api/generate/route.ts`
+
+- [x] **Supabase Syntax Error** ✅
+  - **Location:** `lib/utils/supabase-env.ts`
+  - **Issue:** "SyntaxError: Invalid left-hand side in assignment" - Attempting to assign to read-only `process.env`
+  - **Fix Applied:**
+    - Removed assignments to `process.env.SUPABASE_URL` and `process.env.NEXT_PUBLIC_SUPABASE_URL`
+    - Function now only caches and returns sanitized URL without modifying environment variables
+  - **Files Updated:**
+    - `lib/utils/supabase-env.ts`
 
 - [x] **PayPal Subscription Success Handler** - Hardcoded to sandbox URL ✅
   - **Location:** `app/api/paypal/subscription-success/route.ts:51`
@@ -65,10 +74,15 @@
   - **File:** `app/api/paypal/subscription-success/route.ts:51`
   - **Status:** Success route now calls `getSubscription()` from `lib/paypal/client.ts`, which chooses the correct PayPal API base URL
 
-- [ ] **Subscription Webhook Handler Missing**
-  - **Status:** Not implemented
-  - **Needed:** Webhook endpoint to handle PayPal subscription events (renewals, cancellations, failures)
-  - **Location:** Should be `app/api/paypal/webhook/route.ts`
+- [x] **Subscription Webhook Handler Missing** ✅
+  - **Status:** Implemented
+  - **Fix Applied:**
+    - Created webhook endpoint at `app/api/paypal/webhook/route.ts`
+    - Handles all PayPal subscription events (ACTIVATED, CANCELLED, EXPIRED, SUSPENDED, PAYMENT.FAILED, UPDATED)
+    - Updates database subscription status based on PayPal events
+    - Includes proper error handling and logging
+  - **Files Updated:**
+    - `app/api/paypal/webhook/route.ts` (new)
 
 - [x] **Subscription Cancellation Flow**
   - **Files:** `app/api/paypal/cancel/route.ts`, `app/dashboard/subscription/page.tsx`
