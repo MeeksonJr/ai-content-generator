@@ -1,5 +1,5 @@
 import { type NextRequest, NextResponse } from "next/server"
-import { createClient } from "@/lib/supabase/server"
+import { createSupabaseRouteClient } from "@/lib/supabase/route-client"
 
 export async function POST(req: NextRequest): Promise<NextResponse> {
   try {
@@ -10,7 +10,7 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
       return NextResponse.json({ error: "Text is required" }, { status: 400 })
     }
 
-    const supabase = createClient()
+    const supabase = await createSupabaseRouteClient()
 
     const {
       data: { user },

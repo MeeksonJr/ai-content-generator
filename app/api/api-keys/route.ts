@@ -17,7 +17,7 @@ function generateApiKey(userId: string): { apiKey: string; keyPrefix: string } {
 
 export async function GET(request: Request) {
   try {
-    const supabase = createSupabaseRouteClient()
+    const supabase = await createSupabaseRouteClient()
 
     // Check if user is authenticated
     const {
@@ -49,7 +49,7 @@ export async function GET(request: Request) {
 
 export async function POST(request: Request) {
   try {
-    const supabase = createSupabaseRouteClient()
+    const supabase = await createSupabaseRouteClient()
 
     // Check if user is authenticated
     const {
@@ -148,7 +148,7 @@ export async function POST(request: Request) {
 
 export async function DELETE(request: Request) {
   try {
-    const supabase = createSupabaseRouteClient()
+    const supabase = await createSupabaseRouteClient()
 
     // Check if user is authenticated
     const {

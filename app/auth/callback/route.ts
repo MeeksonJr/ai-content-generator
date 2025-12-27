@@ -7,7 +7,7 @@ export async function GET(request: NextRequest) {
   const code = requestUrl.searchParams.get("code")
 
   if (code) {
-    const supabase = createSupabaseRouteClient()
+    const supabase = await createSupabaseRouteClient()
     await supabase.auth.exchangeCodeForSession(code)
   }
 

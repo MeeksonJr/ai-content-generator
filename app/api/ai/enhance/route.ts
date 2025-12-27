@@ -16,7 +16,7 @@ const getCurrentMonth = () => {
 
 export async function POST(request: Request) {
   try {
-    const supabase = createSupabaseRouteClient()
+    const supabase = await createSupabaseRouteClient()
 
     // Check if user is authenticated
     const sessionResult = await supabase.auth.getSession()

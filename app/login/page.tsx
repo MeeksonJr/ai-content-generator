@@ -5,10 +5,17 @@ import Link from "next/link"
 import { Sparkles } from "lucide-react"
 
 export default async function LoginPage() {
-  const supabase = await createClient()
-  const {
-    data: { session },
-  } = await supabase.auth.getSession()
+  let session = null
+  
+  try {
+    const supabase = await createClient()
+    const result = await supabase.auth.getSession()
+    session = result.data?.session ?? null
+  } catch (error) {
+    // Ignore transient cookie errors - they don't affect functionality
+    // The session check will fail gracefully and show the login form
+    console.warn("Session check failed (this is expected in server components):", error)
+  }
 
   if (session) {
     redirect("/dashboard")

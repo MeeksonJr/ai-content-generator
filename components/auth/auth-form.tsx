@@ -64,13 +64,39 @@ export function AuthForm() {
     setError(null)
 
     try {
-      const { error } = await supabase.auth.signInWithPassword({
+      const { data, error } = await supabase.auth.signInWithPassword({
         email,
         password,
       })
 
       if (error) {
         throw error
+      }
+
+      // After successful login, sync session to cookies via API
+      // This ensures the server can read the session
+      if (data.session) {
+        try {
+          // Make a request to sync the session to cookies
+          const syncResponse = await fetch("/api/auth/sync-session", {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+            },
+            credentials: "include", // Important: include cookies
+            body: JSON.stringify({
+              access_token: data.session.access_token,
+              refresh_token: data.session.refresh_token,
+            }),
+          })
+
+          if (!syncResponse.ok) {
+            console.warn("Failed to sync session to cookies, but login succeeded")
+          }
+        } catch (syncError) {
+          console.warn("Error syncing session:", syncError)
+          // Don't fail the login if sync fails
+        }
       }
 
       router.push("/dashboard")

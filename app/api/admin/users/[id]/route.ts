@@ -14,7 +14,7 @@ interface AdminUserUpdatePayload {
 
 export async function PATCH(request: Request, { params }: { params: { id: string } }) {
   try {
-    const supabase = createSupabaseRouteClient()
+    const supabase = await createSupabaseRouteClient()
 
     const sessionResult = await supabase.auth.getSession()
     const session = sessionResult.data.session
