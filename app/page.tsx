@@ -16,6 +16,9 @@ import {
   Users,
   Laptop,
   Globe,
+  TrendingUp,
+  Clock,
+  Award,
 } from "lucide-react"
 import { motion, useScroll, useTransform } from "framer-motion"
 import { NewsletterForm } from "@/components/newsletter/newsletter-form"
@@ -64,10 +67,10 @@ export default function Home() {
   }
 
   const stats = [
-    { value: "10M+", label: "Words Generated" },
-    { value: "5K+", label: "Active Users" },
-    { value: "98%", label: "Satisfaction Rate" },
-    { value: "24/7", label: "Support" },
+    { value: "10M+", label: "Words Generated", icon: <FileText className="h-4 w-4 sm:h-5 sm:w-5" />, color: "from-green-500 to-emerald-500" },
+    { value: "5K+", label: "Active Users", icon: <Users className="h-4 w-4 sm:h-5 sm:w-5" />, color: "from-blue-500 to-cyan-500" },
+    { value: "98%", label: "Satisfaction Rate", icon: <Star className="h-4 w-4 sm:h-5 sm:w-5" />, color: "from-yellow-500 to-orange-500" },
+    { value: "24/7", label: "Support", icon: <Shield className="h-4 w-4 sm:h-5 sm:w-5" />, color: "from-purple-500 to-pink-500" },
   ]
 
   const features = [
@@ -377,11 +380,17 @@ export default function Home() {
                     {stats.map((stat, i) => (
                       <motion.div
                         key={i}
-                        className="flex flex-col items-center p-3 sm:p-4 rounded-lg bg-gray-900/50 border border-gray-800"
+                        className="group flex flex-col items-center p-4 sm:p-5 rounded-xl bg-gradient-to-br from-gray-900/80 to-gray-950/80 border border-gray-800 hover:border-primary/50 transition-all duration-300 hover:shadow-lg hover:shadow-primary/10"
                         variants={fadeIn}
+                        whileHover={{ y: -4, scale: 1.02 }}
                       >
-                        <span className="text-xl sm:text-2xl md:text-3xl font-bold text-primary">{stat.value}</span>
-                        <span className="text-xs sm:text-sm text-muted-foreground text-center">{stat.label}</span>
+                        <div className={`mb-2 sm:mb-3 p-2 sm:p-2.5 rounded-lg bg-gradient-to-br ${stat.color} opacity-90 group-hover:opacity-100 transition-opacity`}>
+                          <div className="text-white">
+                            {stat.icon}
+                          </div>
+                        </div>
+                        <span className="text-xl sm:text-2xl md:text-3xl font-bold text-primary mb-1">{stat.value}</span>
+                        <span className="text-xs sm:text-sm text-muted-foreground text-center leading-tight">{stat.label}</span>
                       </motion.div>
                     ))}
                   </motion.div>
@@ -392,32 +401,66 @@ export default function Home() {
                   animate="visible"
                   variants={scaleUp}
                 >
-                  <div className="relative w-full h-[250px] sm:h-[300px] md:h-[350px] lg:h-[420px] overflow-hidden rounded-lg border border-gray-800 bg-gradient-to-br from-gray-950 to-gray-900 p-3 sm:p-4">
-                    <div className="absolute top-4 left-4 right-4 flex items-center justify-between">
-                      <div className="flex items-center gap-2">
-                        <div className="h-3 w-3 rounded-full bg-red-500" />
-                        <div className="h-3 w-3 rounded-full bg-yellow-500" />
-                        <div className="h-3 w-3 rounded-full bg-green-500" />
+                  <div className="relative w-full h-[250px] sm:h-[300px] md:h-[350px] lg:h-[420px] overflow-hidden rounded-xl border border-gray-800 bg-gradient-to-br from-gray-950 via-gray-900 to-gray-950 p-3 sm:p-4 shadow-2xl">
+                    {/* Browser window chrome */}
+                    <div className="absolute top-3 sm:top-4 left-3 sm:left-4 right-3 sm:right-4 flex items-center justify-between z-10">
+                      <div className="flex items-center gap-1.5 sm:gap-2">
+                        <div className="h-2.5 w-2.5 sm:h-3 sm:w-3 rounded-full bg-red-500/80" />
+                        <div className="h-2.5 w-2.5 sm:h-3 sm:w-3 rounded-full bg-yellow-500/80" />
+                        <div className="h-2.5 w-2.5 sm:h-3 sm:w-3 rounded-full bg-green-500/80" />
                       </div>
-                      <div className="text-xs text-gray-400">AI Content Generator</div>
+                      <div className="text-xs sm:text-sm text-gray-400 font-mono">ai-content-generator.com</div>
                     </div>
+                    
+                    {/* Animated content preview */}
                     <motion.div
-                      className="mt-8 space-y-4 p-2"
+                      className="mt-10 sm:mt-12 space-y-3 sm:space-y-4 p-3 sm:p-4"
                       initial="hidden"
                       animate="visible"
                       variants={staggerContainer}
                     >
-                      {[...Array(9)].map((_, i) => (
+                      {/* Simulated content generation */}
+                      <motion.div
+                        className="flex items-center gap-2 mb-4"
+                        variants={fadeIn}
+                      >
+                        <Sparkles className="h-4 w-4 sm:h-5 sm:w-5 text-primary animate-pulse" />
+                        <span className="text-xs sm:text-sm text-gray-400 font-medium">Generating content...</span>
+                      </motion.div>
+                      
+                      {[...Array(8)].map((_, i) => (
                         <motion.div
                           key={i}
-                          className={`h-4 ${
+                          className={`h-3 sm:h-4 ${
                             i % 2 === 0 ? "w-full" : i % 3 === 0 ? "w-3/4" : "w-5/6"
-                          } rounded bg-gray-800 ${i < 3 ? "animate-pulse" : ""}`}
+                          } rounded bg-gradient-to-r from-gray-800 via-gray-700 to-gray-800 ${i < 2 ? "animate-pulse" : ""}`}
                           variants={fadeIn}
-                          transition={{ duration: 0.3 }}
+                          transition={{ duration: 0.3, delay: i * 0.1 }}
                         />
                       ))}
+                      
+                      {/* Progress indicator */}
+                      <motion.div
+                        className="mt-4 flex items-center gap-2"
+                        variants={fadeIn}
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: 1 }}
+                        transition={{ delay: 1 }}
+                      >
+                        <div className="flex-1 h-1.5 sm:h-2 bg-gray-800 rounded-full overflow-hidden">
+                          <motion.div
+                            className="h-full bg-gradient-to-r from-primary to-indigo-500 rounded-full"
+                            initial={{ width: "0%" }}
+                            animate={{ width: "75%" }}
+                            transition={{ duration: 2, repeat: Infinity, repeatType: "reverse" }}
+                          />
+                        </div>
+                        <span className="text-xs text-gray-500">75%</span>
+                      </motion.div>
                     </motion.div>
+                    
+                    {/* Decorative glow */}
+                    <div className="absolute bottom-0 left-0 right-0 h-20 bg-gradient-to-t from-primary/10 to-transparent"></div>
                   </div>
                 </motion.div>
               </div>
@@ -426,8 +469,14 @@ export default function Home() {
           </motion.section>
         )}
 
-        <section className="relative py-12 sm:py-16 md:py-24 bg-gradient-to-b from-black to-gray-950">
-          <div className="container px-4 sm:px-6">
+        <section className="relative py-12 sm:py-16 md:py-24 bg-gradient-to-b from-black via-gray-950 to-black">
+          {/* Decorative elements */}
+          <div className="absolute inset-0 opacity-5">
+            <div className="absolute top-1/4 left-0 w-64 h-64 bg-primary rounded-full blur-3xl"></div>
+            <div className="absolute bottom-1/4 right-0 w-64 h-64 bg-indigo-500 rounded-full blur-3xl"></div>
+          </div>
+          
+          <div className="container relative z-10 px-4 sm:px-6">
             <motion.div
               className="max-w-3xl mx-auto text-center mb-8 sm:mb-12"
               initial={{ opacity: 0, y: 20 }}
@@ -435,9 +484,16 @@ export default function Home() {
               viewport={{ once: true }}
               transition={{ duration: 0.5 }}
             >
-              <h2 className="text-2xl sm:text-3xl md:text-4xl font-bold mb-3 sm:mb-4">How It Works</h2>
-              <p className="text-muted-foreground text-sm sm:text-base">
-                Our AI-powered platform simplifies content creation with an intuitive three-step process
+              <div className="inline-flex items-center gap-2 px-3 py-1.5 bg-primary/10 border border-primary/20 rounded-full text-xs sm:text-sm font-medium text-primary mb-4">
+                <Zap className="h-3 w-3 sm:h-4 sm:w-4" />
+                Simple Process
+              </div>
+              <h2 className="text-2xl sm:text-3xl md:text-4xl lg:text-5xl font-bold mb-3 sm:mb-4">
+                How It Works
+              </h2>
+              <p className="text-muted-foreground text-sm sm:text-base md:text-lg leading-relaxed max-w-2xl mx-auto">
+                Our AI-powered platform simplifies content creation with an intuitive three-step process. 
+                From idea to published content in minutes, not hours.
               </p>
             </motion.div>
 
@@ -466,20 +522,30 @@ export default function Home() {
               ].map((item, i) => (
                 <motion.div
                   key={i}
-                  className="flex flex-col items-center text-center p-4 sm:p-6 rounded-lg bg-gray-900/50 border border-gray-800"
+                  className="group flex flex-col items-center text-center p-5 sm:p-6 md:p-8 rounded-xl bg-gradient-to-br from-gray-900/80 to-gray-950/80 border border-gray-800 hover:border-primary/50 transition-all duration-300 hover:shadow-xl hover:shadow-primary/10 relative overflow-hidden"
                   initial={{ opacity: 0, y: 20 }}
                   whileInView={{ opacity: 1, y: 0 }}
                   viewport={{ once: true }}
                   transition={{ delay: i * 0.1, duration: 0.5 }}
+                  whileHover={{ y: -8 }}
                 >
-                  <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-full bg-primary/20 flex items-center justify-center mb-3 sm:mb-4">
-                    {item.icon}
+                  {/* Decorative background */}
+                  <div className="absolute inset-0 bg-gradient-to-br from-primary/5 to-indigo-500/5 opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
+                  
+                  <div className="relative z-10 w-full">
+                    <div className="w-12 h-12 sm:w-14 sm:h-14 md:w-16 md:h-16 rounded-full bg-gradient-to-br from-primary/20 to-indigo-500/20 flex items-center justify-center mb-4 sm:mb-5 group-hover:scale-110 transition-transform duration-300 border border-primary/30">
+                      {item.icon}
+                    </div>
+                    <div className="bg-gradient-to-br from-primary to-indigo-600 text-white font-bold rounded-full w-8 h-8 sm:w-9 sm:h-9 md:w-10 md:h-10 flex items-center justify-center mb-4 sm:mb-5 text-sm sm:text-base md:text-lg shadow-lg shadow-primary/30 group-hover:shadow-xl group-hover:shadow-primary/50 transition-all">
+                      {item.step}
+                    </div>
+                    <h3 className="text-lg sm:text-xl md:text-2xl font-bold mb-2 sm:mb-3 group-hover:text-primary transition-colors">
+                      {item.title}
+                    </h3>
+                    <p className="text-muted-foreground text-sm sm:text-base leading-relaxed max-w-sm">
+                      {item.description}
+                    </p>
                   </div>
-                  <div className="bg-primary/20 text-primary font-bold rounded-full w-7 h-7 sm:w-8 sm:h-8 flex items-center justify-center mb-3 sm:mb-4 text-sm sm:text-base">
-                    {item.step}
-                  </div>
-                  <h3 className="text-lg sm:text-xl font-bold mb-2">{item.title}</h3>
-                  <p className="text-muted-foreground text-sm sm:text-base">{item.description}</p>
                 </motion.div>
               ))}
             </div>
@@ -516,16 +582,27 @@ export default function Home() {
               {features.map((feature, index) => (
                 <motion.div
                   key={index}
-                  className="flex flex-col items-center space-y-2 sm:space-y-3 rounded-lg border border-gray-800 p-4 sm:p-6 bg-black/50 hover:bg-black/80 transition-colors"
+                  className="group flex flex-col items-center space-y-3 sm:space-y-4 rounded-xl border border-gray-800 p-5 sm:p-6 md:p-8 bg-gradient-to-br from-black/50 to-gray-950/50 hover:from-black/80 hover:to-gray-900/80 transition-all duration-300 hover:border-primary/50 hover:shadow-xl hover:shadow-primary/10 relative overflow-hidden"
                   variants={featureVariants}
-                  whileHover={{ y: -5 }}
+                  whileHover={{ y: -8, scale: 1.02 }}
                   transition={{ type: "spring", stiffness: 300, damping: 10 }}
                 >
-                  <div className="flex h-10 w-10 sm:h-12 sm:w-12 items-center justify-center rounded-full border border-gray-800 bg-gray-950">
-                    {feature.icon}
+                  {/* Decorative glow on hover */}
+                  <div className="absolute inset-0 bg-gradient-to-br from-primary/5 to-indigo-500/5 opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
+                  
+                  <div className="relative z-10 flex flex-col items-center w-full">
+                    <div className="flex h-12 w-12 sm:h-14 sm:w-14 md:h-16 md:w-16 items-center justify-center rounded-xl border border-gray-800 bg-gradient-to-br from-gray-950 to-black group-hover:border-primary/50 group-hover:bg-gradient-to-br group-hover:from-primary/10 group-hover:to-indigo-500/10 transition-all duration-300 mb-3 sm:mb-4 shadow-lg group-hover:shadow-primary/20">
+                      <div className="text-primary group-hover:scale-110 transition-transform duration-300">
+                        {feature.icon}
+                      </div>
+                    </div>
+                    <h3 className="text-lg sm:text-xl md:text-2xl font-bold text-center mb-2 group-hover:text-primary transition-colors">
+                      {feature.title}
+                    </h3>
+                    <p className="text-xs sm:text-sm md:text-base text-muted-foreground text-center leading-relaxed max-w-xs">
+                      {feature.description}
+                    </p>
                   </div>
-                  <h3 className="text-lg sm:text-xl font-bold text-center">{feature.title}</h3>
-                  <p className="text-xs sm:text-sm text-muted-foreground text-center">{feature.description}</p>
                 </motion.div>
               ))}
             </motion.div>
@@ -740,127 +817,224 @@ export default function Home() {
         </section>
 
         <motion.section
-          className="w-full py-12 sm:py-16 md:py-24 lg:py-32 bg-black"
+          className="w-full py-16 sm:py-20 md:py-24 lg:py-32 bg-gradient-to-b from-black via-gray-950 to-black relative overflow-hidden"
           initial={{ opacity: 0 }}
           whileInView={{ opacity: 1 }}
           viewport={{ once: true }}
           transition={{ duration: 0.5 }}
         >
-          <div className="container px-4 sm:px-6">
-            <div className="flex flex-col items-center justify-center space-y-4 sm:space-y-6 text-center">
-              <div className="space-y-2 sm:space-y-3">
-                <h2 className="text-2xl sm:text-3xl md:text-4xl lg:text-5xl font-bold tracking-tighter">Ready to Get Started?</h2>
-                <p className="max-w-[900px] text-muted-foreground text-sm sm:text-base md:text-lg lg:text-xl px-4">
-                  Join thousands of businesses already using our AI-powered content generation platform.
-                </p>
-              </div>
+          {/* Decorative background */}
+          <div className="absolute inset-0 opacity-10">
+            <div className="absolute top-0 left-1/4 w-96 h-96 bg-primary rounded-full blur-3xl"></div>
+            <div className="absolute bottom-0 right-1/4 w-96 h-96 bg-indigo-500 rounded-full blur-3xl"></div>
+          </div>
+          
+          <div className="container relative z-10 px-4 sm:px-6">
+            <div className="flex flex-col items-center justify-center space-y-6 sm:space-y-8 text-center">
               <motion.div
-                className="flex flex-col gap-3 sm:gap-2 w-full sm:w-auto min-[400px]:flex-row"
-                whileHover={{ scale: 1.05 }}
-                transition={{ type: "spring", stiffness: 400, damping: 10 }}
+                className="space-y-3 sm:space-y-4"
+                initial={{ opacity: 0, y: 20 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                viewport={{ once: true }}
+                transition={{ duration: 0.5 }}
+              >
+                <div className="inline-flex items-center gap-2 px-4 py-2 bg-primary/10 border border-primary/20 rounded-full text-xs sm:text-sm font-medium text-primary mb-4">
+                  <Sparkles className="h-3 w-3 sm:h-4 sm:w-4" />
+                  Join Thousands of Users
+                </div>
+                <h2 className="text-2xl sm:text-3xl md:text-4xl lg:text-5xl xl:text-6xl font-bold tracking-tighter bg-clip-text text-transparent bg-gradient-to-r from-primary via-indigo-400 to-primary">
+                  Ready to Get Started?
+                </h2>
+                <p className="max-w-2xl mx-auto text-muted-foreground text-sm sm:text-base md:text-lg lg:text-xl px-4 leading-relaxed">
+                  Join thousands of businesses already using our AI-powered content generation platform. 
+                  Start creating high-quality content in seconds.
+                </p>
+              </motion.div>
+              
+              <motion.div
+                className="flex flex-col gap-3 sm:gap-4 w-full sm:w-auto min-[400px]:flex-row"
+                initial={{ opacity: 0, y: 20 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                viewport={{ once: true }}
+                transition={{ duration: 0.5, delay: 0.2 }}
               >
                 <Link href="/login" className="w-full min-[400px]:w-auto">
                   <Button
                     size="lg"
-                    className="w-full min-[400px]:w-auto gap-1 bg-gradient-to-r from-primary to-indigo-600 hover:from-primary/90 hover:to-indigo-600/90 border-0 h-11 sm:h-12 text-base"
+                    className="w-full min-[400px]:w-auto gap-2 bg-gradient-to-r from-primary to-indigo-600 hover:from-primary/90 hover:to-indigo-600/90 border-0 h-12 sm:h-14 text-base sm:text-lg font-semibold shadow-lg hover:shadow-xl hover:shadow-primary/30 transition-all px-6 sm:px-8"
                   >
                     Sign Up Now
-                    <ArrowRight className="h-4 w-4" />
+                    <ArrowRight className="h-4 w-4 sm:h-5 sm:w-5" />
                   </Button>
                 </Link>
                 <Link href="/login" className="w-full min-[400px]:w-auto">
-                  <Button size="lg" variant="outline" className="w-full min-[400px]:w-auto border-gray-800 h-11 sm:h-12 text-base">
+                  <Button 
+                    size="lg" 
+                    variant="outline" 
+                    className="w-full min-[400px]:w-auto border-gray-800 hover:border-primary/50 h-12 sm:h-14 text-base sm:text-lg font-semibold px-6 sm:px-8"
+                  >
                     Login
                   </Button>
                 </Link>
+              </motion.div>
+              
+              {/* Trust indicators */}
+              <motion.div
+                className="flex flex-wrap items-center justify-center gap-6 sm:gap-8 pt-4 sm:pt-6"
+                initial={{ opacity: 0 }}
+                whileInView={{ opacity: 1 }}
+                viewport={{ once: true }}
+                transition={{ duration: 0.5, delay: 0.4 }}
+              >
+                <div className="flex items-center gap-2 text-xs sm:text-sm text-muted-foreground">
+                  <CheckCircle2 className="h-4 w-4 text-green-500" />
+                  <span>No credit card required</span>
+                </div>
+                <div className="flex items-center gap-2 text-xs sm:text-sm text-muted-foreground">
+                  <CheckCircle2 className="h-4 w-4 text-green-500" />
+                  <span>Free trial available</span>
+                </div>
+                <div className="flex items-center gap-2 text-xs sm:text-sm text-muted-foreground">
+                  <CheckCircle2 className="h-4 w-4 text-green-500" />
+                  <span>Cancel anytime</span>
+                </div>
               </motion.div>
             </div>
           </div>
         </motion.section>
       </main>
-      <footer className="w-full py-6 sm:py-8 bg-gray-950 border-t border-gray-800">
-        <div className="container px-4 sm:px-6">
-          <div className="grid gap-6 sm:gap-8 grid-cols-1 sm:grid-cols-2 lg:grid-cols-5">
-            <div className="space-y-4">
-              <Link href="/" className="flex items-center space-x-2">
-                <Sparkles className="h-6 w-6 text-primary" />
-                <span className="font-bold">AI Content Generator</span>
+      <footer className="w-full py-8 sm:py-12 bg-gray-950 border-t border-gray-800 relative overflow-hidden">
+        {/* Decorative background */}
+        <div className="absolute inset-0 opacity-5">
+          <div className="absolute bottom-0 left-0 w-96 h-96 bg-primary rounded-full blur-3xl"></div>
+        </div>
+        
+        <div className="container relative z-10 px-4 sm:px-6">
+          <div className="grid gap-8 sm:gap-10 grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 mb-8 sm:mb-10">
+            <div className="space-y-4 sm:space-y-5">
+              <Link href="/" className="flex items-center space-x-2 group">
+                <Sparkles className="h-5 w-5 sm:h-6 sm:w-6 text-primary group-hover:scale-110 transition-transform" />
+                <span className="font-bold text-sm sm:text-base">AI Content Generator</span>
               </Link>
-              <p className="text-sm text-muted-foreground">
+              <p className="text-xs sm:text-sm text-muted-foreground leading-relaxed max-w-xs">
                 AI-powered content generation for modern businesses. Create high-quality, SEO-optimized content in
                 seconds.
               </p>
+              <div className="flex items-center gap-3 pt-2">
+                <a href="https://twitter.com" target="_blank" rel="noopener noreferrer" className="text-muted-foreground hover:text-primary transition-colors">
+                  <span className="sr-only">Twitter</span>
+                  <svg className="h-5 w-5" fill="currentColor" viewBox="0 0 24 24">
+                    <path d="M8.29 20.251c7.547 0 11.675-6.253 11.675-11.675 0-.178 0-.355-.012-.53A8.348 8.348 0 0022 5.92a8.19 8.19 0 01-2.357.646 4.118 4.118 0 001.804-2.27 8.224 8.224 0 01-2.605.996 4.107 4.107 0 00-6.993 3.743 11.65 11.65 0 01-8.457-4.287 4.106 4.106 0 001.27 5.477A4.072 4.072 0 012.8 9.713v.052a4.105 4.105 0 003.292 4.022 4.095 4.095 0 01-1.853.07 4.108 4.108 0 003.834 2.85A8.233 8.233 0 012 18.407a11.616 11.616 0 006.29 1.84" />
+                  </svg>
+                </a>
+                <a href="https://linkedin.com" target="_blank" rel="noopener noreferrer" className="text-muted-foreground hover:text-primary transition-colors">
+                  <span className="sr-only">LinkedIn</span>
+                  <svg className="h-5 w-5" fill="currentColor" viewBox="0 0 24 24">
+                    <path d="M19 0h-14c-2.761 0-5 2.239-5 5v14c0 2.761 2.239 5 5 5h14c2.762 0 5-2.239 5-5v-14c0-2.761-2.238-5-5-5zm-11 19h-3v-11h3v11zm-1.5-12.268c-.966 0-1.75-.79-1.75-1.764s.784-1.764 1.75-1.764 1.75.79 1.75 1.764-.783 1.764-1.75 1.764zm13.5 12.268h-3v-5.604c0-3.368-4-3.113-4 0v5.604h-3v-11h3v1.765c1.396-2.586 7-2.777 7 2.476v6.759z" />
+                  </svg>
+                </a>
+                <a href="https://github.com" target="_blank" rel="noopener noreferrer" className="text-muted-foreground hover:text-primary transition-colors">
+                  <span className="sr-only">GitHub</span>
+                  <svg className="h-5 w-5" fill="currentColor" viewBox="0 0 24 24">
+                    <path fillRule="evenodd" d="M12 2C6.477 2 2 6.484 2 12.017c0 4.425 2.865 8.18 6.839 9.504.5.092.682-.217.682-.483 0-.237-.008-.868-.013-1.703-2.782.605-3.369-1.343-3.369-1.343-.454-1.158-1.11-1.466-1.11-1.466-.908-.62.069-.608.069-.608 1.003.07 1.531 1.032 1.531 1.032.892 1.53 2.341 1.088 2.91.832.092-.647.35-1.088.636-1.338-2.22-.253-4.555-1.113-4.555-4.951 0-1.093.39-1.988 1.029-2.688-.103-.253-.446-1.272.098-2.65 0 0 .84-.27 2.75 1.026A9.564 9.564 0 0112 6.844c.85.004 1.705.115 2.504.337 1.909-1.296 2.747-1.027 2.747-1.027.546 1.379.202 2.398.1 2.651.64.7 1.028 1.595 1.028 2.688 0 3.848-2.339 4.695-4.566 4.943.359.309.678.92.678 1.855 0 1.338-.012 2.419-.012 2.747 0 .268.18.58.688.482A10.019 10.019 0 0022 12.017C22 6.484 17.522 2 12 2z" clipRule="evenodd" />
+                  </svg>
+                </a>
+              </div>
             </div>
-            <div className="space-y-4">
-              <h3 className="font-medium">Product</h3>
-              <ul className="space-y-2 text-sm">
+            <div className="space-y-3 sm:space-y-4">
+              <h3 className="font-semibold text-sm sm:text-base">Product</h3>
+              <ul className="space-y-2.5 text-xs sm:text-sm">
                 <li>
-                  <Link href="#features" className="text-muted-foreground hover:text-foreground">
-                    Features
+                  <Link href="#features" className="text-muted-foreground hover:text-primary transition-colors inline-flex items-center gap-1.5 group">
+                    <span>Features</span>
+                    <ArrowRight className="h-3 w-3 opacity-0 group-hover:opacity-100 group-hover:translate-x-0.5 transition-all" />
                   </Link>
                 </li>
                 <li>
-                  <Link href="#pricing" className="text-muted-foreground hover:text-foreground">
-                    Pricing
+                  <Link href="#pricing" className="text-muted-foreground hover:text-primary transition-colors inline-flex items-center gap-1.5 group">
+                    <span>Pricing</span>
+                    <ArrowRight className="h-3 w-3 opacity-0 group-hover:opacity-100 group-hover:translate-x-0.5 transition-all" />
                   </Link>
                 </li>
                 <li>
-                  <Link href="#testimonials" className="text-muted-foreground hover:text-foreground">
-                    Testimonials
+                  <Link href="#testimonials" className="text-muted-foreground hover:text-primary transition-colors inline-flex items-center gap-1.5 group">
+                    <span>Testimonials</span>
+                    <ArrowRight className="h-3 w-3 opacity-0 group-hover:opacity-100 group-hover:translate-x-0.5 transition-all" />
+                  </Link>
+                </li>
+                <li>
+                  <Link href="/blog" className="text-muted-foreground hover:text-primary transition-colors inline-flex items-center gap-1.5 group">
+                    <span>Blog</span>
+                    <ArrowRight className="h-3 w-3 opacity-0 group-hover:opacity-100 group-hover:translate-x-0.5 transition-all" />
                   </Link>
                 </li>
               </ul>
             </div>
-            <div className="space-y-4">
-              <h3 className="font-medium">Company</h3>
-              <ul className="space-y-2 text-sm">
+            <div className="space-y-3 sm:space-y-4">
+              <h3 className="font-semibold text-sm sm:text-base">Company</h3>
+              <ul className="space-y-2.5 text-xs sm:text-sm">
                 <li>
-                  <Link href="/about" className="text-muted-foreground hover:text-foreground">
-                    About
+                  <Link href="/about" className="text-muted-foreground hover:text-primary transition-colors inline-flex items-center gap-1.5 group">
+                    <span>About</span>
+                    <ArrowRight className="h-3 w-3 opacity-0 group-hover:opacity-100 group-hover:translate-x-0.5 transition-all" />
                   </Link>
                 </li>
                 <li>
-                  <Link href="/blog" className="text-muted-foreground hover:text-foreground">
-                    Blog
+                  <Link href="/careers" className="text-muted-foreground hover:text-primary transition-colors inline-flex items-center gap-1.5 group">
+                    <span>Careers</span>
+                    <ArrowRight className="h-3 w-3 opacity-0 group-hover:opacity-100 group-hover:translate-x-0.5 transition-all" />
                   </Link>
                 </li>
                 <li>
-                  <Link href="/careers" className="text-muted-foreground hover:text-foreground">
-                    Careers
+                  <Link href="/blog" className="text-muted-foreground hover:text-primary transition-colors inline-flex items-center gap-1.5 group">
+                    <span>Resources</span>
+                    <ArrowRight className="h-3 w-3 opacity-0 group-hover:opacity-100 group-hover:translate-x-0.5 transition-all" />
                   </Link>
                 </li>
               </ul>
             </div>
-            <div className="space-y-4">
-              <h3 className="font-medium">Newsletter</h3>
-              <p className="text-sm text-muted-foreground mb-2">
-                Get the latest updates and exclusive content delivered to your inbox.
+            <div className="space-y-3 sm:space-y-4">
+              <h3 className="font-semibold text-sm sm:text-base">Stay Updated</h3>
+              <p className="text-xs sm:text-sm text-muted-foreground mb-3 leading-relaxed">
+                Get the latest updates, tips, and exclusive content delivered to your inbox.
               </p>
               <NewsletterForm />
             </div>
-            <div className="space-y-4">
-              <h3 className="font-medium">Legal</h3>
-              <ul className="space-y-2 text-sm">
+            <div className="space-y-3 sm:space-y-4">
+              <h3 className="font-semibold text-sm sm:text-base">Legal</h3>
+              <ul className="space-y-2.5 text-xs sm:text-sm">
                 <li>
-                  <Link href="/privacy" className="text-muted-foreground hover:text-foreground">
-                    Privacy Policy
+                  <Link href="/privacy" className="text-muted-foreground hover:text-primary transition-colors inline-flex items-center gap-1.5 group">
+                    <span>Privacy Policy</span>
+                    <ArrowRight className="h-3 w-3 opacity-0 group-hover:opacity-100 group-hover:translate-x-0.5 transition-all" />
                   </Link>
                 </li>
                 <li>
-                  <Link href="/terms" className="text-muted-foreground hover:text-foreground">
-                    Terms of Service
+                  <Link href="/terms" className="text-muted-foreground hover:text-primary transition-colors inline-flex items-center gap-1.5 group">
+                    <span>Terms of Service</span>
+                    <ArrowRight className="h-3 w-3 opacity-0 group-hover:opacity-100 group-hover:translate-x-0.5 transition-all" />
                   </Link>
                 </li>
                 <li>
-                  <Link href="/cookies" className="text-muted-foreground hover:text-foreground">
-                    Cookie Policy
+                  <Link href="/cookies" className="text-muted-foreground hover:text-primary transition-colors inline-flex items-center gap-1.5 group">
+                    <span>Cookie Policy</span>
+                    <ArrowRight className="h-3 w-3 opacity-0 group-hover:opacity-100 group-hover:translate-x-0.5 transition-all" />
                   </Link>
                 </li>
               </ul>
             </div>
           </div>
-          <div className="mt-8 border-t border-gray-800 pt-6 text-center text-sm text-muted-foreground">
-            © {new Date().getFullYear()} AI Content Generator. All rights reserved.
+          <div className="mt-8 sm:mt-10 border-t border-gray-800 pt-6 sm:pt-8">
+            <div className="flex flex-col sm:flex-row items-center justify-between gap-4 text-xs sm:text-sm text-muted-foreground">
+              <p>
+                © {new Date().getFullYear()} AI Content Generator. All rights reserved.
+              </p>
+              <div className="flex items-center gap-4">
+                <span className="text-xs">Made with</span>
+                <Sparkles className="h-3 w-3 text-primary animate-pulse" />
+                <span className="text-xs">for content creators</span>
+              </div>
+            </div>
           </div>
         </div>
       </footer>
