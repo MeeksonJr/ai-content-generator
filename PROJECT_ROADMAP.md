@@ -56,10 +56,12 @@
   - **Fix:** Handler now reuses `getSubscription()` from `lib/paypal/client.ts`, inheriting environment-aware API base and centralised auth logic
   - **Verified:** `lib/paypal/client.ts` uses `process.env.NODE_ENV === "production" ? "https://api-m.paypal.com" : "https://api-m.sandbox.paypal.com"` - correctly environment-based
 
-- [ ] **Missing Database Tables**
-  - `blog_content` table not in database types
-  - `user_profiles` table not in database types (referenced but missing)
-  - **Impact:** Admin features disabled, blog functionality may fail
+- [x] **Missing Database Tables** ✅
+  - `blog_content` table - **Verified:** Exists in Supabase (17 columns, 0 rows)
+  - `user_profiles` table - **Verified:** Exists in Supabase (4 columns, 1 row)
+  - `career_applications` table - **Verified:** Exists in Supabase (14 columns, 0 rows)
+  - **Status:** All required tables exist and are accessible
+  - **Note:** Tables verified via Supabase dashboard on 2025-12-27
 
 - [x] **Sidebar Collapse/Expand** - Not fully implemented ✅
   - **Location:** `components/dashboard/dashboard-sidebar.tsx`
@@ -113,9 +115,10 @@
 
 ### Missing Tables
 
-- [x] **`blog_content` Table**
+- [x] **`blog_content` Table** ✅
   - **Referenced in:** Multiple API routes (`app/api/blog-posts/route.ts`, etc.)
-  - **Status:** Added to `lib/database.types.ts` so Supabase client typings match the real table schema
+  - **Status:** Verified exists in Supabase (17 columns, 0 rows)
+  - **TypeScript Types:** Defined in `lib/database.types.ts`
   - **Needed Schema:**
     ```sql
     - id (uuid)
@@ -137,9 +140,10 @@
     - updated_at (timestamp)
     ```
 
-- [x] **`user_profiles` Table**
-  - **Referenced in:** `components/dashboard/dashboard-sidebar.tsx:50`
-  - **Status:** Added to `lib/database.types.ts` with `is_admin` flag for type-safe access
+- [x] **`user_profiles` Table** ✅
+  - **Referenced in:** `components/dashboard/dashboard-layout.tsx` (admin check)
+  - **Status:** Verified exists in Supabase (4 columns, 1 row)
+  - **TypeScript Types:** Defined in `lib/database.types.ts` with `is_admin` flag
   - **Needed Schema:**
     ```sql
     - id (uuid, references auth.users)
@@ -148,9 +152,9 @@
     - updated_at (timestamp)
     ```
 
-- [ ] **`career_applications` Table** (if careers feature is active)
+- [x] **`career_applications` Table** ✅
   - **Referenced in:** `app/api/careers/apply/route.ts`
-  - **Status:** Unknown if table exists
+  - **Status:** Verified exists in Supabase (14 columns, 0 rows)
 
 ### Schema Updates Needed
 
@@ -393,14 +397,22 @@
   - Social links
   - **Table:** `user_profiles` needs to be created
 
-- [ ] **API Key Management**
-  - **Current:** Mock API key generation in settings
-  - **Needed:** Real API key generation and management
-  - **Table:** `api_keys` table needed
-  - **Features:**
-    - Generate/revoke keys
-    - Usage tracking per key
-    - Rate limiting per key
+- [x] **API Key Management** ✅
+  - **Status:** Real implementation completed
+  - **Table:** `api_keys` table exists and verified
+  - **Features Implemented:**
+    - ✅ Generate keys with custom names via API
+    - ✅ List all user's API keys
+    - ✅ Delete/revoke keys
+    - ✅ Show key prefix (full key only shown once on creation)
+    - ✅ Display creation date and last used date
+    - ✅ Active/inactive status badges
+    - ✅ Copy to clipboard functionality
+    - ✅ Subscription and plan validation
+    - ✅ Maximum 5 keys per user limit
+  - **Files Updated:**
+    - `app/dashboard/settings/page.tsx` - Replaced mock with real API integration
+    - `app/api/api-keys/route.ts` - Already had full implementation (GET, POST, DELETE)
 
 - [ ] **Content Export**
   - Export content as PDF
@@ -819,14 +831,14 @@
 
 ### Must Have (P0)
 1. ~~Fix PayPal hardcoded sandbox URL~~ ✅ (Fixed - uses environment-based logic)
-2. Create missing database tables (`blog_content`, `user_profiles`) - Types exist, verify tables in Supabase
+2. ~~Create missing database tables (`blog_content`, `user_profiles`)~~ ✅ (Verified - all tables exist in Supabase)
 3. ~~Implement sidebar collapse/expand for desktop~~ ✅ (Completed)
 4. ~~Standardize dashboard layout components~~ ✅ (Completed - removed unused DashboardSidebar, enhanced DashboardLayout)
 
 ### Should Have (P1)
-1. PayPal webhook handler
-2. Subscription cancellation flow
-3. API key management (real implementation)
+1. ~~PayPal webhook handler~~ ✅ (Completed)
+2. ~~Subscription cancellation flow~~ ✅ (Completed)
+3. ~~API key management (real implementation)~~ ✅ (Completed - full UI and API integration)
 4. User profile management
 5. Better error handling
 

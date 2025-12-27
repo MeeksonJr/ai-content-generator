@@ -9,15 +9,43 @@ import { Label } from "@/components/ui/label"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Switch } from "@/components/ui/switch"
 import { Separator } from "@/components/ui/separator"
-import { Loader2, Save } from "lucide-react"
+import { Loader2, Save, Plus, Trash2, Copy, Check } from "lucide-react"
 import { useToast } from "@/components/ui/use-toast"
 import { createClient } from "@/lib/supabase/client"
 import { useEffect } from "react"
+import { Badge } from "@/components/ui/badge"
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog"
+import { format } from "date-fns"
+
+interface ApiKey {
+  id: string
+  key_name: string
+  key_prefix: string
+  is_active: boolean
+  last_used_at: string | null
+  created_at: string
+  full_api_key?: string // Only present when first created
+}
 
 export default function SettingsPage() {
   const [loading, setLoading] = useState(false)
   const [saving, setSaving] = useState(false)
   const [user, setUser] = useState<any>(null)
+  const [apiKeys, setApiKeys] = useState<ApiKey[]>([])
+  const [loadingKeys, setLoadingKeys] = useState(false)
+  const [creatingKey, setCreatingKey] = useState(false)
+  const [newKeyName, setNewKeyName] = useState("")
+  const [newKeyDialogOpen, setNewKeyDialogOpen] = useState(false)
+  const [newlyCreatedKey, setNewlyCreatedKey] = useState<string | null>(null)
+  const [copiedKeyId, setCopiedKeyId] = useState<string | null>(null)
   const [formData, setFormData] = useState({
     name: "",
     email: "",
@@ -29,7 +57,6 @@ export default function SettingsPage() {
       social: true,
       security: true,
     },
-    apiKey: "sk-••••••••••••••••••••••••••••••",
   })
   const { toast } = useToast()
   const supabase = createClient()
@@ -59,7 +86,128 @@ export default function SettingsPage() {
     }
 
     fetchUserData()
+    fetchApiKeys()
   }, [supabase])
+
+  const fetchApiKeys = async () => {
+    setLoadingKeys(true)
+    try {
+      const response = await fetch("/api/api-keys")
+      if (!response.ok) {
+        if (response.status === 401) {
+          // User not authenticated or no subscription
+          setApiKeys([])
+          return
+        }
+        throw new Error("Failed to fetch API keys")
+      }
+      const data = await response.json()
+      setApiKeys(data.apiKeys || [])
+    } catch (error) {
+      console.error("Error fetching API keys:", error)
+      toast({
+        title: "Error",
+        description: "Failed to load API keys",
+        variant: "destructive",
+      })
+    } finally {
+      setLoadingKeys(false)
+    }
+  }
+
+  const handleCreateApiKey = async () => {
+    if (!newKeyName.trim()) {
+      toast({
+        title: "Error",
+        description: "Please enter a name for your API key",
+        variant: "destructive",
+      })
+      return
+    }
+
+    setCreatingKey(true)
+    try {
+      const response = await fetch("/api/api-keys", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ keyName: newKeyName.trim() }),
+      })
+
+      if (!response.ok) {
+        const error = await response.json()
+        throw new Error(error.error || "Failed to create API key")
+      }
+
+      const data = await response.json()
+      setNewlyCreatedKey(data.apiKey.full_api_key)
+      setNewKeyName("")
+      setNewKeyDialogOpen(false)
+      await fetchApiKeys()
+
+      toast({
+        title: "API key created",
+        description: "Your new API key has been created. Make sure to copy it now - you won't be able to see it again!",
+      })
+    } catch (error: any) {
+      console.error("Error creating API key:", error)
+      toast({
+        title: "Error",
+        description: error.message || "Failed to create API key",
+        variant: "destructive",
+      })
+    } finally {
+      setCreatingKey(false)
+    }
+  }
+
+  const handleDeleteApiKey = async (keyId: string) => {
+    if (!confirm("Are you sure you want to delete this API key? This action cannot be undone.")) {
+      return
+    }
+
+    try {
+      const response = await fetch(`/api/api-keys?id=${keyId}`, {
+        method: "DELETE",
+      })
+
+      if (!response.ok) {
+        throw new Error("Failed to delete API key")
+      }
+
+      await fetchApiKeys()
+      toast({
+        title: "API key deleted",
+        description: "The API key has been successfully deleted.",
+      })
+    } catch (error) {
+      console.error("Error deleting API key:", error)
+      toast({
+        title: "Error",
+        description: "Failed to delete API key",
+        variant: "destructive",
+      })
+    }
+  }
+
+  const handleCopyKey = async (key: string, keyId: string) => {
+    try {
+      await navigator.clipboard.writeText(key)
+      setCopiedKeyId(keyId)
+      toast({
+        title: "Copied",
+        description: "API key copied to clipboard",
+      })
+      setTimeout(() => setCopiedKeyId(null), 2000)
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to copy API key",
+        variant: "destructive",
+      })
+    }
+  }
 
   const handleSaveProfile = async () => {
     setSaving(true)
@@ -90,19 +238,6 @@ export default function SettingsPage() {
     }
   }
 
-  const handleGenerateApiKey = () => {
-    // In a real app, this would make an API call to generate a new API key
-    const newApiKey = `sk-${Array(32)
-      .fill(0)
-      .map(() => Math.random().toString(36).charAt(2))
-      .join("")}`
-    setFormData((prev) => ({ ...prev, apiKey: newApiKey }))
-
-    toast({
-      title: "API key generated",
-      description: "Your new API key has been generated. Keep it secure!",
-    })
-  }
 
   if (loading) {
     return (
@@ -301,36 +436,148 @@ export default function SettingsPage() {
           <TabsContent value="api">
             <Card>
               <CardHeader>
-                <CardTitle>API Access</CardTitle>
-                <CardDescription>Manage your API keys and access</CardDescription>
+                <div className="flex items-center justify-between">
+                  <div>
+                    <CardTitle>API Access</CardTitle>
+                    <CardDescription>Manage your API keys and access</CardDescription>
+                  </div>
+                  <Dialog open={newKeyDialogOpen} onOpenChange={setNewKeyDialogOpen}>
+                    <DialogTrigger asChild>
+                      <Button>
+                        <Plus className="mr-2 h-4 w-4" />
+                        Create API Key
+                      </Button>
+                    </DialogTrigger>
+                    <DialogContent>
+                      <DialogHeader>
+                        <DialogTitle>Create New API Key</DialogTitle>
+                        <DialogDescription>
+                          Give your API key a descriptive name to help you identify it later.
+                        </DialogDescription>
+                      </DialogHeader>
+                      <div className="space-y-4 py-4">
+                        <div className="space-y-2">
+                          <Label htmlFor="key-name">Key Name</Label>
+                          <Input
+                            id="key-name"
+                            placeholder="e.g., Production API, Development Key"
+                            value={newKeyName}
+                            onChange={(e) => setNewKeyName(e.target.value)}
+                            onKeyDown={(e) => {
+                              if (e.key === "Enter" && !creatingKey) {
+                                handleCreateApiKey()
+                              }
+                            }}
+                          />
+                        </div>
+                        {newlyCreatedKey && (
+                          <div className="space-y-2 rounded-lg border border-yellow-500/50 bg-yellow-500/10 p-4">
+                            <Label className="text-yellow-600 dark:text-yellow-400">
+                              ⚠️ Important: Copy your API key now
+                            </Label>
+                            <p className="text-xs text-muted-foreground">
+                              You won't be able to see this key again. Make sure to copy it and store it securely.
+                            </p>
+                            <div className="flex items-center space-x-2">
+                              <Input value={newlyCreatedKey} readOnly className="font-mono" />
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={() => handleCopyKey(newlyCreatedKey, "new")}
+                              >
+                                {copiedKeyId === "new" ? (
+                                  <Check className="h-4 w-4" />
+                                ) : (
+                                  <Copy className="h-4 w-4" />
+                                )}
+                              </Button>
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                      <DialogFooter>
+                        <Button variant="outline" onClick={() => setNewKeyDialogOpen(false)}>
+                          Cancel
+                        </Button>
+                        <Button onClick={handleCreateApiKey} disabled={creatingKey || !newKeyName.trim()}>
+                          {creatingKey ? (
+                            <>
+                              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                              Creating...
+                            </>
+                          ) : (
+                            "Create Key"
+                          )}
+                        </Button>
+                      </DialogFooter>
+                    </DialogContent>
+                  </Dialog>
+                </div>
               </CardHeader>
               <CardContent className="space-y-4">
-                <div className="space-y-2">
-                  <Label htmlFor="api-key">API Key</Label>
-                  <div className="flex items-center space-x-2">
-                    <Input id="api-key" value={formData.apiKey} readOnly className="font-mono" />
-                    <Button variant="outline" onClick={handleGenerateApiKey}>
-                      Regenerate
-                    </Button>
+                {loadingKeys ? (
+                  <div className="flex items-center justify-center py-8">
+                    <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
                   </div>
-                  <p className="text-xs text-muted-foreground">
-                    Your API key provides full access to your account. Keep it secure and never share it publicly.
-                  </p>
-                </div>
+                ) : apiKeys.length === 0 ? (
+                  <div className="py-8 text-center">
+                    <p className="text-sm text-muted-foreground">No API keys found.</p>
+                    <p className="mt-2 text-xs text-muted-foreground">
+                      Create your first API key to start using the API.
+                    </p>
+                  </div>
+                ) : (
+                  <div className="space-y-3">
+                    {apiKeys.map((key) => (
+                      <div
+                        key={key.id}
+                        className="flex items-center justify-between rounded-lg border p-4"
+                      >
+                        <div className="flex-1 space-y-1">
+                          <div className="flex items-center gap-2">
+                            <span className="font-medium">{key.key_name}</span>
+                            {key.is_active ? (
+                              <Badge variant="default">Active</Badge>
+                            ) : (
+                              <Badge variant="secondary">Inactive</Badge>
+                            )}
+                          </div>
+                          <div className="flex items-center gap-4 text-xs text-muted-foreground">
+                            <span className="font-mono">{key.key_prefix}••••••••</span>
+                            <span>Created {format(new Date(key.created_at), "MMM d, yyyy")}</span>
+                            {key.last_used_at && (
+                              <span>Last used {format(new Date(key.last_used_at), "MMM d, yyyy")}</span>
+                            )}
+                          </div>
+                        </div>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => handleDeleteApiKey(key.id)}
+                          className="text-destructive hover:text-destructive"
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      </div>
+                    ))}
+                  </div>
+                )}
 
-                <div className="space-y-2">
+                <div className="space-y-2 pt-4">
                   <Label>API Documentation</Label>
                   <p className="text-sm text-muted-foreground">
                     Learn how to integrate our AI content generation capabilities into your applications.
                   </p>
-                  <Button variant="outline" className="mt-2">
-                    View Documentation
+                  <Button variant="outline" className="mt-2" asChild>
+                    <a href="/dashboard/api-docs" target="_blank" rel="noopener noreferrer">
+                      View Documentation
+                    </a>
                   </Button>
                 </div>
               </CardContent>
               <CardFooter className="flex flex-col items-start space-y-2">
                 <p className="text-sm text-muted-foreground">
-                  Note: Regenerating your API key will invalidate your previous key immediately.
+                  You can create up to 5 API keys. Each key can be used independently and revoked at any time.
                 </p>
               </CardFooter>
             </Card>
