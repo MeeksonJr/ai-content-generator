@@ -15,7 +15,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
-import { Loader2, Save, Copy, ArrowLeft, Sparkles, Download, FileText } from "lucide-react"
+import { Loader2, Save, Copy, ArrowLeft, Sparkles, Download, FileText, Flag } from "lucide-react"
 import { useToast } from "@/components/ui/use-toast"
 import { createClient } from "@/lib/supabase/client"
 

@@ -247,6 +247,18 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
                   <Settings className={`w-5 h-5 flex-shrink-0 ${isCollapsed ? "lg:mr-0" : "mr-3"}`} />
                   {!isCollapsed && <span>System Settings</span>}
                 </Link>
+                <Link
+                  href="/dashboard/admin/content-moderation"
+                  className={`flex items-center px-4 py-2 text-sm rounded-md transition-all ${
+                    pathname === "/dashboard/admin/content-moderation" || pathname.startsWith("/dashboard/admin/content-moderation")
+                      ? "bg-gray-800 text-white"
+                      : "text-gray-400 hover:bg-gray-800 hover:text-white"
+                  } ${isCollapsed ? "lg:justify-center" : ""}`}
+                  title={isCollapsed ? "Content Moderation" : undefined}
+                >
+                  <Shield className={`w-5 h-5 flex-shrink-0 ${isCollapsed ? "lg:mr-0" : "mr-3"}`} />
+                  {!isCollapsed && <span>Content Moderation</span>}
+                </Link>
               </div>
             </>
           )}

@@ -570,10 +570,31 @@
   - Manage usage limits
   - System-wide settings
 
-- [ ] **Content Moderation**
-  - Review generated content
-  - Flag inappropriate content
-  - Content approval workflow
+- [x] **Content Moderation** ✅
+  - **Status:** Implemented
+  - **Implementation:**
+    - ✅ Database migration for moderation fields (moderation_status, flagged_at, flagged_by, moderation_notes, reviewed_at, reviewed_by, flag_reason)
+    - ✅ Admin content moderation page with filtering
+    - ✅ Content review workflow (approve/reject/pending)
+    - ✅ Flag content functionality (users can flag inappropriate content)
+    - ✅ Moderation notes and flag reasons
+    - ✅ Content status tracking (pending, approved, rejected, flagged)
+    - ✅ Statistics dashboard (total, pending, flagged, approved, rejected)
+    - ✅ Content preview in review dialog
+  - **Files Created:**
+    - `docs/content-moderation-migration.sql` - Database migration for moderation fields
+    - `app/api/admin/content/route.ts` - Admin content listing API
+    - `app/api/admin/content/[id]/route.ts` - Content moderation status update API
+    - `app/api/content/[id]/flag/route.ts` - Flag content API
+    - `app/dashboard/admin/content-moderation/page.tsx` - Admin moderation interface
+  - **Files Modified:**
+    - `components/dashboard/dashboard-layout.tsx` - Added Content Moderation to admin navigation
+  - **Next Steps (Optional):**
+    - User-facing flag button in content detail pages
+    - Automated content scanning (AI-based moderation)
+    - Email notifications for flagged content
+    - Content moderation history/audit log
+    - Bulk moderation actions
 
 ### Payment Features
 
