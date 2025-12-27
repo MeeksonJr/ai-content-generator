@@ -571,3 +571,185 @@ export async function cancelSubscription(subscriptionId: string, reason: string,
     throw error
   }
 }
+
+// Revise subscription (update payment method or plan)
+export async function reviseSubscription(
+  subscriptionId: string,
+  options: {
+    planId?: string
+    updatePaymentMethod?: boolean
+  },
+  userId: string
+) {
+  try {
+    if (TEST_MODE) {
+      logger.info("PayPal in TEST MODE - mock revising subscription", {
+        context: "PayPal",
+        data: { subscriptionId, options },
+        userId,
+      })
+
+      const appUrl = process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000"
+      return {
+        id: `TEST_REVISE_${Date.now()}`,
+        status: "APPROVAL_PENDING",
+        links: [
+          {
+            href: `${appUrl}/dashboard/subscription/success?subscription_id=${subscriptionId}`,
+            rel: "approve",
+            method: "GET",
+          },
+        ],
+      }
+    }
+
+    const accessToken = await getAccessToken()
+    const appUrl = process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000"
+
+    logger.info("Revising PayPal subscription", {
+      context: "PayPal",
+      data: { subscriptionId, options },
+      userId,
+    })
+
+    // Build revision request
+    const revisionData: any = {
+      application_context: {
+        brand_name: "AI Content Generator",
+        locale: "en-US",
+        return_url: `${appUrl}/dashboard/subscription/success?revise=true`,
+        cancel_url: `${appUrl}/dashboard/subscription?canceled=true`,
+      },
+    }
+
+    // If updating plan, include plan_id
+    if (options.planId) {
+      revisionData.plan_id = options.planId
+    }
+
+    // If updating payment method, include payment_source
+    if (options.updatePaymentMethod) {
+      revisionData.application_context.user_action = "PAY_NOW"
+    }
+
+    const response = await fetch(`${PAYPAL_API_URL}/v1/billing/subscriptions/${subscriptionId}/revise`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${accessToken}`,
+      },
+      body: JSON.stringify(revisionData),
+    })
+
+    const responseText = await response.text()
+    let revision
+
+    try {
+      revision = JSON.parse(responseText)
+    } catch (parseError) {
+      logger.error(
+        "Failed to parse PayPal revision response",
+        {
+          context: "PayPal",
+          data: {
+            status: response.status,
+            statusText: response.statusText,
+            response: responseText,
+          },
+        },
+        parseError as Error,
+      )
+      throw new Error(`PayPal API returned invalid JSON: ${responseText.substring(0, 100)}...`)
+    }
+
+    if (!response.ok) {
+      const error = new Error(
+        `PayPal API error: ${response.status} ${response.statusText} - ${JSON.stringify(revision)}`,
+      )
+      logger.error(
+        "Failed to revise PayPal subscription",
+        {
+          context: "PayPal",
+          data: {
+            status: response.status,
+            statusText: response.statusText,
+            response: revision,
+            subscriptionId,
+            options,
+          },
+          userId,
+        },
+        error,
+      )
+      throw error
+    }
+
+    logger.info("Successfully revised PayPal subscription", {
+      context: "PayPal",
+      data: { subscriptionId, revisionId: revision.id },
+      userId,
+    })
+
+    return revision
+  } catch (error) {
+    logger.error(
+      "Error revising PayPal subscription",
+      {
+        context: "PayPal",
+        data: { subscriptionId },
+        userId,
+      },
+      error as Error,
+    )
+    throw error
+  }
+}
+
+// Update subscription plan (for upgrade/downgrade)
+export async function updateSubscriptionPlan(
+  subscriptionId: string,
+  newPlanId: string,
+  userId: string
+) {
+  try {
+    if (TEST_MODE) {
+      logger.info("PayPal in TEST MODE - mock updating subscription plan", {
+        context: "PayPal",
+        data: { subscriptionId, newPlanId },
+        userId,
+      })
+      return {
+        id: `TEST_UPDATE_${Date.now()}`,
+        status: "APPROVAL_PENDING",
+        links: [
+          {
+            href: `${process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000"}/dashboard/subscription/success?plan_updated=true`,
+            rel: "approve",
+            method: "GET",
+          },
+        ],
+      }
+    }
+
+    // Use revise subscription with plan change
+    return await reviseSubscription(
+      subscriptionId,
+      {
+        planId: newPlanId,
+        updatePaymentMethod: false,
+      },
+      userId
+    )
+  } catch (error) {
+    logger.error(
+      "Error updating subscription plan",
+      {
+        context: "PayPal",
+        data: { subscriptionId, newPlanId },
+        userId,
+      },
+      error as Error,
+    )
+    throw error
+  }
+}

@@ -5,9 +5,10 @@ import { DashboardLayout } from "@/components/dashboard/dashboard-layout"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
-import { Loader2, Check, AlertCircle, Info } from "lucide-react"
+import { Loader2, Check, AlertCircle, Info, CreditCard, ArrowUp, ArrowDown } from "lucide-react"
 import { useToast } from "@/components/ui/use-toast"
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
+import { extractApiErrorMessage, getUserFriendlyErrorMessage } from "@/lib/utils/error-handler"
 
 // Set to true to enable direct subscription without PayPal for testing
 const ENABLE_DIRECT_SUBSCRIPTION = process.env.NODE_ENV
@@ -20,6 +21,8 @@ export default function SubscriptionPage() {
   const [error, setError] = useState<string | null>(null)
   const [paypalUnavailable, setPaypalUnavailable] = useState(false)
   const [cancelling, setCancelling] = useState(false)
+  const [updatingPayment, setUpdatingPayment] = useState(false)
+  const [upgrading, setUpgrading] = useState(false)
   const { toast } = useToast()
 
   useEffect(() => {
@@ -203,8 +206,8 @@ export default function SubscriptionPage() {
       })
 
       if (!response.ok) {
-        const errorData = await response.json().catch(() => ({ error: "Failed to cancel subscription" }))
-        throw new Error(errorData.error || "Failed to cancel subscription")
+        const errorMessage = await extractApiErrorMessage(response)
+        throw new Error(errorMessage)
       }
 
       toast({
@@ -217,11 +220,121 @@ export default function SubscriptionPage() {
       console.error("Error canceling subscription:", error)
       toast({
         title: "Cancellation failed",
-        description: error instanceof Error ? error.message : "Failed to cancel subscription",
+        description: getUserFriendlyErrorMessage(error),
         variant: "destructive",
       })
     } finally {
       setCancelling(false)
+    }
+  }
+
+  const handleUpdatePaymentMethod = async () => {
+    if (!subscription || subscription.plan_type === "free" || !subscription.paypal_subscription_id) {
+      toast({
+        title: "Unable to update payment method",
+        description: "Payment method can only be updated for active PayPal subscriptions.",
+        variant: "destructive",
+      })
+      return
+    }
+
+    try {
+      setUpdatingPayment(true)
+      setError(null)
+
+      const response = await fetch("/api/paypal/update-payment-method", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+      })
+
+      if (!response.ok) {
+        const errorMessage = await extractApiErrorMessage(response)
+        throw new Error(errorMessage)
+      }
+
+      const data = await response.json()
+
+      if (data.approvalUrl) {
+        // Redirect to PayPal to update payment method
+        window.location.href = data.approvalUrl
+      } else {
+        throw new Error("No approval URL received from server")
+      }
+    } catch (error) {
+      console.error("Error updating payment method:", error)
+      toast({
+        title: "Update failed",
+        description: getUserFriendlyErrorMessage(error),
+        variant: "destructive",
+      })
+      setUpdatingPayment(false)
+    }
+  }
+
+  const handleUpgradeDowngrade = async (newPlanType: string) => {
+    if (!subscription) {
+      return
+    }
+
+    if (subscription.plan_type === newPlanType) {
+      return
+    }
+
+    const isUpgrade = ["free", "basic", "professional", "enterprise"].indexOf(newPlanType) >
+      ["free", "basic", "professional", "enterprise"].indexOf(subscription.plan_type)
+
+    const confirmed = window.confirm(
+      `Are you sure you want to ${isUpgrade ? "upgrade" : "downgrade"} to the ${newPlanType} plan?`
+    )
+    if (!confirmed) {
+      return
+    }
+
+    try {
+      setUpgrading(true)
+      setError(null)
+
+      const response = await fetch("/api/subscription/upgrade", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ newPlanType }),
+      })
+
+      if (!response.ok) {
+        const errorMessage = await extractApiErrorMessage(response)
+        throw new Error(errorMessage)
+      }
+
+      const data = await response.json()
+
+      if (data.approvalUrl) {
+        // Redirect to PayPal for approval (if PayPal subscription)
+        toast({
+          title: `${isUpgrade ? "Upgrade" : "Downgrade"} initiated`,
+          description: `Redirecting to PayPal to complete the ${isUpgrade ? "upgrade" : "downgrade"}...`,
+        })
+        window.location.href = data.approvalUrl
+      } else {
+        // Direct update (non-PayPal subscription)
+        toast({
+          title: "Plan updated",
+          description: `Your plan has been ${isUpgrade ? "upgraded" : "downgraded"} to ${newPlanType}.`,
+        })
+        await fetchSubscriptionData()
+        setUpgrading(false)
+      }
+    } catch (error) {
+      console.error("Error updating plan:", error)
+      toast({
+        title: "Update failed",
+        description: getUserFriendlyErrorMessage(error),
+        variant: "destructive",
+      })
+      setUpgrading(false)
     }
   }
 
@@ -368,57 +481,86 @@ export default function SubscriptionPage() {
               </ul>
             </CardContent>
             <CardFooter className="flex flex-col space-y-2">
-              <Button
-                onClick={() => handlePayPalSubscribe("professional")}
-                disabled={subscription?.plan_type === "professional" || subscribing || paypalUnavailable}
-                className="w-full"
-                variant={subscription?.plan_type === "professional" ? "outline" : "default"}
-              >
-                {subscribing ? (
-                  <>
-                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                    Processing...
-                  </>
-                ) : subscription?.plan_type === "professional" ? (
-                  "Current Plan"
-                ) : (
-                  "Subscribe with PayPal"
-                )}
-              </Button>
-
-              {ENABLE_DIRECT_SUBSCRIPTION && (
+              {subscription?.plan_type === "professional" ? (
+                <>
+                  <Button disabled className="w-full" variant="outline">
+                    Current Plan
+                  </Button>
+                  <Button
+                    onClick={handleCancelSubscription}
+                    disabled={cancelling}
+                    variant="destructive"
+                    className="w-full"
+                  >
+                    {cancelling ? (
+                      <>
+                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                        Cancelling...
+                      </>
+                    ) : (
+                      "Cancel Subscription"
+                    )}
+                  </Button>
+                </>
+              ) : subscription?.status === "active" && subscription?.plan_type ? (
                 <Button
-                  onClick={() => handleDirectSubscribe("professional")}
-                  disabled={subscription?.plan_type === "professional" || subscribing}
+                  onClick={() => handleUpgradeDowngrade("professional")}
+                  disabled={upgrading}
                   className="w-full"
-                  variant="outline"
+                  variant={["basic", "free"].includes(subscription.plan_type) ? "default" : "outline"}
                 >
-                  {subscribing ? (
+                  {upgrading ? (
                     <>
                       <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                       Processing...
                     </>
-                  ) : (
-                    "Direct Subscription (Test)"
-                  )}
-                </Button>
-              )}
-              {subscription?.plan_type === "professional" && (
-                <Button
-                  onClick={handleCancelSubscription}
-                  disabled={cancelling}
-                  variant="destructive"
-                  className="w-full"
-                >
-                  {cancelling ? (
+                  ) : ["basic", "free"].includes(subscription.plan_type) ? (
                     <>
-                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                      Cancelling...
+                      <ArrowUp className="mr-2 h-4 w-4" />
+                      Upgrade to Professional
                     </>
                   ) : (
-                    "Cancel Subscription"
+                    <>
+                      <ArrowDown className="mr-2 h-4 w-4" />
+                      Downgrade to Professional
+                    </>
                   )}
                 </Button>
+              ) : (
+                <>
+                  <Button
+                    onClick={() => handlePayPalSubscribe("professional")}
+                    disabled={subscribing || paypalUnavailable}
+                    className="w-full"
+                    variant="default"
+                  >
+                    {subscribing ? (
+                      <>
+                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                        Processing...
+                      </>
+                    ) : (
+                      "Subscribe with PayPal"
+                    )}
+                  </Button>
+                  {ENABLE_DIRECT_SUBSCRIPTION && (
+                    <Button
+                      onClick={() => handleDirectSubscribe("professional")}
+                      disabled={subscribing}
+                      className="w-full"
+                      variant="outline"
+                    >
+                      {subscribing ? (
+                        <>
+                          <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                          Processing...
+                        </>
+                      ) : (
+                        "Direct Subscription (Test)"
+                      )}
+                    </Button>
+                  )}
+                </>
               )}
             </CardFooter>
           </Card>
@@ -562,6 +704,99 @@ export default function SubscriptionPage() {
                   </dd>
                 </div>
               </dl>
+
+              {/* Payment Method & Plan Management */}
+              {subscription && subscription.status === "active" && subscription.plan_type !== "free" && (
+                <div className="mt-6 pt-6 border-t space-y-3">
+                  <h4 className="text-sm font-semibold">Manage Subscription</h4>
+                  
+                  {subscription.paypal_subscription_id && (
+                    <Button
+                      onClick={handleUpdatePaymentMethod}
+                      disabled={updatingPayment}
+                      variant="outline"
+                      className="w-full sm:w-auto"
+                    >
+                      {updatingPayment ? (
+                        <>
+                          <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                          Updating...
+                        </>
+                      ) : (
+                        <>
+                          <CreditCard className="mr-2 h-4 w-4" />
+                          Update Payment Method
+                        </>
+                      )}
+                    </Button>
+                  )}
+
+                  <div className="flex flex-col sm:flex-row gap-2">
+                    {subscription.plan_type !== "professional" && (
+                      <Button
+                        onClick={() => handleUpgradeDowngrade("professional")}
+                        disabled={upgrading}
+                        variant="outline"
+                        className="w-full sm:w-auto"
+                      >
+                        {upgrading ? (
+                          <>
+                            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                            Processing...
+                          </>
+                        ) : (
+                          <>
+                            <ArrowUp className="mr-2 h-4 w-4" />
+                            Upgrade to Professional
+                          </>
+                        )}
+                      </Button>
+                    )}
+                    
+                    {subscription.plan_type !== "enterprise" && (
+                      <Button
+                        onClick={() => handleUpgradeDowngrade("enterprise")}
+                        disabled={upgrading}
+                        variant="outline"
+                        className="w-full sm:w-auto"
+                      >
+                        {upgrading ? (
+                          <>
+                            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                            Processing...
+                          </>
+                        ) : (
+                          <>
+                            <ArrowUp className="mr-2 h-4 w-4" />
+                            Upgrade to Enterprise
+                          </>
+                        )}
+                      </Button>
+                    )}
+
+                    {subscription.plan_type !== "basic" && subscription.plan_type !== "free" && (
+                      <Button
+                        onClick={() => handleUpgradeDowngrade("basic")}
+                        disabled={upgrading}
+                        variant="outline"
+                        className="w-full sm:w-auto"
+                      >
+                        {upgrading ? (
+                          <>
+                            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                            Processing...
+                          </>
+                        ) : (
+                          <>
+                            <ArrowDown className="mr-2 h-4 w-4" />
+                            Downgrade to Basic
+                          </>
+                        )}
+                      </Button>
+                    )}
+                  </div>
+                </div>
+              )}
             </CardContent>
           </Card>
         </div>

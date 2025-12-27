@@ -110,13 +110,33 @@
     - Cron: Automatically runs every 6 hours via Vercel Cron
     - Monitoring: `GET /api/subscription/sync` to check status
 
-- [ ] **Payment Method Update**
-  - **Status:** Not implemented
-  - **Needed:** Allow users to update payment method for existing subscriptions
+- [x] **Payment Method Update** ✅
+  - **Status:** Implemented
+  - **Features:**
+    - ✅ API endpoint `/api/paypal/update-payment-method` (POST)
+    - ✅ UI button in subscription details section
+    - ✅ Redirects to PayPal for payment method update
+    - ✅ Handles PayPal revision flow
+  - **Files Created:**
+    - `app/api/paypal/update-payment-method/route.ts` (new)
+    - `lib/paypal/client.ts` - Added `reviseSubscription` function
+  - **Files Updated:**
+    - `app/dashboard/subscription/page.tsx` - Added payment method update UI
 
-- [ ] **Subscription Upgrade/Downgrade**
-  - **Status:** Partial (POST `/api/subscription` updates plan_type)
-  - **Issue:** Doesn't handle PayPal plan changes or prorating
+- [x] **Subscription Upgrade/Downgrade** ✅
+  - **Status:** Implemented with prorating calculation
+  - **Features:**
+    - ✅ API endpoint `/api/subscription/upgrade` (POST)
+    - ✅ Proration calculation for upgrades/downgrades
+    - ✅ UI buttons for upgrade/downgrade in subscription page
+    - ✅ Handles both PayPal and non-PayPal subscriptions
+    - ✅ Calculates credit/charge for remaining billing cycle
+  - **Files Created:**
+    - `app/api/subscription/upgrade/route.ts` (new)
+    - `lib/paypal/client.ts` - Added `updateSubscriptionPlan` and `reviseSubscription` functions
+  - **Files Updated:**
+    - `app/dashboard/subscription/page.tsx` - Added upgrade/downgrade UI
+  - **Note:** PayPal plan changes require plan IDs to be stored or created. Currently updates database plan_type and relies on webhooks/sync for PayPal updates.
 
 ### Stripe Integration
 

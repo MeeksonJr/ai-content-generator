@@ -18,9 +18,11 @@ export default function SubscriptionSuccessPage() {
       try {
         setLoading(true)
 
-        // Get subscription ID from URL
+        // Get subscription ID and revision flag from URL
         const urlParams = new URLSearchParams(window.location.search)
         const subscriptionId = urlParams.get("subscription_id")
+        const isRevision = urlParams.get("revise") === "true" || urlParams.get("plan_updated") === "true"
+        
         if (!subscriptionId) {
           throw new Error("Missing subscription information. Please ensure the PayPal redirect included a subscription ID.")
         }
@@ -31,7 +33,7 @@ export default function SubscriptionSuccessPage() {
           headers: {
             "Content-Type": "application/json",
           },
-          body: JSON.stringify({ subscriptionId }),
+          body: JSON.stringify({ subscriptionId, isRevision }),
         })
 
         if (!response.ok) {
