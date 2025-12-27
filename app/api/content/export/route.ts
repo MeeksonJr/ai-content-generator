@@ -1,14 +1,21 @@
 import { NextResponse } from "next/server"
+import type { NextRequest } from "next/server"
 import { createSupabaseRouteClient } from "@/lib/supabase/route-client"
 import { logger } from "@/lib/utils/logger"
-import { handleApiError } from "@/lib/utils/error-handler"
+import { handleApiError, AuthenticationError, ValidationError, NotFoundError, AuthorizationError } from "@/lib/utils/error-handler"
+import { validateUuid } from "@/lib/utils/validation"
+import { createSecureResponse, handlePreflight } from "@/lib/utils/security"
 
 /**
  * Export content in various formats
  * Supports: PDF, Markdown, DOCX, TXT
  */
-export async function GET(request: Request) {
+export async function GET(request: NextRequest) {
   try {
+    // Handle preflight OPTIONS request
+    const preflightResponse = handlePreflight(request)
+    if (preflightResponse) return preflightResponse
+
     const supabase = await createSupabaseRouteClient()
 
     const {
@@ -16,15 +23,40 @@ export async function GET(request: Request) {
     } = await supabase.auth.getSession()
 
     if (!session) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
+      const { statusCode, error } = handleApiError(new AuthenticationError(), "Content Export GET")
+      return createSecureResponse(error, statusCode)
     }
 
     const { searchParams } = new URL(request.url)
     const contentId = searchParams.get("id")
     const format = searchParams.get("format") || "markdown"
 
+    // Validate content ID
     if (!contentId) {
-      return NextResponse.json({ error: "Content ID is required" }, { status: 400 })
+      const { statusCode, error } = handleApiError(
+        new ValidationError("Content ID is required"),
+        "Content Export GET"
+      )
+      return createSecureResponse(error, statusCode)
+    }
+
+    const uuidValidation = validateUuid(contentId)
+    if (!uuidValidation.isValid) {
+      const { statusCode, error } = handleApiError(
+        new ValidationError(uuidValidation.error || "Invalid content ID format"),
+        "Content Export GET"
+      )
+      return createSecureResponse(error, statusCode)
+    }
+
+    // Validate format
+    const validFormats = ["markdown", "txt", "text", "html", "pdf", "docx"]
+    if (!validFormats.includes(format.toLowerCase())) {
+      const { statusCode, error } = handleApiError(
+        new ValidationError(`Invalid format. Must be one of: ${validFormats.join(", ")}`),
+        "Content Export GET"
+      )
+      return createSecureResponse(error, statusCode)
     }
 
     // Fetch content
@@ -37,10 +69,20 @@ export async function GET(request: Request) {
 
     if (contentError || !content) {
       const { statusCode, error } = handleApiError(
-        contentError || new Error("Content not found"),
+        contentError || new NotFoundError("Content not found"),
         "Content Export"
       )
-      return NextResponse.json(error, { status: statusCode })
+      return createSecureResponse(error, statusCode)
+    }
+
+    // Check if user owns the content
+    const contentData = content as { user_id: string }
+    if (contentData.user_id !== session.user.id) {
+      const { statusCode, error } = handleApiError(
+        new AuthorizationError("You can only export your own content"),
+        "Content Export GET"
+      )
+      return createSecureResponse(error, statusCode)
     }
 
     // Generate export based on format
@@ -61,14 +103,18 @@ export async function GET(request: Request) {
         // In production, use a library like docx
         return generateText(content, "docx")
       default:
-        return NextResponse.json({ error: `Unsupported format: ${format}` }, { status: 400 })
+        const { statusCode, error } = handleApiError(
+          new ValidationError(`Unsupported format: ${format}`),
+          "Content Export GET"
+        )
+        return createSecureResponse(error, statusCode)
     }
   } catch (error) {
     logger.error("Error exporting content", {
       context: "ContentExport",
     }, error as Error)
     const { statusCode, error: apiError } = handleApiError(error, "Content Export")
-    return NextResponse.json(apiError, { status: statusCode })
+    return createSecureResponse(apiError, statusCode)
   }
 }
 

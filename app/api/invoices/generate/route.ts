@@ -1,14 +1,21 @@
 import { NextResponse } from "next/server"
+import type { NextRequest } from "next/server"
 import { createSupabaseRouteClient } from "@/lib/supabase/route-client"
 import { logger } from "@/lib/utils/logger"
-import { handleApiError } from "@/lib/utils/error-handler"
+import { handleApiError, AuthenticationError, ValidationError, NotFoundError } from "@/lib/utils/error-handler"
+import { validateText } from "@/lib/utils/validation"
+import { createSecureResponse, handlePreflight } from "@/lib/utils/security"
 
 /**
  * Generate invoice PDF for a payment
  * This is a simplified version - in production, you'd use a PDF library like pdfkit or puppeteer
  */
-export async function GET(request: Request) {
+export async function GET(request: NextRequest) {
   try {
+    // Handle preflight OPTIONS request
+    const preflightResponse = handlePreflight(request)
+    if (preflightResponse) return preflightResponse
+
     const supabase = await createSupabaseRouteClient()
 
     const {
@@ -16,14 +23,30 @@ export async function GET(request: Request) {
     } = await supabase.auth.getSession()
 
     if (!session) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
+      const { statusCode, error } = handleApiError(new AuthenticationError(), "Invoice Generation GET")
+      return createSecureResponse(error, statusCode)
     }
 
     const { searchParams } = new URL(request.url)
     const paymentId = searchParams.get("paymentId")
 
+    // Validate payment ID
     if (!paymentId) {
-      return NextResponse.json({ error: "Payment ID is required" }, { status: 400 })
+      const { statusCode, error } = handleApiError(
+        new ValidationError("Payment ID is required"),
+        "Invoice Generation GET"
+      )
+      return createSecureResponse(error, statusCode)
+    }
+
+    // Validate payment ID format (could be UUID or transaction ID)
+    const paymentIdValidation = validateText(paymentId, { minLength: 1, maxLength: 255 })
+    if (!paymentIdValidation.isValid) {
+      const { statusCode, error } = handleApiError(
+        new ValidationError(paymentIdValidation.error || "Invalid payment ID format"),
+        "Invoice Generation GET"
+      )
+      return createSecureResponse(error, statusCode)
     }
 
     // Get payment details
@@ -45,18 +68,25 @@ export async function GET(request: Request) {
         .maybeSingle()
 
       if (!subscription) {
-        return NextResponse.json({ error: "Payment not found" }, { status: 404 })
+        const { statusCode, error } = handleApiError(
+          new NotFoundError("Payment not found"),
+          "Invoice Generation GET"
+        )
+        return createSecureResponse(error, statusCode)
       }
+
+      const subscriptionData = subscription as { plan_type?: string | null }
+      const planType = subscriptionData.plan_type || null
 
       // Generate invoice from subscription data
       const invoiceData = {
         invoiceId: `INV-${paymentId.substring(0, 8).toUpperCase()}`,
         date: new Date().toISOString(),
-        amount: getPlanPrice(subscription.plan_type),
+        amount: getPlanPrice(planType),
         currency: "USD",
-        description: `${subscription.plan_type} Subscription`,
-        planType: subscription.plan_type,
-        userEmail: session.user.email,
+        description: `${planType || "Free"} Subscription`,
+        planType: planType,
+        userEmail: session.user.email || null,
       }
 
       // Generate simple HTML invoice (in production, use PDF library)
@@ -71,14 +101,22 @@ export async function GET(request: Request) {
     }
 
     // Generate invoice from payment data
+    const paymentData = payment as {
+      invoice_id?: string
+      created_at?: string
+      amount?: string | number
+      currency?: string
+      description?: string
+    }
+
     const invoiceData = {
-      invoiceId: payment.invoice_id || `INV-${paymentId.substring(0, 8).toUpperCase()}`,
-      date: payment.created_at,
-      amount: parseFloat(payment.amount),
-      currency: payment.currency || "USD",
-      description: payment.description || "Subscription payment",
+      invoiceId: paymentData.invoice_id || `INV-${paymentId.substring(0, 8).toUpperCase()}`,
+      date: paymentData.created_at || new Date().toISOString(),
+      amount: typeof paymentData.amount === "string" ? parseFloat(paymentData.amount) : (paymentData.amount || 0),
+      currency: paymentData.currency || "USD",
+      description: paymentData.description || "Subscription payment",
       planType: null,
-      userEmail: session.user.email,
+      userEmail: session.user.email || null,
     }
 
     const invoiceHtml = generateInvoiceHTML(invoiceData)
@@ -94,7 +132,7 @@ export async function GET(request: Request) {
       context: "InvoiceGeneration",
     }, error as Error)
     const { statusCode, error: apiError } = handleApiError(error, "Invoice Generation")
-    return NextResponse.json(apiError, { status: statusCode })
+    return createSecureResponse(apiError, statusCode)
   }
 }
 

@@ -1,12 +1,21 @@
 import { NextResponse } from "next/server"
+import type { NextRequest } from "next/server"
 import { createSupabaseRouteClient } from "@/lib/supabase/route-client"
 import { createServerSupabaseClient } from "@/lib/supabase/server-client"
 import { logger } from "@/lib/utils/logger"
-import { handleApiError } from "@/lib/utils/error-handler"
+import { handleApiError, AuthenticationError } from "@/lib/utils/error-handler"
+import { createSecureResponse, handlePreflight } from "@/lib/utils/security"
 import { getSubscriptionTransactions, formatTransaction } from "@/lib/paypal/transactions"
+import type { Database } from "@/lib/database.types"
 
-export async function GET(request: Request) {
+type SubscriptionRow = Database["public"]["Tables"]["subscriptions"]["Row"]
+
+export async function GET(request: NextRequest) {
   try {
+    // Handle preflight OPTIONS request
+    const preflightResponse = handlePreflight(request)
+    if (preflightResponse) return preflightResponse
+
     const supabase = await createSupabaseRouteClient()
 
     const {
@@ -14,7 +23,8 @@ export async function GET(request: Request) {
     } = await supabase.auth.getSession()
 
     if (!session) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
+      const { statusCode, error } = handleApiError(new AuthenticationError(), "Payment History GET")
+      return createSecureResponse(error, statusCode)
     }
 
     const userId = session.user.id
@@ -32,7 +42,7 @@ export async function GET(request: Request) {
         data: { userId },
       }, subError as Error)
       const { statusCode, error } = handleApiError(subError, "Payment History")
-      return NextResponse.json(error, { status: statusCode })
+      return createSecureResponse(error, statusCode)
     }
 
     // Get payment history from database
@@ -54,7 +64,10 @@ export async function GET(request: Request) {
 
     // Fetch transactions from PayPal for active subscriptions
     const transactions: any[] = []
-    const paypalSubscriptions = subscriptions?.filter((sub) => sub.paypal_subscription_id || sub.payment_id) || []
+    const subscriptionsData = (subscriptions || []) as SubscriptionRow[]
+    const paypalSubscriptions = subscriptionsData.filter(
+      (sub) => sub.paypal_subscription_id || sub.payment_id
+    )
 
     for (const subscription of paypalSubscriptions) {
       try {
@@ -116,7 +129,7 @@ export async function GET(request: Request) {
       data: { userId, count: uniquePayments.length },
     })
 
-    return NextResponse.json({
+    return createSecureResponse({
       payments: uniquePayments,
       total: uniquePayments.length,
     })
@@ -125,7 +138,7 @@ export async function GET(request: Request) {
       context: "PaymentHistory",
     }, error as Error)
     const { statusCode, error: apiError } = handleApiError(error, "Payment History")
-    return NextResponse.json(apiError, { status: statusCode })
+    return createSecureResponse(apiError, statusCode)
   }
 }
 

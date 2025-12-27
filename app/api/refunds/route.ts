@@ -1,16 +1,24 @@
 import { NextResponse } from "next/server"
+import type { NextRequest } from "next/server"
 import { createSupabaseRouteClient } from "@/lib/supabase/route-client"
 import { createServerSupabaseClient } from "@/lib/supabase/server-client"
 import { logger } from "@/lib/utils/logger"
-import { handleApiError } from "@/lib/utils/error-handler"
+import { handleApiError, AuthenticationError, AuthorizationError, ValidationError, NotFoundError } from "@/lib/utils/error-handler"
+import { validateNumber, validateUuid, validateText } from "@/lib/utils/validation"
+import { createSecureResponse, handlePreflight } from "@/lib/utils/security"
+import { PAGINATION } from "@/lib/constants/app.constants"
 import { refundPayment } from "@/lib/paypal/refunds"
 
 /**
  * GET /api/refunds
  * Fetch user's refund history
  */
-export async function GET(request: Request) {
+export async function GET(request: NextRequest) {
   try {
+    // Handle preflight OPTIONS request
+    const preflightResponse = handlePreflight(request)
+    if (preflightResponse) return preflightResponse
+
     const supabase = await createSupabaseRouteClient()
 
     const {
@@ -18,12 +26,18 @@ export async function GET(request: Request) {
     } = await supabase.auth.getSession()
 
     if (!session) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
+      const { statusCode, error } = handleApiError(new AuthenticationError(), "Refunds GET")
+      return createSecureResponse(error, statusCode)
     }
 
     const { searchParams } = new URL(request.url)
-    const limit = Number.parseInt(searchParams.get("limit") || "50")
-    const offset = Number.parseInt(searchParams.get("offset") || "0")
+    
+    // Validate pagination parameters
+    const limit = Math.min(
+      PAGINATION.MAX_LIMIT,
+      Math.max(1, Number.parseInt(searchParams.get("limit") || "50"))
+    )
+    const offset = Math.max(0, Number.parseInt(searchParams.get("offset") || "0"))
 
     // Get refunded payments from payment_history
     const serverSupabase = createServerSupabaseClient()
@@ -37,7 +51,7 @@ export async function GET(request: Request) {
 
     if (error) {
       const { statusCode, error: apiError } = handleApiError(error, "Refunds")
-      return NextResponse.json(apiError, { status: statusCode })
+      return createSecureResponse(apiError, statusCode)
     }
 
     logger.info("Fetched refund history", {
@@ -46,13 +60,13 @@ export async function GET(request: Request) {
       data: { count: refunds?.length || 0 },
     })
 
-    return NextResponse.json({ refunds: refunds || [] })
+    return createSecureResponse({ refunds: refunds || [] })
   } catch (error) {
     logger.error("Error fetching refund history", {
       context: "Refunds",
     }, error as Error)
     const { statusCode, error: apiError } = handleApiError(error, "Refunds")
-    return NextResponse.json(apiError, { status: statusCode })
+    return createSecureResponse(apiError, statusCode)
   }
 }
 
@@ -60,8 +74,12 @@ export async function GET(request: Request) {
  * POST /api/refunds
  * Process a refund (admin only)
  */
-export async function POST(request: Request) {
+export async function POST(request: NextRequest) {
   try {
+    // Handle preflight OPTIONS request
+    const preflightResponse = handlePreflight(request)
+    if (preflightResponse) return preflightResponse
+
     const supabase = await createSupabaseRouteClient()
 
     const {
@@ -69,7 +87,8 @@ export async function POST(request: Request) {
     } = await supabase.auth.getSession()
 
     if (!session) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
+      const { statusCode, error } = handleApiError(new AuthenticationError(), "Refunds POST")
+      return createSecureResponse(error, statusCode)
     }
 
     // Check if user is admin
@@ -82,17 +101,59 @@ export async function POST(request: Request) {
     const isAdmin = (profile as { is_admin?: boolean } | null)?.is_admin || false
 
     if (!isAdmin) {
-      return NextResponse.json({ error: "Forbidden - Admin access required" }, { status: 403 })
+      const { statusCode, error } = handleApiError(
+        new AuthorizationError("Admin access required"),
+        "Refunds POST"
+      )
+      return createSecureResponse(error, statusCode)
     }
 
     const body = await request.json()
     const { paymentId, transactionId, amount, reason } = body
 
+    // Validate that at least one ID is provided
     if (!paymentId && !transactionId) {
-      return NextResponse.json(
-        { error: "Either paymentId or transactionId is required" },
-        { status: 400 }
+      const { statusCode, error } = handleApiError(
+        new ValidationError("Either paymentId or transactionId is required"),
+        "Refunds POST"
       )
+      return createSecureResponse(error, statusCode)
+    }
+
+    // Validate paymentId if provided
+    if (paymentId) {
+      const uuidValidation = validateUuid(paymentId)
+      if (!uuidValidation.isValid) {
+        const { statusCode, error } = handleApiError(
+          new ValidationError(uuidValidation.error || "Invalid payment ID format"),
+          "Refunds POST"
+        )
+        return createSecureResponse(error, statusCode)
+      }
+    }
+
+    // Validate amount if provided
+    if (amount !== undefined) {
+      const amountValidation = validateNumber(amount, { min: 0.01, max: 100000 })
+      if (!amountValidation.isValid) {
+        const { statusCode, error } = handleApiError(
+          new ValidationError(`Amount: ${amountValidation.error}`),
+          "Refunds POST"
+        )
+        return createSecureResponse(error, statusCode)
+      }
+    }
+
+    // Validate reason if provided
+    if (reason) {
+      const reasonValidation = validateText(reason, { maxLength: 500 })
+      if (!reasonValidation.isValid) {
+        const { statusCode, error } = handleApiError(
+          new ValidationError(`Reason: ${reasonValidation.error}`),
+          "Refunds POST"
+        )
+        return createSecureResponse(error, statusCode)
+      }
     }
 
     // Get payment details
@@ -108,11 +169,15 @@ export async function POST(request: Request) {
 
       if (paymentError) {
         const { statusCode, error: apiError } = handleApiError(paymentError, "Refunds")
-        return NextResponse.json(apiError, { status: statusCode })
+        return createSecureResponse(apiError, statusCode)
       }
 
       if (!paymentData) {
-        return NextResponse.json({ error: "Payment not found" }, { status: 404 })
+        const { statusCode, error } = handleApiError(
+          new NotFoundError("Payment not found"),
+          "Refunds POST"
+        )
+        return createSecureResponse(error, statusCode)
       }
 
       payment = paymentData
@@ -122,18 +187,20 @@ export async function POST(request: Request) {
     const paypalTransactionId = payment?.transaction_id || transactionId
 
     if (!paypalTransactionId) {
-      return NextResponse.json(
-        { error: "Transaction ID not found. Cannot process refund without PayPal transaction ID." },
-        { status: 400 }
+      const { statusCode, error } = handleApiError(
+        new ValidationError("Transaction ID not found. Cannot process refund without PayPal transaction ID."),
+        "Refunds POST"
       )
+      return createSecureResponse(error, statusCode)
     }
 
     // Check if already refunded
     if (payment && payment.refund_status === "completed") {
-      return NextResponse.json(
-        { error: "This payment has already been fully refunded" },
-        { status: 400 }
+      const { statusCode, error } = handleApiError(
+        new ValidationError("This payment has already been fully refunded"),
+        "Refunds POST"
       )
+      return createSecureResponse(error, statusCode)
     }
 
     // Check if partial refund amount is valid
@@ -143,14 +210,19 @@ export async function POST(request: Request) {
       const alreadyRefunded = Number.parseFloat(payment.refund_amount || "0")
 
       if (refundAmount <= 0) {
-        return NextResponse.json({ error: "Refund amount must be greater than 0" }, { status: 400 })
+        const { statusCode, error } = handleApiError(
+          new ValidationError("Refund amount must be greater than 0"),
+          "Refunds POST"
+        )
+        return createSecureResponse(error, statusCode)
       }
 
       if (refundAmount > paymentAmount - alreadyRefunded) {
-        return NextResponse.json(
-          { error: "Refund amount exceeds available refundable amount" },
-          { status: 400 }
+        const { statusCode, error } = handleApiError(
+          new ValidationError("Refund amount exceeds available refundable amount"),
+          "Refunds POST"
         )
+        return createSecureResponse(error, statusCode)
       }
     }
 
@@ -214,7 +286,7 @@ export async function POST(request: Request) {
       },
     })
 
-    return NextResponse.json({
+    return createSecureResponse({
       success: true,
       refund: {
         id: refund.id,
@@ -229,7 +301,7 @@ export async function POST(request: Request) {
       context: "Refunds",
     }, error as Error)
     const { statusCode, error: apiError } = handleApiError(error, "Refunds")
-    return NextResponse.json(apiError, { status: statusCode })
+    return createSecureResponse(apiError, statusCode)
   }
 }
 

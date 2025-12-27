@@ -1,14 +1,20 @@
 import { NextResponse } from "next/server"
+import type { NextRequest } from "next/server"
 import { createSupabaseRouteClient } from "@/lib/supabase/route-client"
 import { logger } from "@/lib/utils/logger"
-import { handleApiError } from "@/lib/utils/error-handler"
+import { handleApiError, AuthenticationError, ValidationError } from "@/lib/utils/error-handler"
+import { createSecureResponse, handlePreflight } from "@/lib/utils/security"
 
 /**
  * GET /api/analytics/export
  * Export analytics data in various formats (CSV, PDF, Excel)
  */
-export async function GET(request: Request) {
+export async function GET(request: NextRequest) {
   try {
+    // Handle preflight OPTIONS request
+    const preflightResponse = handlePreflight(request)
+    if (preflightResponse) return preflightResponse
+
     const supabase = await createSupabaseRouteClient()
 
     const {
@@ -16,12 +22,33 @@ export async function GET(request: Request) {
     } = await supabase.auth.getSession()
 
     if (!session) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
+      const { statusCode, error } = handleApiError(new AuthenticationError(), "Analytics Export GET")
+      return createSecureResponse(error, statusCode)
     }
 
     const { searchParams } = new URL(request.url)
     const format = searchParams.get("format") || "csv"
     const dataType = searchParams.get("type") || "all"
+
+    // Validate format
+    const validFormats = ["csv", "json", "pdf"]
+    if (!validFormats.includes(format.toLowerCase())) {
+      const { statusCode, error } = handleApiError(
+        new ValidationError(`Invalid format. Must be one of: ${validFormats.join(", ")}`),
+        "Analytics Export GET"
+      )
+      return createSecureResponse(error, statusCode)
+    }
+
+    // Validate dataType
+    const validDataTypes = ["all", "summary", "content", "usage"]
+    if (!validDataTypes.includes(dataType.toLowerCase())) {
+      const { statusCode, error } = handleApiError(
+        new ValidationError(`Invalid data type. Must be one of: ${validDataTypes.join(", ")}`),
+        "Analytics Export GET"
+      )
+      return createSecureResponse(error, statusCode)
+    }
 
     // Fetch analytics data
     const subscriptionResponse = await fetch(`${process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000"}/api/subscription`, {
@@ -81,14 +108,18 @@ export async function GET(request: Request) {
       case "pdf":
         return generatePDF(exportData, dataType)
       default:
-        return NextResponse.json({ error: `Unsupported format: ${format}` }, { status: 400 })
+        const { statusCode, error } = handleApiError(
+          new ValidationError(`Unsupported format: ${format}`),
+          "Analytics Export GET"
+        )
+        return createSecureResponse(error, statusCode)
     }
   } catch (error) {
     logger.error("Error exporting analytics data", {
       context: "AnalyticsExport",
     }, error as Error)
     const { statusCode, error: apiError } = handleApiError(error, "Analytics Export")
-    return NextResponse.json(apiError, { status: statusCode })
+    return createSecureResponse(apiError, statusCode)
   }
 }
 

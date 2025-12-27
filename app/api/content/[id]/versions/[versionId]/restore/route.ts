@@ -1,19 +1,46 @@
 import { NextResponse } from "next/server"
+import type { NextRequest } from "next/server"
 import { createSupabaseRouteClient } from "@/lib/supabase/route-client"
 import { createServerSupabaseClient } from "@/lib/supabase/server-client"
 import { logger } from "@/lib/utils/logger"
-import { handleApiError } from "@/lib/utils/error-handler"
+import { handleApiError, AuthenticationError, ValidationError, NotFoundError, AuthorizationError } from "@/lib/utils/error-handler"
+import { validateUuid } from "@/lib/utils/validation"
+import { createSecureResponse, handlePreflight } from "@/lib/utils/security"
 
 /**
  * POST /api/content/[id]/versions/[versionId]/restore
  * Restore content to a specific version
  */
 export async function POST(
-  request: Request,
+  request: NextRequest,
   { params }: { params: Promise<{ id: string; versionId: string }> }
 ) {
   try {
+    // Handle preflight OPTIONS request
+    const preflightResponse = handlePreflight(request)
+    if (preflightResponse) return preflightResponse
+
     const { id, versionId } = await params
+
+    // Validate UUIDs
+    const contentUuidValidation = validateUuid(id)
+    if (!contentUuidValidation.isValid) {
+      const { statusCode, error } = handleApiError(
+        new ValidationError(contentUuidValidation.error || "Invalid content ID format"),
+        "Version Restore POST"
+      )
+      return createSecureResponse(error, statusCode)
+    }
+
+    const versionUuidValidation = validateUuid(versionId)
+    if (!versionUuidValidation.isValid) {
+      const { statusCode, error } = handleApiError(
+        new ValidationError(versionUuidValidation.error || "Invalid version ID format"),
+        "Version Restore POST"
+      )
+      return createSecureResponse(error, statusCode)
+    }
+
     const supabase = await createSupabaseRouteClient()
 
     const {
@@ -21,7 +48,8 @@ export async function POST(
     } = await supabase.auth.getSession()
 
     if (!session) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
+      const { statusCode, error } = handleApiError(new AuthenticationError(), "Version Restore POST")
+      return createSecureResponse(error, statusCode)
     }
 
     // Get version to restore
@@ -34,7 +62,11 @@ export async function POST(
       .maybeSingle()
 
     if (versionError || !version) {
-      return NextResponse.json({ error: "Version not found" }, { status: 404 })
+      const { statusCode, error } = handleApiError(
+        versionError || new NotFoundError("Version not found"),
+        "Version Restore POST"
+      )
+      return createSecureResponse(error, statusCode)
     }
 
     const versionData = version as {
@@ -52,7 +84,11 @@ export async function POST(
       .maybeSingle()
 
     if (!content) {
-      return NextResponse.json({ error: "Content not found" }, { status: 404 })
+      const { statusCode, error } = handleApiError(
+        new NotFoundError("Content not found"),
+        "Version Restore POST"
+      )
+      return createSecureResponse(error, statusCode)
     }
 
     const contentData = content as { user_id: string; project_id: string | null }
@@ -68,10 +104,11 @@ export async function POST(
           .maybeSingle()).data)
 
     if (!hasEditAccess) {
-      return NextResponse.json(
-        { error: "Forbidden - You don't have edit access to this content" },
-        { status: 403 }
+      const { statusCode, error } = handleApiError(
+        new AuthorizationError("You don't have edit access to this content"),
+        "Version Restore POST"
       )
+      return createSecureResponse(error, statusCode)
     }
 
     // Create a new version snapshot before restoring (to preserve current state)
@@ -129,13 +166,13 @@ export async function POST(
       data: { contentId: id, versionId },
     })
 
-    return NextResponse.json({ success: true, content: restoredContent })
+    return createSecureResponse({ success: true, content: restoredContent })
   } catch (error) {
     logger.error("Error restoring version", {
       context: "Collaboration",
     }, error as Error)
     const { statusCode, error: apiError } = handleApiError(error, "Versions")
-    return NextResponse.json(apiError, { status: statusCode })
+    return createSecureResponse(apiError, statusCode)
   }
 }
 

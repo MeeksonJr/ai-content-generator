@@ -1,48 +1,97 @@
 import { type NextRequest, NextResponse } from "next/server"
-import { createClient } from "@/lib/supabase/server"
+import { createSupabaseRouteClient } from "@/lib/supabase/route-client"
+import { createServerSupabaseClient } from "@/lib/supabase/server-client"
+import { logger } from "@/lib/utils/logger"
+import { handleApiError, AuthenticationError, AuthorizationError, ValidationError, NotFoundError } from "@/lib/utils/error-handler"
+import { validateUuid, validateText } from "@/lib/utils/validation"
+import { createSecureResponse, handlePreflight } from "@/lib/utils/security"
+import { API_CONFIG } from "@/lib/constants/app.constants"
 
 export async function POST(request: NextRequest) {
   try {
-    const supabase = await createClient()
+    // Handle preflight OPTIONS request
+    const preflightResponse = handlePreflight(request)
+    if (preflightResponse) return preflightResponse
+
+    const supabase = await createSupabaseRouteClient()
 
     // Get the current user from Supabase
     const {
-      data: { user },
-      error: userError,
-    } = await supabase.auth.getUser()
+      data: { session },
+    } = await supabase.auth.getSession()
 
-    if (userError || !user) {
-      console.error("Authentication error:", userError)
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
+    if (!session) {
+      const { statusCode, error } = handleApiError(new AuthenticationError(), "Analyze Resume POST")
+      return createSecureResponse(error, statusCode)
     }
 
-    // For now, let's skip the admin check to test the functionality
-    // TODO: Re-enable admin check once user_profiles table is set up
-    /*
-    const { data: profile } = await supabase.from("user_profiles").select("is_admin").eq("id", user.id).single()
+    // Check if user is admin
+    const { data: profile } = await supabase
+      .from("user_profiles")
+      .select("is_admin")
+      .eq("id", session.user.id)
+      .maybeSingle()
 
-    if (!profile?.is_admin) {
-      return NextResponse.json({ error: "Forbidden - Admin access required" }, { status: 403 })
+    const isAdmin = (profile as { is_admin?: boolean } | null)?.is_admin || false
+
+    if (!isAdmin) {
+      const { statusCode, error } = handleApiError(
+        new AuthorizationError("Admin access required"),
+        "Analyze Resume POST"
+      )
+      return createSecureResponse(error, statusCode)
     }
-    */
 
     const body = await request.json()
     const { applicationId, resumeText } = body
 
+    // Validate application ID
     if (!applicationId) {
-      return NextResponse.json({ error: "Application ID is required" }, { status: 400 })
+      const { statusCode, error } = handleApiError(
+        new ValidationError("Application ID is required"),
+        "Analyze Resume POST"
+      )
+      return createSecureResponse(error, statusCode)
+    }
+
+    const uuidValidation = validateUuid(applicationId)
+    if (!uuidValidation.isValid) {
+      const { statusCode, error } = handleApiError(
+        new ValidationError(uuidValidation.error || "Invalid application ID format"),
+        "Analyze Resume POST"
+      )
+      return createSecureResponse(error, statusCode)
+    }
+
+    // Validate resume text if provided
+    if (resumeText) {
+      const textValidation = validateText(resumeText, {
+        minLength: 1,
+        maxLength: API_CONFIG.MAX_CONTENT_LENGTH,
+      })
+      if (!textValidation.isValid) {
+        const { statusCode, error } = handleApiError(
+          new ValidationError(`Resume text: ${textValidation.error}`),
+          "Analyze Resume POST"
+        )
+        return createSecureResponse(error, statusCode)
+      }
     }
 
     // Check if application exists
-    const { data: application, error: appError } = await supabase
+    const serverSupabase = createServerSupabaseClient()
+    const { data: application, error: appError } = await (serverSupabase as any)
       .from("applications")
       .select("*")
       .eq("id", applicationId)
-      .single()
+      .maybeSingle()
 
     if (appError || !application) {
-      console.error("Application not found:", appError)
-      return NextResponse.json({ error: "Application not found" }, { status: 404 })
+      const { statusCode, error } = handleApiError(
+        appError || new NotFoundError("Application not found"),
+        "Analyze Resume POST"
+      )
+      return createSecureResponse(error, statusCode)
     }
 
     // Type assertion for application data
@@ -80,26 +129,27 @@ export async function POST(request: NextRequest) {
       .eq("id", applicationId)
 
     if (updateError) {
-      console.error("Failed to update application:", updateError)
-      return NextResponse.json({ error: "Failed to save analysis" }, { status: 500 })
+      const { statusCode, error: apiError } = handleApiError(updateError, "Analyze Resume POST")
+      return createSecureResponse(apiError, statusCode)
     }
 
-    console.log("Analysis completed successfully for application:", applicationId)
+    logger.info("Analysis completed successfully", {
+      context: "Admin",
+      userId: session.user.id,
+      data: { applicationId },
+    })
 
-    return NextResponse.json({
+    return createSecureResponse({
       success: true,
       analysis,
       message: "Analysis completed successfully",
     })
   } catch (error) {
-    console.error("Resume analysis error:", error)
-    return NextResponse.json(
-      {
-        error: "Internal server error",
-        details: error instanceof Error ? error.message : "Unknown error",
-      },
-      { status: 500 },
-    )
+    logger.error("Resume analysis error", {
+      context: "Admin",
+    }, error as Error)
+    const { statusCode, error: apiError } = handleApiError(error, "Analyze Resume")
+    return createSecureResponse(apiError, statusCode)
   }
 }
 
