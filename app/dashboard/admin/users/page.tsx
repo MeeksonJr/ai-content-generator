@@ -43,11 +43,37 @@ export default async function AdminUsersPage() {
     redirect("/dashboard")
   }
 
+  // Use server client to access auth.users for email addresses
+  const { createServerSupabaseClient } = await import("@/lib/supabase/server-client")
+  const serverSupabase = createServerSupabaseClient()
+
   const [{ data: profiles }, { data: subscriptions }, { data: usageStats }] = await Promise.all([
     supabase.from("user_profiles").select("*").order("created_at", { ascending: false }),
     supabase.from("subscriptions").select("*"),
     supabase.from("usage_stats").select("*"),
   ])
+
+  // Fetch user emails from auth.users (requires service role)
+  const userIds = profiles?.map((p) => p.id) || []
+  const userEmailsMap = new Map<string, { email: string; emailVerified: boolean; metadata: any }>()
+  
+  // Fetch user data from auth.users in batches
+  for (const userId of userIds) {
+    try {
+      // @ts-ignore - auth.users is accessible via admin API
+      const { data: authUser, error } = await serverSupabase.auth.admin.getUserById(userId)
+      if (!error && authUser?.user) {
+        userEmailsMap.set(userId, {
+          email: authUser.user.email || "",
+          emailVerified: authUser.user.email_confirmed_at !== null,
+          metadata: authUser.user.user_metadata || {},
+        })
+      }
+    } catch (error) {
+      // Silently continue if we can't fetch user data
+      console.error(`Failed to fetch user data for ${userId}:`, error)
+    }
+  }
 
   const subscriptionMap = new Map<string, SubscriptionTableRow>()
   ;((subscriptions as SubscriptionTableRow[] | null) || []).forEach((sub) => {
@@ -80,20 +106,31 @@ export default async function AdminUsersPage() {
   })
 
   const users: AdminUserRecord[] =
-    profiles?.map((profile) => ({
-      id: profile.id,
-      isAdmin: profile.is_admin,
-      createdAt: profile.created_at,
-      updatedAt: profile.updated_at,
-      subscription: subscriptionMap.get(profile.id),
-      usage:
-        usageMap.get(profile.id) || {
-          totalContent: 0,
-          totalSentiment: 0,
-          totalKeywords: 0,
-          totalSummaries: 0,
-        },
-    })) || []
+    profiles?.map((profile) => {
+      const userEmailData = userEmailsMap.get(profile.id)
+      return {
+        id: profile.id,
+        email: userEmailData?.email || "",
+        emailVerified: userEmailData?.emailVerified || false,
+        displayName: profile.display_name || userEmailData?.metadata?.name || "",
+        avatarUrl: profile.avatar_url || userEmailData?.metadata?.avatar_url || null,
+        bio: profile.bio || null,
+        location: profile.location || null,
+        company: userEmailData?.metadata?.company || null,
+        website: profile.website_url || userEmailData?.metadata?.website || null,
+        isAdmin: profile.is_admin,
+        createdAt: profile.created_at,
+        updatedAt: profile.updated_at,
+        subscription: subscriptionMap.get(profile.id),
+        usage:
+          usageMap.get(profile.id) || {
+            totalContent: 0,
+            totalSentiment: 0,
+            totalKeywords: 0,
+            totalSummaries: 0,
+          },
+      }
+    }) || []
 
   return (
     <DashboardLayout>

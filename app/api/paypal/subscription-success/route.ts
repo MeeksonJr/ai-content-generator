@@ -24,7 +24,7 @@ export async function POST(request: Request) {
 
     // Get request body
     const body = await request.json()
-    const { subscriptionId } = body
+    const { subscriptionId, revisionId, isRevision } = body
 
     if (!subscriptionId) {
       logger.warn("Missing parameters in PayPal success API", {
@@ -61,11 +61,12 @@ export async function POST(request: Request) {
     }
 
     // Update subscription in database
+    // Try to find by paypal_subscription_id first, then payment_id
     const { data: existingSubscription, error: fetchError } = await supabase
       .from("subscriptions")
       .select("*")
-      .eq("payment_id", subscriptionId)
-      .single()
+      .or(`paypal_subscription_id.eq.${subscriptionId},payment_id.eq.${subscriptionId}`)
+      .maybeSingle()
 
     if (fetchError && fetchError.code !== "PGRST116") {
       logger.error("Error fetching subscription from database", {
@@ -78,20 +79,27 @@ export async function POST(request: Request) {
 
     if (existingSubscription) {
       // Update existing subscription
-      const { error: updateError } = await supabase
+      // Use server client for database operations to bypass RLS if needed
+      const { createServerSupabaseClient } = await import("@/lib/supabase/server-client")
+      const serverSupabase = createServerSupabaseClient()
+      
+      const existingSub = existingSubscription as any
+      
+      // @ts-expect-error - Known Supabase type inference issue with update operations
+      const { error: updateError } = await serverSupabase
         .from("subscriptions")
         .update({
           status: "active",
           updated_at: new Date().toISOString(),
-        })
-        .eq("id", existingSubscription.id)
+          ...(revisionId && { paypal_subscription_id: subscriptionId }),
+        } as any)
+        .eq("id", existingSub.id)
 
       if (updateError) {
         logger.error("Error updating subscription in database", {
           context: "API",
-          userId,
-          data: { error: updateError, subscriptionId: existingSubscription.id },
-        })
+          data: { userId, subscriptionId: existingSub.id },
+        }, updateError as Error)
         return NextResponse.json({ error: "Failed to update subscription" }, { status: 500 })
       }
     } else {
@@ -100,13 +108,21 @@ export async function POST(request: Request) {
       const planName = subscriptionData?.plan?.name?.toLowerCase?.() ?? ""
       const planType = planName.includes("professional") ? "professional" : "enterprise"
 
-      const { error: createError } = await supabase.from("subscriptions").insert({
+      // Use server client for database operations
+      const { createServerSupabaseClient } = await import("@/lib/supabase/server-client")
+      const serverSupabase = createServerSupabaseClient()
+      
+      // @ts-ignore - Known Supabase type inference issue
+      const { error: createError } = await serverSupabase.from("subscriptions").insert({
         user_id: userId,
         plan_type: planType,
         status: "active",
         started_at: new Date().toISOString(),
         payment_id: subscriptionId,
-      })
+        paypal_subscription_id: subscriptionId,
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
+      } as any)
 
       if (createError) {
         logger.error("Error creating subscription in database", {

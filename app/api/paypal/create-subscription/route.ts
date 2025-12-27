@@ -1,22 +1,28 @@
 import { type NextRequest, NextResponse } from "next/server"
-import { createServerClient } from "@/lib/supabase/server"
+import { createSupabaseRouteClient } from "@/lib/supabase/route-client"
 import * as paypalClient from "@/lib/paypal/client"
 import { logger } from "@/lib/utils/logger"
+import { handleApiError, AuthenticationError } from "@/lib/utils/error-handler"
 
 // Enable test mode for development/testing without actual PayPal calls
 const TEST_MODE = process.env.NODE_ENV !== "production" && process.env.PAYPAL_TEST_MODE === "true"
 
 export async function POST(request: NextRequest) {
   try {
-    // Get the authenticated user
-    const supabase = await createServerClient()
+    // Get the authenticated user using route client (for API routes)
+    const supabase = await createSupabaseRouteClient()
+    
+    // Check if user is authenticated
     const {
-      data: { user },
-    } = await supabase.auth.getUser()
+      data: { session },
+    } = await supabase.auth.getSession()
 
-    if (!user) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
+    if (!session || !session.user) {
+      const { statusCode, error } = handleApiError(new AuthenticationError(), "PayPal Create Subscription")
+      return NextResponse.json(error, { status: statusCode })
     }
+
+    const user = session.user
 
     // Get the plan from the request
     const body = await request.json().catch(() => ({}))
@@ -44,8 +50,8 @@ export async function POST(request: NextRequest) {
     // For testing without PayPal
     if (TEST_MODE) {
       logger.info("Using TEST MODE for PayPal subscription", {
-        userId: user.id,
-        planType,
+        context: "PayPal",
+        data: { userId: user.id, planType },
       })
 
       const appUrl = process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000"
@@ -54,7 +60,12 @@ export async function POST(request: NextRequest) {
       const testSubscriptionId = `TEST_SUB_${Date.now()}`
       const testPlanId = `TEST_PLAN_${Date.now()}`
 
-      const { error: subscriptionError } = await supabase
+      // Use server client for database operations
+      const { createServerSupabaseClient } = await import("@/lib/supabase/server-client")
+      const serverSupabase = createServerSupabaseClient()
+      
+      // @ts-ignore - Known Supabase type inference issue
+      const { error: subscriptionError } = await serverSupabase
         .from("subscriptions")
         .upsert(
           {
@@ -66,15 +77,15 @@ export async function POST(request: NextRequest) {
             status: "pending",
             created_at: new Date().toISOString(),
             updated_at: new Date().toISOString(),
-          },
+          } as any,
           { onConflict: "user_id" },
         )
 
       if (subscriptionError) {
         logger.error("Failed to store test subscription in database", {
-          userId: user.id,
-          error: subscriptionError,
-        })
+          context: "PayPal",
+          data: { userId: user.id },
+        }, subscriptionError as Error)
         return NextResponse.json({ error: "Failed to store subscription" }, { status: 500 })
       }
 
@@ -88,9 +99,8 @@ export async function POST(request: NextRequest) {
     // Create a subscription plan in PayPal
     try {
       logger.info("Creating PayPal subscription plan", {
-        userId: user.id,
-        planType,
-        planDetails: { planName, planDescription, planAmount },
+        context: "PayPal",
+        data: { userId: user.id, planType, planDetails: { planName, planDescription, planAmount } },
       })
 
       const plan = await paypalClient.createSubscriptionPlan({
@@ -102,8 +112,8 @@ export async function POST(request: NextRequest) {
 
       // Create a subscription
       logger.info("Creating PayPal subscription", {
-        userId: user.id,
-        planId: plan.id,
+        context: "PayPal",
+        data: { userId: user.id, planId: plan.id },
       })
 
       const subscription = await paypalClient.createSubscription(plan.id, user.id)
@@ -113,15 +123,19 @@ export async function POST(request: NextRequest) {
 
       if (!approvalUrl) {
         logger.error("Approval URL not found in PayPal response", {
-          userId: user.id,
-          subscriptionId: subscription.id,
-          links: subscription.links,
+          context: "PayPal",
+          data: { userId: user.id, subscriptionId: subscription.id, links: subscription.links },
         })
         throw new Error("Approval URL not found in PayPal response")
       }
 
       // Store the subscription details in the database
-      const { error: subscriptionError } = await supabase
+      // Use server client for database operations
+      const { createServerSupabaseClient } = await import("@/lib/supabase/server-client")
+      const serverSupabase = createServerSupabaseClient()
+      
+      // @ts-ignore - Known Supabase type inference issue
+      const { error: subscriptionError } = await serverSupabase
         .from("subscriptions")
         .upsert(
           {
@@ -133,15 +147,15 @@ export async function POST(request: NextRequest) {
             status: "pending",
             created_at: new Date().toISOString(),
             updated_at: new Date().toISOString(),
-          },
+          } as any,
           { onConflict: "user_id" },
         )
 
       if (subscriptionError) {
         logger.error("Failed to store subscription in database", {
-          userId: user.id,
-          error: subscriptionError,
-        })
+          context: "PayPal",
+          data: { userId: user.id },
+        }, subscriptionError as Error)
         // Continue anyway, as the PayPal subscription is already created
       }
 
@@ -152,10 +166,9 @@ export async function POST(request: NextRequest) {
       })
     } catch (error) {
       logger.error("PayPal API error", {
-        userId: user.id,
-        error: error instanceof Error ? error.message : String(error),
-        stack: error instanceof Error ? error.stack : undefined,
-      })
+        context: "PayPal",
+        data: { userId: user.id },
+      }, error instanceof Error ? error : new Error(String(error)))
 
       // Provide a more specific error message based on the error
       let errorMessage = "Failed to create PayPal subscription. Please try again later."
@@ -172,9 +185,8 @@ export async function POST(request: NextRequest) {
     }
   } catch (error) {
     logger.error("Failed to process subscription request", {
-      error: error instanceof Error ? error.message : String(error),
-      stack: error instanceof Error ? error.stack : undefined,
-    })
+      context: "PayPal",
+    }, error instanceof Error ? error : new Error(String(error)))
     return NextResponse.json({ error: "An unexpected error occurred. Please try again later." }, { status: 500 })
   }
 }

@@ -4,6 +4,8 @@ import { generateContent } from "@/lib/ai/groq-client"
 import { analyzeSentiment, extractKeywords } from "@/lib/ai/huggingface-client"
 import { logger } from "@/lib/utils/logger"
 import { getSupabaseServiceRoleKey, getSupabaseUrl } from "@/lib/utils/supabase-env"
+import { checkRateLimit, getRateLimitHeaders } from "@/lib/utils/rate-limiter"
+import { handleApiError, RateLimitError } from "@/lib/utils/error-handler"
 
 const supabaseUrl = getSupabaseUrl()
 const supabaseServiceKey = getSupabaseServiceRoleKey()
@@ -50,8 +52,8 @@ const DEFAULT_USAGE_LIMITS = {
   },
 }
 
-// Helper function to authenticate API key
-async function authenticateApiKey(apiKey: string) {
+// Helper function to authenticate API key and return user ID and API key ID
+async function authenticateApiKey(apiKey: string): Promise<{ userId: string; apiKeyId: string } | null> {
   if (!apiKey || !apiKey.startsWith("sk_")) {
     return null
   }
@@ -60,7 +62,7 @@ async function authenticateApiKey(apiKey: string) {
     // Look up the API key in the database
     const { data: apiKeyData, error } = await supabase
       .from("api_keys")
-      .select("user_id, is_active, last_used_at")
+      .select("id, user_id, is_active, last_used_at")
       .eq("api_key", apiKey)
       .eq("is_active", true)
       .single()
@@ -76,7 +78,10 @@ async function authenticateApiKey(apiKey: string) {
     // Update last_used_at timestamp
     await supabase.from("api_keys").update({ last_used_at: new Date().toISOString() }).eq("api_key", apiKey)
 
-    return apiKeyData.user_id
+    return {
+      userId: apiKeyData.user_id,
+      apiKeyId: apiKeyData.id,
+    }
   } catch (error) {
     logger.error("Error authenticating API key", { context: "API" }, error as Error)
     return null
@@ -96,15 +101,17 @@ export async function POST(request: Request) {
     }
 
     const apiKey = authHeader.replace("Bearer ", "")
-    const userId = await authenticateApiKey(apiKey)
+    const authResult = await authenticateApiKey(apiKey)
 
-    if (!userId) {
+    if (!authResult) {
       logger.warn("Invalid API key in generate API", {
         context: "API",
         data: { apiKey: apiKey.substring(0, 10) + "..." },
       })
       return NextResponse.json({ error: "Invalid API key" }, { status: 401 })
     }
+
+    const { userId, apiKeyId } = authResult
 
     // Get request body
     const body = await request.json()
@@ -166,10 +173,44 @@ export async function POST(request: Request) {
     if (!planLimits.api_access_enabled) {
       logger.warn("API access not available on current plan", {
         context: "API",
-        userId,
-        data: { planType },
+        data: { userId, planType },
       })
       return NextResponse.json({ error: "API access not available on your current plan" }, { status: 403 })
+    }
+
+    // Check rate limits (time-based throttling)
+    let rateLimitHeaders: Record<string, string> = {}
+    try {
+      // Check per-minute rate limit (per API key if available)
+      const minuteLimit = await checkRateLimit(userId, planType, apiKeyId, "minute")
+      
+      // Check per-hour rate limit
+      const hourLimit = await checkRateLimit(userId, planType, apiKeyId, "hour")
+      
+      // Get rate limit headers for response
+      rateLimitHeaders = {
+        ...getRateLimitHeaders(minuteLimit),
+        "X-RateLimit-Hourly-Limit": hourLimit.limit.toString(),
+        "X-RateLimit-Hourly-Remaining": hourLimit.remaining.toString(),
+        "X-RateLimit-Hourly-Reset": hourLimit.resetAt.toString(),
+      }
+    } catch (error) {
+      // If rate limit exceeded, return error
+      if (error instanceof RateLimitError) {
+        const { statusCode, error: apiError } = handleApiError(error, "API Rate Limit")
+        return NextResponse.json(apiError, { 
+          status: statusCode,
+          headers: {
+            "Retry-After": "60", // Suggest retrying after 60 seconds
+            ...rateLimitHeaders,
+          },
+        })
+      }
+      // For other errors, log and continue (fail open)
+      logger.error("Rate limit check error", {
+        context: "API",
+        data: { userId },
+      }, error as Error)
     }
 
     // Get current month's usage
@@ -293,14 +334,19 @@ export async function POST(request: Request) {
       },
     })
 
-    // Return the generated content and analysis
-    return NextResponse.json({
-      content: contentResult.content,
-      sentiment: sentimentResult.sentiment,
-      sentimentScore: sentimentResult.score,
-      keywords: keywordsResult.keywords,
-      fallback: contentResult.fallback || false,
-    })
+    // Return the generated content and analysis with rate limit headers
+    return NextResponse.json(
+      {
+        content: contentResult.content,
+        sentiment: sentimentResult.sentiment,
+        sentimentScore: sentimentResult.score,
+        keywords: keywordsResult.keywords,
+        fallback: contentResult.fallback || false,
+      },
+      {
+        headers: rateLimitHeaders,
+      }
+    )
   } catch (error) {
     logger.error("Error in content generation API:", { context: "API" }, error as Error)
     return NextResponse.json({ error: "Internal server error" }, { status: 500 })

@@ -100,6 +100,11 @@ export async function POST(request: NextRequest) {
         await handleSubscriptionUpdated(resource)
         break
 
+      case "PAYMENT.SALE.COMPLETED":
+      case "BILLING.SUBSCRIPTION.PAYMENT.COMPLETED":
+        await handlePaymentCompleted(resource)
+        break
+
       default:
         logger.info("Unhandled PayPal webhook event type", {
           context: "PayPalWebhook",
@@ -160,7 +165,7 @@ async function handleSubscriptionActivated(resource: any) {
 
     const subscription = existingSubscription as SubscriptionRow
 
-    const updateData: SubscriptionUpdate = {
+    const updateData: any = {
       status: "active",
       updated_at: new Date().toISOString(),
     }
@@ -171,7 +176,7 @@ async function handleSubscriptionActivated(resource: any) {
     }
 
     // Update existing subscription
-    const { error: updateError } = await supabase
+    const { error: updateError } = await (supabase as any)
       .from("subscriptions")
       .update(updateData)
       .eq("id", subscription.id)
@@ -235,13 +240,13 @@ async function handleSubscriptionCancelled(resource: any) {
 
     const sub = subscription as SubscriptionRow
 
-    const updateData: SubscriptionUpdate = {
+    const updateData: any = {
       status: "cancelled",
       updated_at: new Date().toISOString(),
       expires_at: new Date().toISOString(),
     }
 
-    const { error: updateError } = await supabase
+    const { error: updateError } = await (supabase as any)
       .from("subscriptions")
       .update(updateData)
       .eq("id", sub.id)
@@ -301,12 +306,12 @@ async function handleSubscriptionExpired(resource: any) {
 
     const sub = subscription as SubscriptionRow
 
-    const updateData: SubscriptionUpdate = {
+    const updateData: any = {
       status: "expired",
       updated_at: new Date().toISOString(),
     }
 
-    const { error: updateError } = await supabase
+    const { error: updateError } = await (supabase as any)
       .from("subscriptions")
       .update(updateData)
       .eq("id", sub.id)
@@ -366,12 +371,12 @@ async function handleSubscriptionSuspended(resource: any) {
 
     const sub = subscription as SubscriptionRow
 
-    const updateData: SubscriptionUpdate = {
+    const updateData: any = {
       status: "suspended",
       updated_at: new Date().toISOString(),
     }
 
-    const { error: updateError } = await supabase
+    const { error: updateError } = await (supabase as any)
       .from("subscriptions")
       .update(updateData)
       .eq("id", sub.id)
@@ -431,12 +436,12 @@ async function handlePaymentFailed(resource: any) {
 
     const sub = subscription as SubscriptionRow
 
-    const updateData: SubscriptionUpdate = {
+    const updateData: any = {
       status: "past_due",
       updated_at: new Date().toISOString(),
     }
 
-    const { error: updateError } = await supabase
+    const { error: updateError } = await (supabase as any)
       .from("subscriptions")
       .update(updateData)
       .eq("id", sub.id)
@@ -499,7 +504,7 @@ async function handleSubscriptionUpdated(resource: any) {
 
     const sub = subscription as SubscriptionRow
 
-    const updateData: SubscriptionUpdate = {
+    const updateData: any = {
       updated_at: new Date().toISOString(),
     }
 
@@ -522,7 +527,7 @@ async function handleSubscriptionUpdated(resource: any) {
     }
 
     // @ts-ignore - Supabase type inference issue with maybeSingle()
-    const { error: updateError } = await supabase
+    const { error: updateError } = await (supabase as any)
       .from("subscriptions")
       .update(updateData)
       .eq("id", sub.id)
@@ -542,6 +547,124 @@ async function handleSubscriptionUpdated(resource: any) {
     logger.error("Error handling subscription update", {
       context: "PayPalWebhook",
       data: { subscriptionId },
+    }, error as Error)
+  }
+}
+
+/**
+ * Store payment transaction in payment_history table
+ */
+async function storePaymentTransaction(
+  userId: string,
+  subscriptionId: string | null,
+  paypalSubscriptionId: string | null,
+  transactionData: {
+    transactionId: string
+    amount: number
+    currency: string
+    status: string
+    description?: string
+    receiptUrl?: string
+  }
+) {
+  try {
+    const supabase = createServerSupabaseClient()
+    
+    // @ts-ignore - payment_history table exists but types may not be generated yet
+    const { error } = await supabase.from("payment_history").insert({
+      user_id: userId,
+      subscription_id: subscriptionId,
+      paypal_subscription_id: paypalSubscriptionId,
+      transaction_id: transactionData.transactionId,
+      amount: transactionData.amount,
+      currency: transactionData.currency,
+      status: transactionData.status,
+      description: transactionData.description || "Subscription payment",
+      receipt_url: transactionData.receiptUrl || null,
+    } as any)
+
+    if (error) {
+      logger.error("Error storing payment transaction", {
+        context: "PayPalWebhook",
+        data: { userId, transactionId: transactionData.transactionId, error },
+      })
+    } else {
+      logger.info("Payment transaction stored", {
+        context: "PayPalWebhook",
+        data: { userId, transactionId: transactionData.transactionId },
+      })
+    }
+  } catch (error) {
+    logger.error("Error in storePaymentTransaction", {
+      context: "PayPalWebhook",
+      data: { userId },
+    }, error as Error)
+  }
+}
+
+/**
+ * Handle payment completed event
+ */
+async function handlePaymentCompleted(resource: any) {
+  const transactionId = resource?.id || resource?.transaction_id
+  const subscriptionId = resource?.billing_agreement_id || resource?.subscription_id
+
+  if (!transactionId || !subscriptionId) {
+    logger.warn("Payment completed event missing required data", {
+      context: "PayPalWebhook",
+      data: { resource },
+    })
+    return
+  }
+
+  try {
+    const supabase = createServerSupabaseClient()
+
+    // Find subscription by PayPal subscription ID
+    const { data: subscription, error: fetchError } = await supabase
+      .from("subscriptions")
+      .select("*")
+      .or(`paypal_subscription_id.eq.${subscriptionId},payment_id.eq.${subscriptionId}`)
+      .maybeSingle()
+
+    if (fetchError || !subscription) {
+      logger.warn("Subscription not found for payment completed event", {
+        context: "PayPalWebhook",
+        data: { subscriptionId, transactionId },
+      })
+      return
+    }
+
+    const sub = subscription as SubscriptionRow
+
+    // Extract payment details from resource
+    const amount = parseFloat(resource.amount?.total || resource.amount?.value || "0")
+    const currency = resource.amount?.currency || resource.currency_code || "USD"
+    const status = resource.state || resource.status || "completed"
+
+    // Store payment transaction
+    await storePaymentTransaction(
+      sub.user_id,
+      sub.id,
+      subscriptionId,
+      {
+        transactionId,
+        amount,
+        currency,
+        status: status.toLowerCase(),
+        description: `Subscription payment for ${sub.plan_type} plan`,
+        receiptUrl: resource.links?.find((link: any) => link.rel === "self")?.href || null,
+      }
+    )
+
+    logger.info("Payment completed event processed", {
+      context: "PayPalWebhook",
+      data: { subscriptionId, transactionId, userId: sub.user_id, amount, currency },
+    })
+  } catch (error) {
+    logger.error("Error handling payment completed", {
+      context: "PayPalWebhook",
+      data: { subscriptionId, transactionId },
     }, error as Error)
   }
 }

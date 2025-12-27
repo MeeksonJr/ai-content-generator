@@ -16,7 +16,14 @@ import {
   UserMinus,
   UserPlus,
   Users,
+  Mail,
+  MapPin,
+  Building,
+  Globe,
+  CheckCircle2,
+  XCircle,
 } from "lucide-react"
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 
 type SubscriptionRow = {
   id: string
@@ -29,6 +36,14 @@ type SubscriptionRow = {
 
 export type AdminUserRecord = {
   id: string
+  email?: string
+  emailVerified?: boolean
+  displayName?: string
+  avatarUrl?: string | null
+  bio?: string | null
+  location?: string | null
+  company?: string | null
+  website?: string | null
   isAdmin: boolean
   createdAt: string
   updatedAt: string
@@ -55,7 +70,13 @@ export function AdminUsersClient({ initialUsers }: AdminUsersClientProps) {
 
   const filteredUsers = useMemo(() => {
     return users.filter((user) => {
-      const matchesSearch = user.id.toLowerCase().includes(search.toLowerCase())
+      const searchLower = search.toLowerCase()
+      const matchesSearch =
+        user.id.toLowerCase().includes(searchLower) ||
+        user.email?.toLowerCase().includes(searchLower) ||
+        user.displayName?.toLowerCase().includes(searchLower) ||
+        user.company?.toLowerCase().includes(searchLower) ||
+        false
       const subscription = user.subscription
       const matchesPlan = planFilter === "all" || (subscription?.plan_type || "none") === planFilter
       const matchesStatus = statusFilter === "all" || (subscription?.status || "unknown") === statusFilter
@@ -207,7 +228,7 @@ export function AdminUsersClient({ initialUsers }: AdminUsersClientProps) {
           <div className="relative flex-1">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
             <Input
-              placeholder="Search by user id..."
+              placeholder="Search by name, email, company, or user ID..."
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               className="pl-9 bg-gray-950 border-gray-800"
@@ -252,14 +273,71 @@ export function AdminUsersClient({ initialUsers }: AdminUsersClientProps) {
               {filteredUsers.map((user) => (
                 <div key={user.id} className="rounded-lg border border-gray-800 bg-gray-950 p-4">
                   <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
-                    <div className="space-y-2">
-                      <div className="flex items-center gap-2">
-                        <p className="font-semibold text-white">User ID: {user.id}</p>
-                        {user.isAdmin && (
-                          <Badge variant="outline" className="bg-green-900/20 text-green-400 border-green-800">
-                            Admin
-                          </Badge>
-                        )}
+                    <div className="space-y-2 flex-1">
+                      <div className="flex items-center gap-3">
+                        <Avatar className="h-10 w-10 border border-gray-700">
+                          <AvatarImage src={user.avatarUrl || undefined} alt={user.displayName || user.email} />
+                          <AvatarFallback className="bg-gray-800 text-gray-300">
+                            {(user.displayName || user.email || user.id)
+                              .charAt(0)
+                              .toUpperCase()}
+                          </AvatarFallback>
+                        </Avatar>
+                        <div className="flex-1">
+                          <div className="flex items-center gap-2 flex-wrap">
+                            <p className="font-semibold text-white">
+                              {user.displayName || user.email || `User ${user.id.substring(0, 8)}`}
+                            </p>
+                            {user.isAdmin && (
+                              <Badge variant="outline" className="bg-green-900/20 text-green-400 border-green-800">
+                                Admin
+                              </Badge>
+                            )}
+                            {user.emailVerified && (
+                              <span title="Email verified">
+                                <CheckCircle2 className="h-4 w-4 text-green-400" />
+                              </span>
+                            )}
+                            {user.email && !user.emailVerified && (
+                              <span title="Email not verified">
+                                <XCircle className="h-4 w-4 text-yellow-400" />
+                              </span>
+                            )}
+                          </div>
+                          <div className="flex flex-wrap items-center gap-3 text-sm text-muted-foreground mt-1">
+                            {user.email && (
+                              <div className="flex items-center gap-1">
+                                <Mail className="h-3 w-3" />
+                                <span className="truncate max-w-[200px]">{user.email}</span>
+                              </div>
+                            )}
+                            {user.company && (
+                              <div className="flex items-center gap-1">
+                                <Building className="h-3 w-3" />
+                                <span>{user.company}</span>
+                              </div>
+                            )}
+                            {user.location && (
+                              <div className="flex items-center gap-1">
+                                <MapPin className="h-3 w-3" />
+                                <span>{user.location}</span>
+                              </div>
+                            )}
+                            {user.website && (
+                              <div className="flex items-center gap-1">
+                                <Globe className="h-3 w-3" />
+                                <a
+                                  href={user.website}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  className="hover:text-primary truncate max-w-[150px]"
+                                >
+                                  {user.website.replace(/^https?:\/\//, "")}
+                                </a>
+                              </div>
+                            )}
+                          </div>
+                        </div>
                       </div>
                       <div className="flex flex-wrap items-center gap-3 text-sm text-muted-foreground">
                         <span>Joined {new Date(user.createdAt).toLocaleDateString()}</span>
@@ -269,7 +347,17 @@ export function AdminUsersClient({ initialUsers }: AdminUsersClientProps) {
                             {renderStatusBadge(user.subscription.status)}
                           </>
                         )}
+                        {user.bio && (
+                          <span className="text-xs italic truncate max-w-[300px]" title={user.bio}>
+                            {user.bio}
+                          </span>
+                        )}
                       </div>
+                      {user.id && (
+                        <div className="text-xs text-muted-foreground font-mono">
+                          ID: {user.id}
+                        </div>
+                      )}
                     </div>
                     <div className="flex flex-wrap gap-2">
                       <Button

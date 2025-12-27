@@ -25,6 +25,7 @@ import {
   User,
   Users,
   Shield,
+  Receipt,
 } from "lucide-react"
 import {
   DropdownMenu,
@@ -136,6 +137,7 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
     { name: "Analytics", href: "/dashboard/analytics", icon: BarChart3 },
     { name: "API Documentation", href: "/dashboard/api-docs", icon: Code },
     { name: "Subscription", href: "/dashboard/subscription", icon: CreditCard },
+    { name: "Payment History", href: "/dashboard/payment-history", icon: Receipt },
     { name: "Settings", href: "/dashboard/settings", icon: Settings },
   ]
 

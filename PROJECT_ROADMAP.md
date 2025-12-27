@@ -495,9 +495,22 @@
 
 ### Admin Features
 
-- [ ] **User Management**
+- [x] **User Management** ✅
   - **Route:** `/dashboard/admin/users`
-  - **Status:** Initial dashboard implemented (user listing, filters, admin toggle, plan activation/cancel). Remaining work: surface email/profile metadata and advanced actions (suspensions, usage history export).
+  - **Status:** Enhanced with email/profile metadata display
+  - **Implementation:**
+    - ✅ User listing with filters (plan, status, search)
+    - ✅ Admin toggle functionality
+    - ✅ Plan activation/cancellation
+    - ✅ **Email and profile metadata display** ✅
+    - ✅ **Avatar display with fallback** ✅
+    - ✅ **Email verification status indicator** ✅
+    - ✅ **Company, location, website display** ✅
+    - ✅ **Enhanced search (by name, email, company, ID)** ✅
+    - ✅ **Bio display** ✅
+  - **Remaining (Optional):**
+    - User suspensions
+    - Usage history export
 
 - [ ] **System Settings**
   - Configure subscription plans
@@ -511,15 +524,37 @@
 
 ### Payment Features
 
-- [ ] **Invoice Generation**
-  - Generate invoices for subscriptions
-  - Download invoices
-  - Invoice history
+- [x] **Invoice Generation** ✅
+  - **Status:** Implemented
+  - **Implementation:**
+    - ✅ Generate invoices for payments
+    - ✅ Download invoices as HTML
+    - ✅ Invoice ID generation
+    - ✅ Invoice template with company details
+  - **Files Created:**
+    - `app/api/invoices/generate/route.ts` - Invoice generation API
+  - **Next Steps (Optional):**
+    - PDF generation (use pdfkit or puppeteer)
+    - Invoice history page
+    - Email invoice delivery
 
-- [ ] **Payment History**
-  - View payment history
-  - Download receipts
-  - Payment method management
+- [x] **Payment History** ✅
+  - **Status:** Fully implemented
+  - **Implementation:**
+    - ✅ View payment history from database and PayPal
+    - ✅ Download receipts (PayPal receipts or generated invoices)
+    - ✅ Payment status badges
+    - ✅ Payment summary cards (total payments, total paid, this month)
+    - ✅ Payment transaction tracking in webhook
+    - ✅ Database table for payment history
+  - **Files Created:**
+    - `app/api/payment-history/route.ts` - Payment history API
+    - `app/dashboard/payment-history/page.tsx` - Payment history UI
+    - `lib/paypal/transactions.ts` - PayPal transactions API
+    - `docs/payment-history-migration.sql` - Database migration
+  - **Files Modified:**
+    - `app/api/paypal/webhook/route.ts` - Added payment completed handler
+    - `components/dashboard/dashboard-layout.tsx` - Added Payment History to navigation
 
 - [ ] **Refund Management**
   - Process refunds
@@ -636,19 +671,31 @@
     - More code examples (additional languages)
     - Rate limit display (current usage vs limits)
 
-- [ ] **API Rate Limiting**
-  - **Status:** Partial implementation
-  - **Current Implementation:**
+- [x] **API Rate Limiting** ✅
+  - **Status:** Fully implemented
+  - **Implementation:**
     - ✅ Monthly usage quotas (content generation limits)
     - ✅ Plan-based feature access control
     - ✅ Usage statistics tracking
     - ✅ `RateLimitError` class exists in error handler
-  - **Missing:**
-    - Per-minute/hour rate limiting (throttling)
-    - Per-API-key rate limiting
-    - Rate limit headers in responses
-    - Rate limit reset tracking
-  - **Needed:** Implement time-based rate limiting (requests per minute/hour) in addition to monthly quotas
+    - ✅ **Per-minute/hour rate limiting (throttling)** ✅
+    - ✅ **Per-API-key rate limiting** ✅
+    - ✅ **Rate limit headers in responses** ✅
+    - ✅ **Rate limit reset tracking** ✅
+    - ✅ **Rate limiting added to sentiment analysis endpoint** ✅
+    - ✅ **Rate limiting added to text summarization endpoint** ✅
+  - **Files Created:**
+    - `lib/utils/rate-limiter.ts` - Core rate limiting logic
+    - `docs/rate-limits-migration.sql` - Database migration
+    - `docs/api-rate-limiting-implementation.md` - Documentation
+  - **Files Modified:**
+    - `app/api/v1/generate/route.ts` - Integrated rate limiting
+    - `app/api/sentiment/route.ts` - Added rate limiting
+    - `app/api/summarize/route.ts` - Added rate limiting
+  - **Next Steps (Optional):**
+    - Add rate limiting to other API endpoints (analyze, enhance, etc.)
+    - Set up cleanup job for old rate limit records
+    - Consider Redis for high-traffic scenarios
 
 ---
 

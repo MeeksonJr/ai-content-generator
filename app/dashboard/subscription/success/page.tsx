@@ -18,12 +18,17 @@ export default function SubscriptionSuccessPage() {
       try {
         setLoading(true)
 
-        // Get subscription ID and revision flag from URL
+        // Get subscription ID and revision ID from URL
         const urlParams = new URLSearchParams(window.location.search)
-        const subscriptionId = urlParams.get("subscription_id")
-        const isRevision = urlParams.get("revise") === "true" || urlParams.get("plan_updated") === "true"
+        const subscriptionId = urlParams.get("subscription_id") || urlParams.get("subscriptionId")
+        const revisionId = urlParams.get("revision_id") || urlParams.get("revisionId")
+        const token = urlParams.get("token")
         
-        if (!subscriptionId) {
+        // PayPal redirects can include subscription_id or token
+        // If we have a token, we need to extract subscription_id from it or use it
+        const finalSubscriptionId = subscriptionId || token
+        
+        if (!finalSubscriptionId) {
           throw new Error("Missing subscription information. Please ensure the PayPal redirect included a subscription ID.")
         }
 
@@ -33,7 +38,11 @@ export default function SubscriptionSuccessPage() {
           headers: {
             "Content-Type": "application/json",
           },
-          body: JSON.stringify({ subscriptionId, isRevision }),
+          body: JSON.stringify({ 
+            subscriptionId: finalSubscriptionId, 
+            revisionId,
+            isRevision: !!revisionId 
+          }),
         })
 
         if (!response.ok) {

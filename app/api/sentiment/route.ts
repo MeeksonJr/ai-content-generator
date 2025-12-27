@@ -1,6 +1,9 @@
 import { NextResponse } from "next/server"
 import { analyzeSentiment } from "@/lib/ai/huggingface-client"
 import { createSupabaseRouteClient } from "@/lib/supabase/route-client"
+import { checkRateLimit, getRateLimitHeaders } from "@/lib/utils/rate-limiter"
+import { handleApiError, RateLimitError } from "@/lib/utils/error-handler"
+import { logger } from "@/lib/utils/logger"
 
 export async function POST(request: Request) {
   try {
@@ -50,6 +53,33 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "Sentiment analysis not available on your current plan" }, { status: 403 })
     }
 
+    // Check rate limits (time-based throttling)
+    let rateLimitHeaders: Record<string, string> = {}
+    try {
+      const planType = subscription.plan_type || "free"
+      const minuteLimit = await checkRateLimit(session.user.id, planType, undefined, "minute")
+      const hourLimit = await checkRateLimit(session.user.id, planType, undefined, "hour")
+      
+      rateLimitHeaders = {
+        ...getRateLimitHeaders(minuteLimit),
+        "X-RateLimit-Hourly-Limit": hourLimit.limit.toString(),
+        "X-RateLimit-Hourly-Remaining": hourLimit.remaining.toString(),
+        "X-RateLimit-Hourly-Reset": hourLimit.resetAt.toString(),
+      }
+    } catch (error) {
+      if (error instanceof RateLimitError) {
+        const { statusCode, error: apiError } = handleApiError(error, "Sentiment Analysis Rate Limit")
+        return NextResponse.json(apiError, { 
+          status: statusCode,
+          headers: { "Retry-After": "60" },
+        })
+      }
+      logger.error("Rate limit check error", {
+        context: "SentimentAnalysis",
+        data: { userId: session.user.id },
+      }, error as Error)
+    }
+
     // Analyze sentiment
     const result = await analyzeSentiment(text)
 
@@ -88,11 +118,16 @@ export async function POST(request: Request) {
       })
     }
 
-    // Return the sentiment analysis result
-    return NextResponse.json({
-      sentiment: result.sentiment,
-      score: result.score,
-    })
+    // Return the sentiment analysis result with rate limit headers
+    return NextResponse.json(
+      {
+        sentiment: result.sentiment,
+        score: result.score,
+      },
+      {
+        headers: rateLimitHeaders,
+      }
+    )
   } catch (error) {
     console.error("Error in sentiment analysis API:", error)
     return NextResponse.json({ error: "Internal server error" }, { status: 500 })

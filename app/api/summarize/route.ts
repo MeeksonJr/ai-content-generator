@@ -2,6 +2,8 @@ import { NextResponse } from "next/server"
 import { summarizeText } from "@/lib/ai/huggingface-client"
 import { logger } from "@/lib/utils/logger"
 import { createSupabaseRouteClient } from "@/lib/supabase/route-client"
+import { checkRateLimit, getRateLimitHeaders } from "@/lib/utils/rate-limiter"
+import { handleApiError, RateLimitError } from "@/lib/utils/error-handler"
 
 // Default usage limits for different plan types
 const DEFAULT_USAGE_LIMITS = {
@@ -87,8 +89,9 @@ export async function POST(request: Request) {
     }
 
     // Default to free plan if no subscription exists
-    const planType = subscription?.plan_type || "free"
-    const subscriptionStatus = subscription?.status || "inactive"
+    const subscriptionData = subscription as any
+    const planType = subscriptionData?.plan_type || "free"
+    const subscriptionStatus = subscriptionData?.status || "inactive"
 
     if (subscriptionStatus !== "active") {
       logger.warn("No active subscription for summarize API", {
@@ -139,6 +142,32 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "Text summarization not available on your current plan" }, { status: 403 })
     }
 
+    // Check rate limits (time-based throttling)
+    let rateLimitHeaders: Record<string, string> = {}
+    try {
+      const minuteLimit = await checkRateLimit(userId, planType, undefined, "minute")
+      const hourLimit = await checkRateLimit(userId, planType, undefined, "hour")
+      
+      rateLimitHeaders = {
+        ...getRateLimitHeaders(minuteLimit),
+        "X-RateLimit-Hourly-Limit": hourLimit.limit.toString(),
+        "X-RateLimit-Hourly-Remaining": hourLimit.remaining.toString(),
+        "X-RateLimit-Hourly-Reset": hourLimit.resetAt.toString(),
+      }
+    } catch (error) {
+      if (error instanceof RateLimitError) {
+        const { statusCode, error: apiError } = handleApiError(error, "Text Summarization Rate Limit")
+        return NextResponse.json(apiError, { 
+          status: statusCode,
+          headers: { "Retry-After": "60" },
+        })
+      }
+      logger.error("Rate limit check error", {
+        context: "TextSummarization",
+        data: { userId },
+      }, error as Error)
+    }
+
     // Summarize text
     const result = await summarizeText(text, maxLength || 150)
 
@@ -162,14 +191,15 @@ export async function POST(request: Request) {
       // Continue without updating stats
     }
 
-    if (usageStats) {
-      await supabase
+    const statsData = usageStats as any
+    if (statsData) {
+      await (supabase as any)
         .from("usage_stats")
         .update({
-          text_summarization_used: usageStats.text_summarization_used + 1,
+          text_summarization_used: (statsData.text_summarization_used || 0) + 1,
           updated_at: new Date().toISOString(),
         })
-        .eq("id", usageStats.id)
+        .eq("id", statsData.id)
     } else {
       await supabase.from("usage_stats").insert({
         user_id: userId,
@@ -179,7 +209,7 @@ export async function POST(request: Request) {
         text_summarization_used: 1,
         api_calls: 0,
         month: currentMonth,
-      })
+      } as any)
     }
 
     logger.info("Successfully summarized text", {
@@ -192,17 +222,19 @@ export async function POST(request: Request) {
       },
     })
 
-    // Return the summarization result
-    const response: any = {
+    // Return the summarization result with rate limit headers
+    const responseData: any = {
       summary: result.summary,
     }
 
     // If there was an error but we still have a summary (fallback), include it as a warning
     if (result.error && result.success) {
-      response.warning = "Using fallback summarization due to service unavailability"
+      responseData.warning = "Using fallback summarization due to service unavailability"
     }
 
-    return NextResponse.json(response)
+    return NextResponse.json(responseData, {
+      headers: rateLimitHeaders,
+    })
   } catch (error) {
     logger.error(
       "Error in text summarization API",
