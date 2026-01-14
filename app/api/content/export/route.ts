@@ -5,6 +5,7 @@ import { logger } from "@/lib/utils/logger"
 import { handleApiError, AuthenticationError, ValidationError, NotFoundError, AuthorizationError } from "@/lib/utils/error-handler"
 import { validateUuid } from "@/lib/utils/validation"
 import { createSecureResponse, handlePreflight } from "@/lib/utils/security"
+import type { ContentRow } from "@/lib/types/api.types"
 
 /**
  * Export content in various formats
@@ -118,7 +119,7 @@ export async function GET(request: NextRequest) {
   }
 }
 
-function generateMarkdown(content: any) {
+function generateMarkdown(content: ContentRow) {
   const metadata: string[] = []
   
   if (content.title) metadata.push(`# ${content.title}\n`)
@@ -143,7 +144,7 @@ function generateMarkdown(content: any) {
   })
 }
 
-function generateText(content: any, format: string = "txt") {
+function generateText(content: ContentRow, format: string = "txt") {
   const metadata: string[] = []
   
   if (content.title) metadata.push(`${content.title}\n`)
@@ -172,7 +173,7 @@ function generateText(content: any, format: string = "txt") {
   })
 }
 
-function generateHTML(content: any, forPDF: boolean = false) {
+function generateHTML(content: ContentRow, forPDF: boolean = false) {
   const html = `
 <!DOCTYPE html>
 <html lang="en">

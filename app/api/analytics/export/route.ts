@@ -4,6 +4,8 @@ import { createSupabaseRouteClient } from "@/lib/supabase/route-client"
 import { logger } from "@/lib/utils/logger"
 import { handleApiError, AuthenticationError, ValidationError } from "@/lib/utils/error-handler"
 import { createSecureResponse, handlePreflight } from "@/lib/utils/security"
+import type { ExportData, ExportContentItem, ExportDataSummary } from "@/lib/types/api.types"
+import type { UsageStatsRow, UsageLimitRow } from "@/lib/types/dashboard.types"
 
 /**
  * GET /api/analytics/export
@@ -61,7 +63,10 @@ export async function GET(request: NextRequest) {
       throw new Error("Failed to fetch subscription data")
     }
 
-    const subscriptionData = await subscriptionResponse.json()
+    const subscriptionData = (await subscriptionResponse.json()) as {
+      usageStats?: UsageStatsRow
+      usageLimits?: UsageLimitRow
+    }
 
     // Fetch content data
     const { data: contentData, error: contentError } = await supabase
@@ -75,21 +80,22 @@ export async function GET(request: NextRequest) {
     }
 
     // Process data based on type
-    let exportData: any = {}
+    const exportData: ExportData = {}
 
     if (dataType === "all" || dataType === "summary") {
-      exportData.summary = {
+      const summary: ExportDataSummary = {
         totalContent: contentData?.length || 0,
-        totalUsage: subscriptionData.usageStats?.content_generated || 0,
-        apiCalls: subscriptionData.usageStats?.api_calls || 0,
-        sentimentAnalysis: subscriptionData.usageStats?.sentiment_analysis_used || 0,
-        keywordExtraction: subscriptionData.usageStats?.keyword_extraction_used || 0,
-        textSummarization: subscriptionData.usageStats?.text_summarization_used || 0,
+        totalUsage: (subscriptionData.usageStats as UsageStatsRow)?.content_generated || 0,
+        apiCalls: (subscriptionData.usageStats as UsageStatsRow)?.api_calls || 0,
+        sentimentAnalysis: (subscriptionData.usageStats as UsageStatsRow)?.sentiment_analysis_used || 0,
+        keywordExtraction: (subscriptionData.usageStats as UsageStatsRow)?.keyword_extraction_used || 0,
+        textSummarization: (subscriptionData.usageStats as UsageStatsRow)?.text_summarization_used || 0,
       }
+      exportData.summary = summary
     }
 
     if (dataType === "all" || dataType === "content") {
-      exportData.content = contentData || []
+      exportData.content = (contentData || []) as ExportContentItem[]
     }
 
     if (dataType === "all" || dataType === "usage") {
@@ -123,7 +129,7 @@ export async function GET(request: NextRequest) {
   }
 }
 
-function generateCSV(data: any, dataType: string) {
+function generateCSV(data: ExportData, dataType: string) {
   let csvContent = ""
 
   if (data.summary) {
@@ -140,7 +146,7 @@ function generateCSV(data: any, dataType: string) {
   if (data.content && data.content.length > 0) {
     csvContent += "Content Details\n"
     csvContent += "ID,Title,Type,Created At,Sentiment,Keywords\n"
-    data.content.forEach((item: any) => {
+    data.content.forEach((item) => {
       const keywords = Array.isArray(item.keywords) ? item.keywords.join("; ") : ""
       csvContent += `${item.id},"${item.title || ""}","${item.content_type || ""}","${item.created_at || ""}","${item.sentiment || ""}","${keywords}"\n`
     })
@@ -154,7 +160,7 @@ function generateCSV(data: any, dataType: string) {
   })
 }
 
-function generateJSON(data: any) {
+function generateJSON(data: ExportData) {
   return NextResponse.json(data, {
     headers: {
       "Content-Type": "application/json; charset=utf-8",
@@ -163,7 +169,7 @@ function generateJSON(data: any) {
   })
 }
 
-function generatePDF(data: any, dataType: string) {
+function generatePDF(data: ExportData, dataType: string) {
   // Generate HTML that can be printed to PDF
   const html = `
 <!DOCTYPE html>
@@ -249,14 +255,14 @@ function generatePDF(data: any, dataType: string) {
         </tr>
       </thead>
       <tbody>
-        ${data.content.map((item: any) => `
+        ${data.content?.map((item) => `
           <tr>
             <td>${item.title || "N/A"}</td>
             <td>${item.content_type || "N/A"}</td>
             <td>${new Date(item.created_at).toLocaleDateString()}</td>
             <td>${item.sentiment || "N/A"}</td>
           </tr>
-        `).join("")}
+        `).join("") || ""}
       </tbody>
     </table>
   ` : ""}

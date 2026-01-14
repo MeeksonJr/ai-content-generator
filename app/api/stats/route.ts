@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server"
 import { createServerSupabaseClient } from "@/lib/supabase/server-client"
+import type { ContentUserId } from "@/lib/types/api.types"
 
 export async function GET() {
   try {
@@ -25,7 +26,8 @@ export async function GET() {
           .from("content")
           .select("user_id")
         if (uniqueUsers) {
-          const uniqueUserIds = new Set(uniqueUsers.map((c: any) => c.user_id))
+          const usersData = uniqueUsers as ContentUserId[]
+          const uniqueUserIds = new Set(usersData.map((c) => c.user_id))
           totalUsers = uniqueUserIds.size
         }
       }
@@ -37,7 +39,8 @@ export async function GET() {
       
       let wordsGenerated = 0
       if (allContent) {
-        wordsGenerated = allContent.reduce((total, item) => {
+        const contentData = allContent as Array<{ content: string }>
+        wordsGenerated = contentData.reduce((total, item) => {
           const wordCount = item.content ? item.content.split(/\s+/).filter(Boolean).length : 0
           return total + wordCount
         }, 0)
@@ -65,7 +68,8 @@ export async function GET() {
       
       let activeUsersCount = 0
       if (recentContent) {
-        const uniqueActiveUserIds = new Set(recentContent.map((c: any) => c.user_id))
+        const recentContentData = recentContent as ContentUserId[]
+        const uniqueActiveUserIds = new Set(recentContentData.map((c) => c.user_id))
         activeUsersCount = uniqueActiveUserIds.size
       }
       
