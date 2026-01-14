@@ -11,6 +11,8 @@ import { Input } from "@/components/ui/input"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { ArrowLeft, Sparkles, Calendar, Search, Clock, Eye, Tag, Menu, TrendingUp, BookOpen, Zap } from "lucide-react"
 import { BlogMobileMenu } from "@/components/blog/blog-mobile-menu"
+import { BlogSearchResults } from "@/components/blog/blog-search-results"
+import { BlogFilters } from "@/components/blog/blog-filters"
 import { formatDate } from "@/lib/utils"
 import { BlogPostSkeleton, ContentGridSkeleton } from "@/components/ui/loading-skeleton"
 import { Skeleton } from "@/components/ui/skeleton"
@@ -35,32 +37,76 @@ interface BlogPost {
 export default function BlogPage() {
   const [searchQuery, setSearchQuery] = useState("")
   const [blogPosts, setBlogPosts] = useState<BlogPost[]>([])
+  const [categories, setCategories] = useState<string[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [currentPage, setCurrentPage] = useState(1)
   const [totalPages, setTotalPages] = useState(1)
   const [totalItems, setTotalItems] = useState(0)
+  const [filters, setFilters] = useState<{
+    category: string | null
+    sort: string
+    dateFrom: string | null
+    dateTo: string | null
+  }>({
+    category: null,
+    sort: "newest",
+    dateFrom: null,
+    dateTo: null,
+  })
   const router = useRouter()
 
   useEffect(() => {
+    fetchCategories()
+  }, [])
+
+  useEffect(() => {
     fetchBlogPosts(currentPage)
-  }, [currentPage])
+  }, [currentPage, filters])
+
+  const fetchCategories = async () => {
+    try {
+      const response = await fetch("/api/blog-posts?limit=1000")
+      if (response.ok) {
+        const data = await response.json()
+        const uniqueCategories = Array.from(new Set((data.results || []).map((post: BlogPost) => post.category).filter(Boolean)))
+        setCategories(uniqueCategories as string[])
+      }
+    } catch (error) {
+      console.error("Error fetching categories:", error)
+    }
+  }
 
   const fetchBlogPosts = async (page = 1) => {
     try {
       setLoading(true)
       setError(null)
-      console.log("Fetching blog posts...")
 
-      // Use a different endpoint to avoid route conflicts
-      const response = await fetch(`/api/blog-posts?page=${page}&limit=12`, {
+      // Build query string
+      const params = new URLSearchParams({
+        page: String(page),
+        limit: "12",
+      })
+
+      if (filters.category) {
+        params.append("category", filters.category)
+      }
+      if (filters.sort) {
+        params.append("sort", filters.sort)
+      }
+      if (filters.dateFrom) {
+        params.append("dateFrom", filters.dateFrom)
+      }
+      if (filters.dateTo) {
+        params.append("dateTo", filters.dateTo)
+      }
+
+      const response = await fetch(`/api/blog-posts?${params.toString()}`, {
         method: "GET",
         headers: {
           "Content-Type": "application/json",
         },
       })
-
-      console.log("Response status:", response.status)
 
       if (!response.ok) {
         const errorText = await response.text()
@@ -76,7 +122,6 @@ export default function BlogPage() {
       }
 
       const data = await response.json()
-      console.log("Fetched data:", data)
       setBlogPosts(data.results || [])
       if (data.pagination) {
         setCurrentPage(data.pagination.currentPage)
@@ -98,9 +143,11 @@ export default function BlogPage() {
 
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault()
-    if (searchQuery.trim()) {
-      router.push(`/blog-search?q=${encodeURIComponent(searchQuery.trim())}`)
-    }
+    // Search is handled inline now, no redirect needed
+  }
+
+  const handleClearSearch = () => {
+    setSearchQuery("")
   }
 
   return (
@@ -227,6 +274,24 @@ export default function BlogPage() {
             </div>
           </div>
         </section>
+
+        {/* Search Results Section */}
+        {searchQuery.trim() && (
+          <section className="w-full py-8 bg-muted/20 border-b border-border">
+            <div className="container px-4 sm:px-6">
+              <BlogSearchResults searchQuery={searchQuery} onClear={handleClearSearch} />
+            </div>
+          </section>
+        )}
+
+        {/* Filters Section */}
+        {categories.length > 0 && !searchQuery.trim() && (
+          <section className="w-full py-4 bg-muted/10 border-b border-border">
+            <div className="container px-4 sm:px-6">
+              <BlogFilters categories={categories} onFiltersChange={setFilters} />
+            </div>
+          </section>
+        )}
 
         {/* Blog Posts Section */}
         <section className="w-full py-12 sm:py-16 md:py-24 bg-muted/30">

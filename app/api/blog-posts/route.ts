@@ -29,11 +29,36 @@ export async function GET(request: NextRequest) {
       Math.max(1, Number.parseInt(searchParams.get("limit") || String(PAGINATION.DEFAULT_LIMIT)))
     )
 
-    // Get total count
-    const { count, error: countError } = await supabase
-      .from("blog_content")
-      .select("*", { count: "exact", head: true })
-      .eq("is_published", true)
+    // Get filter parameters
+    const search = searchParams.get("search")?.trim() || null
+    const category = searchParams.get("category")?.trim() || null
+    const sort = searchParams.get("sort") || "newest" // newest, oldest, most_viewed, alphabetical
+    const dateFrom = searchParams.get("dateFrom") || null
+    const dateTo = searchParams.get("dateTo") || null
+
+    // Build count query
+    let countQuery = supabase.from("blog_content").select("*", { count: "exact", head: true }).eq("is_published", true)
+
+    // Apply search filter
+    if (search) {
+      countQuery = countQuery.or(`title.ilike.%${search}%,excerpt.ilike.%${search}%,content.ilike.%${search}%,search_query.ilike.%${search}%`)
+    }
+
+    // Apply category filter
+    if (category) {
+      countQuery = countQuery.eq("category", category)
+    }
+
+    // Apply date range filter
+    if (dateFrom) {
+      countQuery = countQuery.gte("created_at", dateFrom)
+    }
+    if (dateTo) {
+      countQuery = countQuery.lte("created_at", dateTo)
+    }
+
+    // Get total count with filters
+    const { count, error: countError } = await countQuery
 
     if (countError) {
       console.error("Database count error:", countError)
@@ -43,13 +68,42 @@ export async function GET(request: NextRequest) {
     const total = count || 0
     const pagination = calculatePagination({ page, limit, total })
 
-    // Fetch blog posts with pagination
-    const { data: blogPosts, error } = await supabase
-      .from("blog_content")
-      .select("*")
-      .eq("is_published", true)
-      .order("created_at", { ascending: false })
-      .range(pagination.offset, pagination.offset + pagination.limit - 1)
+    // Build data query
+    let query = supabase.from("blog_content").select("*").eq("is_published", true)
+
+    // Apply filters again
+    if (search) {
+      query = query.or(`title.ilike.%${search}%,excerpt.ilike.%${search}%,content.ilike.%${search}%,search_query.ilike.%${search}%`)
+    }
+    if (category) {
+      query = query.eq("category", category)
+    }
+    if (dateFrom) {
+      query = query.gte("created_at", dateFrom)
+    }
+    if (dateTo) {
+      query = query.lte("created_at", dateTo)
+    }
+
+    // Apply sorting
+    switch (sort) {
+      case "oldest":
+        query = query.order("created_at", { ascending: true })
+        break
+      case "most_viewed":
+        query = query.order("view_count", { ascending: false })
+        break
+      case "alphabetical":
+        query = query.order("title", { ascending: true })
+        break
+      case "newest":
+      default:
+        query = query.order("created_at", { ascending: false })
+        break
+    }
+
+    // Apply pagination
+    const { data: blogPosts, error } = await query.range(pagination.offset, pagination.offset + pagination.limit - 1)
 
     if (error) {
       console.error("Database error:", error)
