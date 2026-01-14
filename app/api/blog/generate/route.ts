@@ -5,6 +5,7 @@ import { logger } from "@/lib/utils/logger"
 import { validateText, validateSearchQuery } from "@/lib/utils/validation"
 import { createSecureResponse, handlePreflight } from "@/lib/utils/security"
 import { API_CONFIG } from "@/lib/constants/app.constants"
+import { invalidateCache, CacheKeys } from "@/lib/cache/redis"
 
 const supabaseUrl = getSupabaseUrl()
 const supabaseServiceKey = getSupabaseServiceRoleKey()
@@ -433,6 +434,11 @@ Topic: ${trimmedQuery}`
         context: "BlogGenerate",
         data: { id: savedContent.id },
       })
+
+      // Invalidate blog posts cache when new post is created
+      await invalidateCache("blog-posts:*")
+      // Also invalidate stats cache
+      await invalidateCache(CacheKeys.stats())
 
       return createSecureResponse({
         content: savedContent,

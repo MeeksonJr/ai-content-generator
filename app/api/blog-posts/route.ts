@@ -5,6 +5,7 @@ import { getSupabaseServiceRoleKey, getSupabaseUrl } from "@/lib/utils/supabase-
 import { createSecureResponse, handlePreflight } from "@/lib/utils/security"
 import { calculatePagination } from "@/lib/utils/pagination"
 import { PAGINATION } from "@/lib/constants/app.constants"
+import { getOrSetCache, CacheKeys, CacheTTL } from "@/lib/cache/redis"
 
 const supabaseUrl = getSupabaseUrl()
 const supabaseServiceKey = getSupabaseServiceRoleKey()
@@ -68,8 +69,16 @@ export async function GET(request: NextRequest) {
     const total = count || 0
     const pagination = calculatePagination({ page, limit, total })
 
-    // Build data query
-    let query = supabase.from("blog_content").select("*").eq("is_published", true)
+    // Build cache key based on filters
+    const cacheKeyFilters = [page, limit, search, category, sort, dateFrom, dateTo].filter(Boolean).join(":")
+    const cacheKey = CacheKeys.blogPosts(page, limit, cacheKeyFilters)
+
+    // Get cached blog posts or fetch fresh (with 5 minute TTL)
+    const blogPosts = await getOrSetCache(
+      cacheKey,
+      async () => {
+        // Build data query
+        let query = supabase.from("blog_content").select("*").eq("is_published", true)
 
     // Apply filters again
     if (search) {
@@ -102,25 +111,30 @@ export async function GET(request: NextRequest) {
         break
     }
 
-    // Apply pagination
-    const { data: blogPosts, error } = await query.range(pagination.offset, pagination.offset + pagination.limit - 1)
+        // Apply pagination
+        const { data: posts, error } = await query.range(pagination.offset, pagination.offset + pagination.limit - 1)
 
-    if (error) {
-      console.error("Database error:", error)
-      return createSecureResponse({ error: "Database error", details: error.message }, 500)
-    }
+        if (error) {
+          console.error("Database error:", error)
+          throw new Error(`Database error: ${error.message}`)
+        }
 
-    return createSecureResponse({
-      results: blogPosts || [],
-      pagination: {
-        currentPage: pagination.currentPage,
-        totalPages: pagination.totalPages,
-        totalItems: total,
-        hasNextPage: pagination.hasNextPage,
-        hasPreviousPage: pagination.hasPreviousPage,
-        limit: pagination.limit,
+        return {
+          results: posts || [],
+          pagination: {
+            currentPage: pagination.currentPage,
+            totalPages: pagination.totalPages,
+            totalItems: total,
+            hasNextPage: pagination.hasNextPage,
+            hasPreviousPage: pagination.hasPreviousPage,
+            limit: pagination.limit,
+          },
+        }
       },
-    })
+      CacheTTL.MEDIUM // Cache for 5 minutes
+    )
+
+    return createSecureResponse(blogPosts)
   } catch (error) {
     console.error("Error fetching blog posts:", error)
     return createSecureResponse(

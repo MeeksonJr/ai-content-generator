@@ -44,6 +44,7 @@
     "@supabase/auth-helpers-nextjs": "latest",
     "@supabase/supabase-js": "latest",
     "@t3-oss/env-nextjs": "latest",
+    "@upstash/redis": "^1.36.1",
     "ai": "latest",
     "arktype": "latest",
     "autoprefixer": "^10.4.23",
