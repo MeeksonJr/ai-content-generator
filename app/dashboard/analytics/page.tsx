@@ -11,24 +11,36 @@ import { Loader2, BarChart3, FileText, MessageSquare, Tag, Download, RefreshCw, 
 import { useToast } from "@/components/ui/use-toast"
 import { createClient } from "@/lib/supabase/client"
 import { cn } from "@/lib/utils"
-import {
-  BarChart,
-  Bar,
-  XAxis,
-  YAxis,
-  CartesianGrid,
-  Tooltip,
-  ResponsiveContainer,
-  PieChart,
-  Pie,
-  Cell,
-  AreaChart,
-  Area,
-  Treemap,
-} from "recharts"
+import dynamic from "next/dynamic"
+import { Skeleton } from "@/components/ui/skeleton"
+
+// Lazy load chart components (recharts is heavy - ~50-70KB)
+const ContentTypeChart = dynamic(() => import("@/components/analytics/content-type-chart").then((mod) => ({ default: mod.ContentTypeChart })), {
+  loading: () => <Skeleton className="h-full w-full" />,
+  ssr: false,
+})
+
+const ContentHistoryChart = dynamic(() => import("@/components/analytics/content-history-chart").then((mod) => ({ default: mod.ContentHistoryChart })), {
+  loading: () => <Skeleton className="h-full w-full" />,
+  ssr: false,
+})
+
+const SentimentChart = dynamic(() => import("@/components/analytics/sentiment-chart").then((mod) => ({ default: mod.SentimentChart })), {
+  loading: () => <Skeleton className="h-full w-full" />,
+  ssr: false,
+})
+
+const KeywordsChart = dynamic(() => import("@/components/analytics/keywords-chart").then((mod) => ({ default: mod.KeywordsChart })), {
+  loading: () => <Skeleton className="h-full w-full" />,
+  ssr: false,
+})
+
+const KeywordsTreemap = dynamic(() => import("@/components/analytics/keywords-treemap").then((mod) => ({ default: mod.KeywordsTreemap })), {
+  loading: () => <Skeleton className="h-full w-full" />,
+  ssr: false,
+})
 import { motion } from "framer-motion"
 import { SkeletonCard } from "@/components/dashboard/skeleton-card"
-import { Skeleton } from "@/components/ui/skeleton"
 
 export default function AnalyticsPage() {
   const [loading, setLoading] = useState(true)
@@ -500,39 +512,7 @@ export default function AnalyticsPage() {
                   </Button>
                 </CardHeader>
                 <CardContent className="h-[250px] sm:h-[300px] lg:h-[350px]">
-                  {contentTypeStats && contentTypeStats.length > 0 ? (
-                    <ResponsiveContainer width="100%" height="100%">
-                      <PieChart>
-                        <Pie
-                          data={contentTypeStats}
-                          cx="50%"
-                          cy="50%"
-                          labelLine
-                          outerRadius={100}
-                          fill="#8884d8"
-                          dataKey="value"
-                          nameKey="name"
-                          label={({ name, percent }) => {
-                            const value = percent ?? 0
-                            return `${name}: ${(value * 100).toFixed(0)}%`
-                          }}
-                        >
-                          {contentTypeStats.map((entry: any, index: number) => (
-                            <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
-                          ))}
-                        </Pie>
-                        <Tooltip
-                          contentStyle={{ backgroundColor: "#333", borderColor: "#555" }}
-                          itemStyle={{ color: "#fff" }}
-                          formatter={(value: any) => [`${value} pieces`, "Count"]}
-                        />
-                      </PieChart>
-                    </ResponsiveContainer>
-                  ) : (
-                    <div className="flex h-full items-center justify-center text-muted-foreground">
-                      No content type data available
-                    </div>
-                  )}
+                  <ContentTypeChart data={contentTypeStats || []} colors={COLORS} />
                 </CardContent>
               </Card>
 
@@ -572,38 +552,7 @@ export default function AnalyticsPage() {
                   </div>
                 </CardHeader>
                 <CardContent className="h-[250px] sm:h-[300px] lg:h-[350px]">
-                  {filteredContentHistory && filteredContentHistory.length > 0 ? (
-                    <ResponsiveContainer width="100%" height="100%">
-                      <AreaChart data={filteredContentHistory}>
-                        <defs>
-                          <linearGradient id="colorCount" x1="0" y1="0" x2="0" y2="1">
-                            <stop offset="5%" stopColor="#8884d8" stopOpacity={0.8} />
-                            <stop offset="95%" stopColor="#8884d8" stopOpacity={0.1} />
-                          </linearGradient>
-                        </defs>
-                        <CartesianGrid strokeDasharray="3 3" stroke="#444" />
-                        <XAxis dataKey="month" stroke="#888" />
-                        <YAxis stroke="#888" />
-                        <Tooltip
-                          contentStyle={{ backgroundColor: "#333", borderColor: "#555" }}
-                          itemStyle={{ color: "#fff" }}
-                          formatter={(value: any) => [`${value} pieces`, "Content Created"]}
-                        />
-                        <Area
-                          type="monotone"
-                          dataKey="count"
-                          name="Content Created"
-                          stroke="#8884d8"
-                          fillOpacity={1}
-                          fill="url(#colorCount)"
-                        />
-                      </AreaChart>
-                    </ResponsiveContainer>
-                  ) : (
-                    <div className="flex h-full items-center justify-center text-muted-foreground">
-                      No content history data available
-                    </div>
-                  )}
+                  <ContentHistoryChart data={filteredContentHistory || []} />
                 </CardContent>
               </Card>
             </div>
@@ -627,44 +576,7 @@ export default function AnalyticsPage() {
                 </Button>
               </CardHeader>
               <CardContent className="h-[400px]">
-                {sentimentStats && sentimentStats.length > 0 ? (
-                  <ResponsiveContainer width="100%" height="100%">
-                      <PieChart>
-                        <Pie
-                          data={sentimentStats}
-                          cx="50%"
-                          cy="50%"
-                          labelLine
-                          label={({ name, percent }) => {
-                            const value = percent ?? 0
-                            return `${name}: ${(value * 100).toFixed(0)}%`
-                          }}
-                          outerRadius={150}
-                          fill="#8884d8"
-                          dataKey="value"
-                        >
-                        {sentimentStats.map((entry: any, index: number) => (
-                          <Cell
-                            key={`cell-${index}`}
-                            fill={
-                              SENTIMENT_COLORS[entry.name as keyof typeof SENTIMENT_COLORS] ||
-                              COLORS[index % COLORS.length]
-                            }
-                          />
-                        ))}
-                      </Pie>
-                      <Tooltip
-                        contentStyle={{ backgroundColor: "#333", borderColor: "#555" }}
-                        itemStyle={{ color: "#fff" }}
-                        formatter={(value: any) => [`${value} pieces`, "Count"]}
-                      />
-                    </PieChart>
-                  </ResponsiveContainer>
-                ) : (
-                  <div className="flex h-full items-center justify-center text-muted-foreground">
-                    No sentiment data available
-                  </div>
-                )}
+                <SentimentChart data={sentimentStats || []} colors={COLORS} sentimentColors={SENTIMENT_COLORS} />
               </CardContent>
             </Card>
 
@@ -739,29 +651,7 @@ export default function AnalyticsPage() {
                 </Button>
               </CardHeader>
               <CardContent className="h-[400px]">
-                {keywordStats && keywordStats.length > 0 ? (
-                  <ResponsiveContainer width="100%" height="100%">
-                    <BarChart data={keywordStats} layout="vertical">
-                      <CartesianGrid strokeDasharray="3 3" stroke="#444" />
-                      <XAxis type="number" stroke="#888" />
-                      <YAxis dataKey="name" type="category" stroke="#888" width={120} tick={{ fontSize: 12 }} />
-                      <Tooltip
-                        contentStyle={{ backgroundColor: "#333", borderColor: "#555" }}
-                        itemStyle={{ color: "#fff" }}
-                        formatter={(value: any) => [`${value} occurrences`, "Frequency"]}
-                      />
-                      <Bar dataKey="value" name="Frequency" radius={[0, 4, 4, 0]}>
-                        {keywordStats.map((entry: any, index: number) => (
-                          <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
-                        ))}
-                      </Bar>
-                    </BarChart>
-                  </ResponsiveContainer>
-                ) : (
-                  <div className="flex h-full items-center justify-center text-muted-foreground">
-                    No keyword data available
-                  </div>
-                )}
+                <KeywordsChart data={keywordStats || []} colors={COLORS} />
               </CardContent>
             </Card>
 
@@ -771,24 +661,7 @@ export default function AnalyticsPage() {
                 <CardDescription>Visual representation of your most common keywords</CardDescription>
               </CardHeader>
               <CardContent className="h-[300px]">
-                {keywordStats && keywordStats.length > 0 ? (
-                  <ResponsiveContainer width="100%" height="100%">
-                    <Treemap data={keywordStats} dataKey="value" nameKey="name" stroke="#333" fill="#8884d8">
-                      {keywordStats.map((entry: any, index: number) => (
-                        <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
-                      ))}
-                      <Tooltip
-                        contentStyle={{ backgroundColor: "#333", borderColor: "#555" }}
-                        itemStyle={{ color: "#fff" }}
-                        formatter={(value: any) => [`${value} occurrences`, "Frequency"]}
-                      />
-                    </Treemap>
-                  </ResponsiveContainer>
-                ) : (
-                  <div className="flex h-[200px] items-center justify-center text-muted-foreground">
-                    No keyword data available
-                  </div>
-                )}
+                <KeywordsTreemap data={keywordStats || []} colors={COLORS} />
               </CardContent>
               <CardFooter>
                 <div className="flex flex-wrap gap-2 justify-center w-full">

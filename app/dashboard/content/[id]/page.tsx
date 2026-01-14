@@ -16,8 +16,19 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
 import { Loader2, Save, Copy, ArrowLeft, Sparkles, Download, FileText, Flag } from "lucide-react"
-import { ContentComments } from "@/components/collaboration/content-comments"
-import { VersionHistory } from "@/components/collaboration/version-history"
+import dynamic from "next/dynamic"
+import { Skeleton } from "@/components/ui/skeleton"
+
+// Lazy load collaboration components
+const ContentComments = dynamic(() => import("@/components/collaboration/content-comments").then((mod) => ({ default: mod.ContentComments })), {
+  loading: () => <Skeleton className="h-64 w-full" />,
+  ssr: false,
+})
+
+const VersionHistory = dynamic(() => import("@/components/collaboration/version-history").then((mod) => ({ default: mod.VersionHistory })), {
+  loading: () => <Skeleton className="h-64 w-full" />,
+  ssr: false,
+})
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { useToast } from "@/components/ui/use-toast"
 import { createClient } from "@/lib/supabase/client"
